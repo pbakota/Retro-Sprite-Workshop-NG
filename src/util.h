@@ -1,0 +1,80 @@
+#pragma once
+
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <vector>
+#include <string>
+
+const std::string vformat(const char *const zcFormat, ...);
+std::string trucate_text(const std::string &p_text, float p_truncated_width);
+std::string return_current_time_and_date();
+bool is_light_color(ImU32 color);
+
+// requires at least C++11
+const std::string vformat(const char * const zcFormat, ...) {
+
+    // initialize use of the variable argument array
+    va_list vaArgs;
+    va_start(vaArgs, zcFormat);
+
+    // reliably acquire the size
+    // from a copy of the variable argument array
+    // and a functionally reliable call to mock the formatting
+    va_list vaArgsCopy;
+    va_copy(vaArgsCopy, vaArgs);
+    const int iLen = std::vsnprintf(NULL, 0, zcFormat, vaArgsCopy);
+    va_end(vaArgsCopy);
+
+    // return a formatted string without risking memory mismanagement
+    // and without assuming any compiler or platform specific behavior
+    std::vector<char> zc(iLen + 1);
+    std::vsnprintf(zc.data(), zc.size(), zcFormat, vaArgs);
+    va_end(vaArgs);
+    return std::string(zc.data(), iLen);
+}
+
+bool is_light_color(ImU32 color)
+{
+	float r = (color>>24)&0xff,g=(color>>16)&0xff,b=(color>>8)&0xff;
+	float luma = 0.2126*r+0.7152*g+0.0722*b;
+	return (luma > 128);
+}
+
+std::string trucate_text(const std::string& p_text, float p_truncated_width) {
+	std::string truncated_text = p_text;
+
+	const float text_width =
+			ImGui::CalcTextSize(p_text.c_str(), nullptr, true).x;
+
+	if (text_width > p_truncated_width) {
+		constexpr const char* ELLIPSIS = " ...";
+		const float ellipsis_size = ImGui::CalcTextSize(ELLIPSIS).x;
+
+		int visible_chars = 0;
+		for (size_t i = 0; i < p_text.size(); i++) {
+			const float current_width = ImGui::CalcTextSize(
+					p_text.substr(0, i).c_str(), nullptr, true)
+												.x;
+			if (current_width + ellipsis_size > p_truncated_width) {
+				break;
+			}
+
+			visible_chars = i;
+		}
+
+		truncated_text = (p_text.substr(0, visible_chars) + ELLIPSIS).c_str();
+	}
+
+	return truncated_text;
+}
+
+std::string return_current_time_and_date()
+{
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
+    return ss.str();
+}
