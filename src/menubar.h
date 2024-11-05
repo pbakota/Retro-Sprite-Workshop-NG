@@ -144,13 +144,13 @@ struct MenuBar
                 // Result path in: saveDialogInfo.resultPath
                 //strncpy(exportTo, std::filesystem::relative(saveDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(exportTo));
                 if(!spriteManager->SaveProject(saveDialogInfo.resultPath)) {
-                    std::cerr << "ERROR: Failed to save project!" << std::ends;
+                    std::cerr << "ERROR: Failed to save project!" << std::endl;
                 }
             }
 
             if (ImGui::FileDialog(&openOpenProjectDialog, &openDialogInfo)) {
                 if(!spriteManager->LoadProject(openDialogInfo.resultPath)) {
-                    std::cerr << "ERROR: Failed to load project!" << std::ends;
+                    std::cerr << "ERROR: Failed to load project!" << std::endl;
                 }
             }
         }

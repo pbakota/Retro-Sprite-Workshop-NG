@@ -23,7 +23,7 @@ bool show_demo_window = false;
 Project project;
 StatusBar statusbar;
 SpriteImage spriteImage(&statusbar);
-SpriteManager spriteManager(&project);
+SpriteManager spriteManager(&project, &spriteImage, &statusbar);
 MenuBar menubar(&spriteManager);
 ProjectSprites projectSprites(&spriteManager, &spriteImage, &statusbar, &project);
 
@@ -83,6 +83,7 @@ int main(int, char **)
 
     bool firstFrame = true;
 
+    spriteManager.NewProject();
     for (auto i = 0; i < 200;++i) {
         spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft works aircraft_%d", i).c_str()));
     }

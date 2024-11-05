@@ -3,16 +3,18 @@
 #include <memory>
 #include "sprite.h"
 #include "project.h"
-
-struct Project;
+#include "sprite_image.h"
+#include "statusbar.h"
 
 struct SpriteManager {
     Project *project;
+    SpriteImage *spriteImage;
+    StatusBar *statusbar;
 
     std::vector<Sprite*> sprites;
     std::string projectFile = "";
 
-    SpriteManager(Project *project): project(project) { }
+    SpriteManager(Project *project, SpriteImage *spriteImage, StatusBar* statusbar) : project(project), spriteImage(spriteImage), statusbar(statusbar) { }
 
     ~SpriteManager() {
         Clear();
@@ -47,14 +49,27 @@ struct SpriteManager {
     // Insert sprite after index
     void InsertSprite(const std::size_t index, const Sprite &sprite) {}
 
+    void AttachSprite(Sprite* sprite) {
+        spriteImage->currentSprite = sprite;
+        statusbar->is_zoom_visible = true;
+        statusbar->zoomIndex = sprite->zoomIndex;
+    }
+
+    void DetachSprite() {
+        spriteImage->currentSprite = nullptr;
+        statusbar->is_zoom_visible = false;
+    }
+
     bool LoadProject(const std::string& filename) {
         std::vector<Sprite*> temp;
-        bool success = (project->Load(filename, temp));
-        if(success) {
+        bool result = project->Load(filename, temp);
+        if(result) {
+            DetachSprite();
+            Clear();
             sprites = temp;
         }
 
-        return success;
+        return result;
     }
 
     bool SaveProject(const std::string& filename) {

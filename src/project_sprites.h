@@ -167,15 +167,12 @@ struct ProjectSprites
 
                     // Attach sprite to the editor if we double clicked on sprite
                     if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        spriteImage->currentSprite = sprite;
-                        statusbar->is_zoom_visible = true;
-                        statusbar->zoomIndex = sprite->zoomIndex;
+                        spriteManager->AttachSprite(sprite);
                     } else {
                         // Detach sprite from the editor if we selected different sprite
                         if(selectedSpriteId != lastSelectedSpriteId) {
-                            spriteImage->currentSprite = nullptr;
+                            spriteManager->DetachSprite();
                             lastSelectedSpriteId = selectedSpriteId;
-                            statusbar->is_zoom_visible = false;
                         }
                     }
 
