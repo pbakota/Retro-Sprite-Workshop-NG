@@ -169,6 +169,7 @@ struct ProjectSprites
                     if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         spriteImage->currentSprite = sprite;
                         statusbar->is_zoom_visible = true;
+                        statusbar->zoomIndex = sprite->zoomIndex;
                     } else {
                         // Detach sprite from the editor if we selected different sprite
                         if(selectedSpriteId != lastSelectedSpriteId) {
@@ -220,9 +221,6 @@ struct ProjectSprites
                 const auto oldCursorY = ImGui::GetCursorPosY();
                 ImGui::PushID(sprite->ID);
 
-                    const float scale = 2.0f;
-                    ImVec2 size = ImVec2((sprite->widthInBytes<<3)*scale, (sprite->heightInPixels)*scale);
-
                     // FIXME: Proper calculation of height for the wrapped texts
                     // float text_height = ImGui::CalcTextSize(sprite->spriteID.c_str()).y*2;
 
@@ -230,7 +228,7 @@ struct ProjectSprites
 
                     // NOTE: ImGuiSelectableFlags_NoHighlight is not an official imGui flag!
                     auto flags = ImGuiSelectableFlags_NoHighlight | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_AllowDoubleClick;
-                    if (ImGui::Selectable("", isSelected, flags, ImVec2(0, size.y + text_height)))
+                    if (ImGui::Selectable("", isSelected, flags, ImVec2(0, 64.0f + text_height)))
                     {
                         selectedSpriteId = sprite->ID;
                     }
@@ -239,6 +237,7 @@ struct ProjectSprites
                     if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         spriteImage->currentSprite = sprite;
                         statusbar->is_zoom_visible = true;
+                        statusbar->zoomIndex = sprite->zoomIndex;
                     } else {
                         // Detach sprite from the editor if we selected different sprite
                         if(selectedSpriteId != lastSelectedSpriteId) {

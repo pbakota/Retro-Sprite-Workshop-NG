@@ -17,6 +17,8 @@ struct Project
     bool autoExportSourceCode = true;
     bool includeMetadata = true;
 
+    typedef std::vector<std::pair<std::string, std::string>> keyvalue_list;
+
     Project() {}
 
     void NewProject() {
@@ -34,7 +36,32 @@ struct Project
 
     bool Load(const std::string &filename, std::vector<Sprite*> &sprites) {
         sprites.clear();
-        return false;
+
+        keyvalue_list values;
+        if(!ParseFile(filename, values)) {
+            return false;
+        }
+
+        for(auto it = values.begin(); it!=values.end(); ++it) {
+            const auto kv = *it;
+            if(kv.first == "ProjectName") {
+                strncpy(projectName, kv.second.c_str(), sizeof(projectName));
+            } else if(kv.first == "Comments") {
+                strncpy(projectComments, kv.second.c_str(), sizeof(projectComments));
+            } else if(kv.first == "Platform") {
+                strncpy(platformName, kv.second.c_str(), sizeof(platformName));
+            } else if(kv.first == "CreatedOn") {
+                strncpy(createdOn, kv.second.c_str(), sizeof(createdOn));
+            } else if(kv.first == "AutomaticExportOnSave") {
+                autoExportSourceCode = kv.second == "True";
+            } else if (kv.first == "SourceCodeExportPath") {
+               strncpy(exportTo, kv.second.c_str(), sizeof(exportTo));
+            } else if(kv.first == "AutomaticExportWithComments") {
+                includeMetadata = kv.second == "True";
+            }
+        }
+
+        return true;
     }
 
     bool Save(const std::string &filename, std::vector<Sprite*> &sprites) {
@@ -48,9 +75,9 @@ struct Project
         fs << "Comments=" << projectComments << CR;
         fs << "Platform=" << platformName << CR;
         fs << "CreatedOn=" << createdOn << CR;
-        fs << "AutomaticExportOnSave=" << autoExportSourceCode << CR;
+        fs << "AutomaticExportOnSave=" << (autoExportSourceCode ? "True" : "False") << CR;
         fs << "SourceCodeExportPath=" << exportTo << CR;
-        fs << "AutomaticExportWithComments=" << includeMetadata << CR;
+        fs << "AutomaticExportWithComments=" << (includeMetadata ? "True" : "False") << CR;
 
         int n = 1;
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {
@@ -69,9 +96,34 @@ struct Project
             fs << "Sprite" << n << ".Data=" << "00000005171F1D1F0F0F3F3F3D350F0505040404040414540000000000000000000000000040C0C0C00000C0F1FDC04040501010101014150000000000000000\n";
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CR;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CR;
-            fs << "Sprite" << n << ".ZoomFactor=" << "1\n";
+            fs << "Sprite" << n << ".ZoomFactor=" << sp->zoomIndex << CR;
         }
         fs.close();
+        return true;
+    }
+
+    bool ParseFile(const std::string& filename, keyvalue_list &graph) {
+        std::ifstream rd(filename, std::ios::binary);
+        if(!rd.is_open()) {
+            return false;
+        }
+
+        // read until you reach the end of the file
+        for (std::string line; std::getline(rd, line); ) {
+
+            std::string v = trim(line);
+            if(v[0] == '#') continue; // skip comment
+
+            std::size_t firstEqual = v.find('=');
+            if(firstEqual==std::string::npos) continue; // skip invalid line
+
+            std::string key = v.substr(0,firstEqual);
+            std::string val = v.substr(firstEqual+1);
+
+            graph.push_back(std::pair<std::string,std::string>(key, val));
+        }
+
+        rd.close();
         return true;
     }
 };

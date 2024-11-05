@@ -5,9 +5,12 @@
 #include "project.h"
 
 struct Project;
+
 struct SpriteManager {
     Project *project;
+
     std::vector<Sprite*> sprites;
+    std::string projectFile = "";
 
     SpriteManager(Project *project): project(project) { }
 

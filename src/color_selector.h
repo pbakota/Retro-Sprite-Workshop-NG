@@ -161,33 +161,52 @@ ColorDef plus4pal[128] = {
 
 struct ColorSelector
 {
-    int paletteIndex = 0;
     const char* paletteValues[2] = {
         "VIC - Commodore 64 (16 colors)",
         "TED - Commodore 264 Series (120 colors)",
     };
+	ImU32 selectedColor;
 
     ColorSelector() {}
 
-    bool show(bool *open, ImU32 current_color) {
+    bool show(bool *open, ImU32 current_color, Sprite::PaletteType *palette) {
         if(!*open)
             return false;
 
         bool completed = false;
+		size_t selected = 128;
+		switch(*palette) {
+			case Sprite::PaletteType::C64_Pal:
+			for(size_t n=0;n<16;++n) {
+				if(c64pal[n].color == current_color) {
+					selected = n;
+					break;
+				}
+			}
+			break;
+			case Sprite::PaletteType::C264_Pal:
+			for(size_t n=0;n<128;++n) {
+				if(plus4pal[n].color == current_color) {
+					selected = n;
+					break;
+				}
+			}
+			break;
+		}
 
         // Always center this window when appearing
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         ImGui::SetNextWindowSize(ImVec2(380.0f,310.0f));
-        if(ImGui::Begin("Pick a Palette Color", open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
-
+		ImGui::OpenPopup("Pick a Palette Color", ImGuiPopupFlags_None);
+        if(ImGui::BeginPopupModal("Pick a Palette Color", open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_Popup)) {
             ImGui::SetNextItemWidth(200.0f); ImGui::TextUnformatted("Palette");
-            ImGui::SameLine(); ImGui::PushID(0); ImGui::SetNextItemWidth(-1); if(ImGui::BeginCombo("", paletteValues[paletteIndex])) {
+            ImGui::SameLine(); ImGui::PushID(0); ImGui::SetNextItemWidth(-1); if(ImGui::BeginCombo("", paletteValues[(size_t)*palette])) {
                 for (int n = 0; n < IM_ARRAYSIZE(paletteValues); n++) {
-                    const bool is_selected = (paletteIndex == n);
+                    const bool is_selected = (*palette == (Sprite::PaletteType)n);
                     if (ImGui::Selectable(paletteValues[n], is_selected)) {
-                        paletteIndex = n;
+                        *palette = (Sprite::PaletteType)n;
                     }
 
                     if (is_selected) {
@@ -199,14 +218,14 @@ struct ColorSelector
 
             bool is_hover = false;
 			ColorDef* hovered_color;
-            switch(paletteIndex) {
-                case 0:
+            switch(*palette) {
+                case Sprite::PaletteType::C64_Pal:
 					// Remove all padding values when rendering color selector buttons
 					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
                     for(size_t n=0; n<16; ++n) {
 						ImGui::PushID(n); if(n>=1) ImGui::SameLine();
 						bool hovered;
-						if(ColorSelectorButton(c64pal[n].color, n == 1, &hovered)) {
+						if(ColorSelectorButton(c64pal[n].color, n == selected, &hovered)) {
                             completed = true;
                             *open = false;
 						}
@@ -218,14 +237,14 @@ struct ColorSelector
                     }
 					ImGui::PopStyleVar();
                 break;
-                case 1:
+                case Sprite::PaletteType::C264_Pal:
                     size_t n = 0;
 					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
                     for(size_t y=0; y<8; ++y) {
                         for(size_t x=0; x<16; ++x, n++) {
 							ImGui::PushID(n); if(x>=1) ImGui::SameLine();
 							bool hovered;
-							if(ColorSelectorButton(plus4pal[n].color, n == 10, &hovered)) {
+							if(ColorSelectorButton(plus4pal[n].color, n == selected, &hovered)) {
 								completed = true;
 								*open = false;
 							}
@@ -241,14 +260,16 @@ struct ColorSelector
             }
 
             if(is_hover) {
+				selectedColor = hovered_color->color; // ABGR_BLUE(hovered_color->color)<<16|ABGR_GREEN(hovered_color->color)<<8|ABGR_RED(hovered_color->color);
+
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 80.0f);
-                ImGui::Text("%s (RGB: %d,%d,%d #%04x)",
+                ImGui::Text("%s (RGB: %d,%d,%d #%06x)",
 					hovered_color->name,
-					(hovered_color->color)&0xff,
-					(hovered_color->color>>8)&0xff,
-					(hovered_color->color>>16)&0xff,
-					(((hovered_color->color&0xff)<<16)|((hovered_color->color&0xff00))|((hovered_color->color&0xff0000)>>16)));
+					ABGR_RED(hovered_color->color),
+					ABGR_GREEN(hovered_color->color),
+					ABGR_BLUE(hovered_color->color),
+					((ABGR_RED(hovered_color->color)<<16)|((ABGR_GREEN(hovered_color->color)<<8))|(ABGR_BLUE(hovered_color->color))));
             }
 
             ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 115.0f);
@@ -257,8 +278,7 @@ struct ColorSelector
             ImGui::PushID(1); if(ImGui::Button("Close", ImVec2(100,20))) {
                 *open = false;
             } ImGui::PopID();
-
-            ImGui::End();
+			ImGui::EndPopup();
         }
 
         return completed;

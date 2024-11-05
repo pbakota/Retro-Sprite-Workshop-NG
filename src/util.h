@@ -6,6 +6,11 @@
 #include <vector>
 #include <string>
 
+// ABGR
+#define ABGR_BLUE(color) ((color>>16)&0xff)
+#define ABGR_GREEN(color) ((color>>8)&0xff)
+#define ABGR_RED(color) ((color)&0xff)
+
 const std::string vformat(const char *const zcFormat, ...);
 std::string trucate_text(const std::string &p_text, float p_truncated_width);
 std::string return_current_time_and_date();
@@ -36,7 +41,7 @@ const std::string vformat(const char * const zcFormat, ...) {
 
 bool is_light_color(ImU32 color)
 {
-	float r = (color>>24)&0xff,g=(color>>16)&0xff,b=(color>>8)&0xff;
+	float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
 	float luma = 0.2126*r+0.7152*g+0.0722*b;
 	return (luma > 128);
 }
@@ -77,4 +82,22 @@ std::string return_current_time_and_date()
     std::stringstream ss;
     ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
     return ss.str();
+}
+
+const std::string WHITESPACE = " \n\r\t\f\v";
+ 
+std::string ltrim(const std::string &s)
+{
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
+}
+
+std::string rtrim(const std::string &s)
+{
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+
+std::string trim(const std::string &s) {
+    return rtrim(ltrim(s));
 }

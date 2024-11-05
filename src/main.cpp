@@ -57,6 +57,9 @@ int main(int, char **)
         return -1;
     }
 
+    assert(SDL_RenderTargetSupported(renderer));
+
+
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

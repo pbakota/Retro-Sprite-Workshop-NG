@@ -7,12 +7,13 @@
 #include <cassert>
 #include <SDL_render.h>
 
+#define TEST_SPRITE
+
 static int nextID = 0;
 
 struct Sprite
 {
     int ID;
-    SDL_Surface *surface;
     SDL_Texture *original = nullptr, *scaled = nullptr;
 
     enum class PaletteType {
@@ -41,22 +42,70 @@ struct Sprite
     bool multicolorMode = true;
     bool prerenderSoftwareSprite = true;
     PrerendingPrecision renderingPrecision = PrerendingPrecision::Low2Frames;
-    ImU32 backgroundColor;
-    ImU32 characterColor;
-    ImU32 multi1Color;
-    ImU32 multi2Color;
-    PaletteType palette;
+    ImU32 backgroundColor = 0xff000000; // 0b00
+    ImU32 multi1Color     = 0xffff0000; // 0b01
+    ImU32 multi2Color     = 0xff0000ff; // 0b10
+    ImU32 characterColor  = 0xffffffff; // 0b11
+    PaletteType palette = PaletteType::C64_Pal;
+    size_t zoomIndex = 3; // 100%
     bool dirty = true;
 
+    const size_t pitch = 64;
+    char data[4096]; // 64x64 the maximum size
+
+#ifdef TEST_SPRITE
+    char test_sprite[32][16] = {
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
+        {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0}
+    };
+#endif
     Sprite(std::size_t widthInBytes, std::size_t heightInPixels, const char *imageName) : heightInPixels(heightInPixels), widthInBytes(widthInBytes)
     {
         ID = nextID++;
-
+        assert(widthInBytes<=8);
+        assert(heightInPixels<=64);
         strncpy(spriteID, imageName, sizeof(spriteID));
-        surface = SDL_CreateRGBSurface(0, 64, 64, 32, 0, 0, 0, 0);
-        assert(surface != nullptr);
-        SDL_FillRect(surface, nullptr, 0xffaaaaaa);
+        memset((void*)data, 0, sizeof(data));
+
+#ifdef TEST_SPRITE
+        size_t widthInPixels = widthInBytes<<3;
+        for(size_t y=0;y<heightInPixels;y++) {
+            for(size_t x=0;x<widthInPixels;x++) {
+                data[y*pitch+x]=test_sprite[y][x];
+            }
+        }
     }
+#endif
 
     ~Sprite()
     {
@@ -65,10 +114,6 @@ struct Sprite
 
     void Free()
     {
-        if(surface) {
-            SDL_FreeSurface(surface);
-            surface = nullptr;
-        }
         if(original) {
             SDL_DestroyTexture(original);
             original = nullptr;
@@ -79,24 +124,26 @@ struct Sprite
         }
     }
 
-    SDL_Texture *GetTexture(SDL_Renderer *renderer, float scale = 1.0f)
-    {
-        if(original && !dirty && ((scale <= 1.0f || scale > 8.0f) || !SDL_RenderTargetSupported(renderer))) {
+    void SetDrawColor(SDL_Renderer *renderer, ImU32 color) {
+        char r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
+        SDL_SetRenderDrawColor(renderer, r, g, b, SDL_ALPHA_OPAQUE);
+    }
+
+    void Invalidate() {
+        dirty = true;
+    }
+
+    SDL_Texture *GetTexture(SDL_Renderer *renderer, float scale = 1.0f) {
+
+        bool was_dirty = CreateOriginalSizeTextureCache(renderer);
+        if(scale == 1.0f) {
             return original;
         }
 
-        if(dirty || (original == nullptr)) {
-            dirty = false;
+        if(was_dirty || (scaled == nullptr)) {
 
-            if(original) {
-                SDL_DestroyTexture(original);
-            }
-
-            // Generated original size texture
-            original = SDL_CreateTextureFromSurface(renderer, surface);
-            if(scale == 1.0f) {
-                return original;
-            }
+            assert(scale>=1.0);
+            assert(scale<=8.0);
 
             // Generated scaled texture
             int w=(int)(widthInBytes<<3), h=(int)(heightInPixels);
@@ -104,7 +151,6 @@ struct Sprite
 
             if(scaled) {
                 SDL_DestroyTexture(scaled);
-                scaled = nullptr;
             }
 
             scaled = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
@@ -114,53 +160,81 @@ struct Sprite
             SDL_RenderCopy(renderer, original, nullptr, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
+
         return scaled;
     }
 
+
     SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
-        if(original && (!dirty || !SDL_RenderTargetSupported(renderer))) {
+
+        bool was_dirty = CreateOriginalSizeTextureCache(renderer);
+        if(size.x == (widthInBytes<<3) && size.y == heightInPixels) {
             return original;
         }
 
-        if(dirty || (original == nullptr)) {
-            dirty = false;
-
-            if(original) {
-                SDL_DestroyTexture(original);
-            }
-
-            // Generated original size texture
-            original = SDL_CreateTextureFromSurface(renderer, surface);
-
+        if(was_dirty || (scaled == nullptr)) {
             // Generated scaled texture
-            SDL_Rect d = {0,0,(int)(size.x),(int)(size.y)};
+            SDL_Rect s = {0,0,((int)(widthInBytes<<3)),(int)heightInPixels}, d = {0,0,(int)(size.x),(int)(size.y)};
 
             if(scaled) {
                 SDL_DestroyTexture(scaled);
-                scaled = nullptr;
             }
 
             scaled = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
             assert(scaled != nullptr);
 
             assert(SDL_SetRenderTarget(renderer, scaled)==0);
-            SDL_RenderCopy(renderer, original, nullptr, &d);
+            SDL_RenderCopy(renderer, original, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
         return scaled;
     }
 
-    void SetPixel(size_t x, size_t y, /*ABGR*/ ImU32 color) {
-        if(x>=(multicolorMode ? (widthInBytes<<2) : (widthInBytes<<3))&&(y>=heightInPixels)) return;
-        dirty = true;
-        if(SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
-        if(multicolorMode) {
-            ((Uint32*)surface->pixels)[y*surface->pitch + x+0] = color;
-            ((Uint32*)surface->pixels)[y*surface->pitch + x+1] = color;
-        } else {
-            ((Uint32*)surface->pixels)[y*surface->pitch + x+0] = color;
+    bool CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
+        bool was_dirty = dirty;
+        if(dirty || (original == nullptr)) {
+            dirty = false;
+            was_dirty = true;
+
+            if(original == nullptr) {
+                original = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
+            }
+
+            // Generated original size texture
+            assert(SDL_SetRenderTarget(renderer, original)==0);
+
+            SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
+            SDL_RenderClear(renderer);
+
+            size_t widthInPixels = (widthInBytes<<3);
+            for (size_t j = 0; j < heightInPixels; ++j) {
+                if (multicolorMode) {
+                    for (size_t i = 0; i < widthInPixels; i += 2) {
+                        char *p = (char*)data + i + j*pitch;
+                        size_t v = (p[0] << 1) | p[1];
+                        if(v == 0) continue; // skip background rendering (we already cleared the whole background with one call)
+                        switch (v) {
+                        case 1: SetDrawColor(renderer, multi1Color); break;
+                        case 2: SetDrawColor(renderer, multi2Color); break;
+                        case 3: SetDrawColor(renderer, characterColor); break;
+                        }
+                        SDL_Rect r = {(int)i, (int)j, 2, 1};
+                        SDL_RenderFillRect(renderer, &r);
+                    }
+                } else {
+                    for (size_t i = 0; i < widthInPixels; ++i) {
+                        char *p = (char*)data + i + j*pitch;
+                        if (*p) {
+                            SetDrawColor(renderer, characterColor);
+                            SDL_Rect r = {(int)i, (int)j, 1, 1};
+                            SDL_RenderFillRect(renderer, &r);
+                        }
+                    }
+                }
+            }
+            assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
-        if(SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
+        return was_dirty;
     }
 
     std::string GetByteAlignment() {

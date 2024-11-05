@@ -15,7 +15,7 @@ struct MenuBar
     int spriteListType = 0;
     bool exporWithComments = false;
 
-    ImFileDialogInfo fileDialogInfo = {
+    ImFileDialogInfo saveDialogInfo = {
         .title = "Save Project As ...",
         .type = ImGuiFileDialogType_SaveFile,
         .flags = 0, //ImGuiFileDialogFlags_FileMustExist,
@@ -23,6 +23,15 @@ struct MenuBar
         .directoryPath = std::filesystem::current_path()
     };
     bool openSaveProjectDialog = false;
+
+    ImFileDialogInfo openDialogInfo = {
+        .title = "Open Project ...",
+        .type = ImGuiFileDialogType_OpenFile,
+        .flags = ImGuiFileDialogFlags_FileMustExist,
+        .fileName = "",
+        .directoryPath = std::filesystem::current_path()
+    };
+    bool openOpenProjectDialog = false;
 
     MenuBar(SpriteManager *spriteManager): spriteManager(spriteManager) {}
 
@@ -32,11 +41,14 @@ struct MenuBar
                 if(ImGui::MenuItem("New Project", "Ctrl+N")) {
                     spriteManager->NewProject();
                 }
-                if(ImGui::MenuItem("Open Project...", "Ctrl+O")) {}
+                if(ImGui::MenuItem("Open Project...", "Ctrl+O")) {
+                    openOpenProjectDialog = true;
+                    openDialogInfo.fileName = spriteManager->projectFile;
+                }
                 if(ImGui::MenuItem("Save Project", "Ctrl+S")) {}
                 if(ImGui::MenuItem("Save Project As...")) {
                     openSaveProjectDialog = true;
-                    fileDialogInfo.fileName = "project1.spr";
+                    saveDialogInfo.fileName = "project1.spr";
                 }
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Export as Source Code"))
@@ -127,12 +139,18 @@ struct MenuBar
             }
             ImGui::EndMainMenuBar();
 
-            if (ImGui::FileDialog(&openSaveProjectDialog, &fileDialogInfo))
+            if (ImGui::FileDialog(&openSaveProjectDialog, &saveDialogInfo))
             {
-                // Result path in: fileDialogInfo.resultPath
-                //strncpy(exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(exportTo));
-                if(!spriteManager->SaveProject(fileDialogInfo.resultPath)) {
+                // Result path in: saveDialogInfo.resultPath
+                //strncpy(exportTo, std::filesystem::relative(saveDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(exportTo));
+                if(!spriteManager->SaveProject(saveDialogInfo.resultPath)) {
                     std::cerr << "ERROR: Failed to save project!" << std::ends;
+                }
+            }
+
+            if (ImGui::FileDialog(&openOpenProjectDialog, &openDialogInfo)) {
+                if(!spriteManager->LoadProject(openDialogInfo.resultPath)) {
+                    std::cerr << "ERROR: Failed to load project!" << std::ends;
                 }
             }
         }
