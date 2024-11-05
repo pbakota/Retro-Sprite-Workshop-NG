@@ -81,7 +81,6 @@ struct Project
             } else if(kv.first.substr(0,6) == "Sprite") {
                 std::size_t firstDot = kv.first.find('.');
                 if(firstDot==std::string::npos) continue; // skip invalid line
-                
                 std::string key = kv.first.substr(firstDot+1);
                 if(key == "ID") {
                     sp = new Sprite(1,1, kv.second.c_str());
@@ -116,7 +115,7 @@ struct Project
                     // force zoom between 0 and 7
                     sp->zoomIndex = std::max(0, std::min(7, std::atoi(kv.second.c_str())));
                 }
-            }            
+            }
         }
 
         return true;
@@ -212,22 +211,21 @@ struct Project
         char temp[4096], *p = temp;
         memset((void*)p,0,sizeof(temp));
         for(auto it=str.begin(); it!=str.end(); it += 2) {
-            size_t hi = (*it+0)-'0'; if(hi>10) hi-=7;
-            size_t lo = (*it+1)-'0'; if(lo>10) lo-=7;
+            size_t hi = *(it+0)-'0'; if(hi>10) hi-=7;
+            size_t lo = *(it+1)-'0'; if(lo>10) lo-=7;
             *p++ = hi<<4|lo;
+            // std::cerr << vformat("%02X", (size_t)(p[-1])&0xff) << std::endl;
         }
+
 
         size_t widthInPixels = widthInBytes<<3;
         p = temp;
         for(size_t y=0; y<heightInPixels; ++y) {
-            for(size_t x=0; x<widthInPixels; x+=8) {
-                size_t m = 128;
-                for(size_t t=0; t<8; ++t, m >>= 1) {
-                    if(*p&m) {
-                        data[y*pitch+x+t] = 1;
-                    }
+            for(size_t x=0; x<widthInPixels; x+=8, ++p) {
+                // split bits into separate bytes
+                for(size_t t=0, m = 128; t<8; ++t, m >>= 1) {
+                    if(*p&m) data[y*pitch+x+t] = 1;
                 }
-                ++p;
             }
         }
     }

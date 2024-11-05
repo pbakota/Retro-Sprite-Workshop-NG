@@ -29,6 +29,7 @@ struct SpriteManager {
 
     void NewProject() {
         project->NewProject();
+        DetachSprite();
         Clear();
         Sprite* sprite = new Sprite(1,8, "sprite");
         sprite->byteAligment = Sprite::ByteAligment::Vertical_Software_Sprite;
