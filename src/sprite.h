@@ -124,6 +124,15 @@ struct Sprite
         }
     }
 
+    void SetPixel(size_t position_x, size_t position_y, size_t val) {
+        if(multicolorMode) {
+            data[(size_t)(position_y) * pitch + 2*(size_t)position_x+0] = val>>1;
+            data[(size_t)(position_y) * pitch + 2*(size_t)position_x+1] = val&1;
+        } else {
+            data[(size_t)(position_y) * pitch + (size_t)position_x] = val;
+        }
+    }
+
     void SetDrawColor(SDL_Renderer *renderer, ImU32 color) {
         char r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
         SDL_SetRenderDrawColor(renderer, r, g, b, SDL_ALPHA_OPAQUE);

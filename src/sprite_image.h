@@ -177,23 +177,53 @@ struct SpriteImage
     }
 
     void ImageEditor() {
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        float bx = p.x, by = p.y;
-        size_t widthInPixels = (currentSprite->widthInBytes<<3);
-
-        const float cs = cellSize*(((1+statusbar->zoomIndex)*25))/100.0f;
-        ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, currentSprite->heightInPixels*cs+by);
-        statusbar->is_rowcol_visible = is_mouse_hovering = (ImGui::IsMouseHoveringRect(editor_pos, editor_size)) && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,3.0f));
         if(ImGui::BeginChild("#drawing", ImVec2(0, -30.0f), ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar)) {
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
             ImVec2 s = ImGui::GetCursorScreenPos();
+
+            size_t widthInPixels = (currentSprite->widthInBytes<<3);
+            const float cs = cellSize*(((1+statusbar->zoomIndex)*25))/100.0f;
+
+            float bx = s.x, by = s.y;
+            ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, currentSprite->heightInPixels*cs+by);
+            statusbar->is_rowcol_visible = is_mouse_hovering = (ImGui::IsMouseHoveringRect(editor_pos, editor_size)) && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
             if(is_mouse_hovering) {
                 const ImVec2 m = ImGui::GetMousePos();
-                statusbar->col = std::floor((m.x - s.x) / cs);
-                statusbar->row = std::floor((m.y - s.y) / cs);
+                size_t position_x = (size_t)std::floor((m.x - s.x) / (cs * (currentSprite->multicolorMode ? 2 : 1)));
+                size_t position_y = std::floor((m.y - s.y) / cs);
+
+                statusbar->col = position_x;
+                statusbar->row = position_y;
+
+                // Left mouse button set the pixel to selected color
+                if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    if(currentSprite->multicolorMode) {
+                        switch(selectedColor) {
+                            case 0: currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate(); break;
+                            case 1: currentSprite->SetPixel(position_x, position_y, 1); currentSprite->Invalidate(); break;
+                            case 2: currentSprite->SetPixel(position_x, position_y, 2); currentSprite->Invalidate(); break;
+                            case 3: currentSprite->SetPixel(position_x, position_y, 3); currentSprite->Invalidate(); break;
+                        }
+                    } else {
+                        switch(selectedColor) {
+                            case 0: currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate(); break;
+                            case 3: currentSprite->SetPixel(position_x, position_y, 1); currentSprite->Invalidate(); break;
+                        }
+                    }
+                }
+
+                // Right mouse button always erase pixel
+                if(ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+                    if(currentSprite->multicolorMode) {
+                        currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate();
+                    } else {
+                        currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate();
+                    }
+                }
             }
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
             for(size_t y = 0; y < currentSprite->heightInPixels; ++y) {
                 if(currentSprite->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
