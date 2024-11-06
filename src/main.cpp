@@ -15,6 +15,7 @@
 #include "sprite_manager.h"
 #include "project_sprites.h"
 #include "sprite_image.h"
+#include "keyboard_shortcuts.h"
 
 // Our state
 bool done = false;
@@ -26,6 +27,7 @@ SpriteImage spriteImage(&statusbar);
 SpriteManager spriteManager(&project, &spriteImage, &statusbar);
 ProjectSprites projectSprites(&spriteManager, &spriteImage, &statusbar, &project);
 MenuBar menubar(&spriteManager, &projectSprites);
+KeyboardShortcuts keyboardShortcuts;
 
 // Main code
 int main(int, char **)
@@ -57,8 +59,10 @@ int main(int, char **)
         return -1;
     }
 
-    assert(SDL_RenderTargetSupported(renderer));
-
+    if(!SDL_RenderTargetSupported(renderer)) {
+        SDL_Log("Error render target is not supported");
+        return -1;
+    }
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -160,6 +164,8 @@ int main(int, char **)
         projectSprites.render(renderer);
         spriteImage.render();
         statusbar.render();
+
+        keyboardShortcuts.Handle();
 
         // Rendering
         ImGui::Render();
