@@ -101,3 +101,12 @@ std::string rtrim(const std::string &s)
 std::string trim(const std::string &s) {
     return rtrim(ltrim(s));
 }
+
+std::string replace_string(std::string subject, const std::string& search, const std::string& replace) {
+    size_t pos = 0;
+    while((pos = subject.find(search, pos)) != std::string::npos) {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
+    return subject;
+}

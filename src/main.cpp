@@ -24,8 +24,8 @@ Project project;
 StatusBar statusbar;
 SpriteImage spriteImage(&statusbar);
 SpriteManager spriteManager(&project, &spriteImage, &statusbar);
-MenuBar menubar(&spriteManager);
 ProjectSprites projectSprites(&spriteManager, &spriteImage, &statusbar, &project);
+MenuBar menubar(&spriteManager, &projectSprites);
 
 // Main code
 int main(int, char **)
@@ -65,9 +65,10 @@ int main(int, char **)
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+    // io.WantCaptureKeyboard = true;
     // io.IniFilename = nullptr;                             // prevent imgui from auto saving
 
     // Setup Dear ImGui style
@@ -84,8 +85,8 @@ int main(int, char **)
     bool firstFrame = true;
 
     spriteManager.NewProject();
-    for (auto i = 0; i < 200;++i) {
-        spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft works aircraft_%d", i).c_str()));
+    for (auto i = 0; i < 63;++i) {
+        spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft_works_aircraft_%d", i).c_str()));
     }
 
     // Main loop

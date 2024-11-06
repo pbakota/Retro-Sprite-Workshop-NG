@@ -30,7 +30,7 @@ struct SpriteImage
         "Vertical Software Sprite",
         "Mixed (Character-Based)"
     };
-    int one = 1;
+    int heightPixelStep = 1;
     const float cellSize = 24.0f;
     bool colorSelectorOpen = false;
     ColorSelector colorSelector;
@@ -89,8 +89,9 @@ struct SpriteImage
                         } ImGui::PopID();
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Height");
-                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &currentSprite->heightInPixels, &one, nullptr, "%d", 0)) {
-                            if(currentSprite->heightInPixels < 1) currentSprite->heightInPixels = 1;
+                        heightPixelStep = currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based ? 8 : 1;
+                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &currentSprite->heightInPixels, &heightPixelStep, nullptr, "%d", 0)) {
+                            if(currentSprite->heightInPixels < 8) currentSprite->heightInPixels = 8;
                             if(currentSprite->heightInPixels > 64) currentSprite->heightInPixels = 64;
 
                             currentSprite->Invalidate();
@@ -145,9 +146,13 @@ struct SpriteImage
                         ImGui::TableNextColumn();
 
                         ImGui::BeginDisabled(!currentSprite->prerenderSoftwareSprite);
+                            if(currentSprite->multicolorMode && currentSprite->renderingPrecision == Sprite::PrerendingPrecision::High8Frames) {
+                                currentSprite->renderingPrecision = Sprite::PrerendingPrecision::Medium4Frames;
+                            }
                             const char* combo_preview_value = prerendingPrecisionValues[(size_t)currentSprite->renderingPrecision];
                             ImGui::TableNextColumn(); ImGui::PushID(4); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", combo_preview_value)) {
-                                for (size_t n = 0; n < IM_ARRAYSIZE(prerendingPrecisionValues); n++) {
+                                size_t startOption = currentSprite->multicolorMode ? 1 : 0;
+                                for (size_t n = startOption; n < IM_ARRAYSIZE(prerendingPrecisionValues); n++) {
                                     const bool is_selected = ((size_t)currentSprite->renderingPrecision == n);
                                     if (ImGui::Selectable(prerendingPrecisionValues[n], is_selected)) {
                                         currentSprite->renderingPrecision = (Sprite::PrerendingPrecision)n;
@@ -163,8 +168,7 @@ struct SpriteImage
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Final Compiled Size");
-                        ImGui::TableNextColumn(); ImGui::Text("%d bytes",
-                            (!currentSprite->prerenderSoftwareSprite ? 64: (currentSprite->renderingPrecision == Sprite::PrerendingPrecision::Low2Frames) ? 384: 192));
+                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes", currentSprite->GetByteSize());
                     }
                     ImGui::EndTable();
                 }

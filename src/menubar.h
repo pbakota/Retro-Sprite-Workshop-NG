@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "imgui_filedialog.h"
 #include "sprite_manager.h"
+#include "project_sprites.h"
 
 extern bool done;
 extern bool show_demo_window;
@@ -10,9 +11,9 @@ extern bool show_demo_window;
 struct MenuBar
 {
     SpriteManager *spriteManager;
+    ProjectSprites *projectSprites;
 
     bool shiftRollingAround = true;
-    int spriteListType = 0;
     bool exporWithComments = false;
 
     ImFileDialogInfo saveDialogInfo = {
@@ -33,7 +34,7 @@ struct MenuBar
     };
     bool openOpenProjectDialog = false;
 
-    MenuBar(SpriteManager *spriteManager): spriteManager(spriteManager) {}
+    MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites): spriteManager(spriteManager), projectSprites(projectSprites) {}
 
     void render() {
         if(ImGui::BeginMainMenuBar()) {
@@ -70,7 +71,9 @@ struct MenuBar
 
             if(ImGui::BeginMenu("Edit")) {
                 if(ImGui::BeginMenu("Add New Sprite")) {
-                    if(ImGui::MenuItem("Blank Sprite")) { }
+                    if(ImGui::MenuItem("Blank Sprite")) {
+                        spriteManager->NewSprite();
+                    }
                     if(ImGui::MenuItem("Capture Sprite from Screenshot...", "F6")) {}
                     ImGui::EndMenu();
                 }
@@ -117,14 +120,20 @@ struct MenuBar
                 }
                 ImGui::Separator();
                 if(ImGui::MenuItem("Rearrange Color Pixels...")) {}
-                if(ImGui::MenuItem("Delete Sprite")) {}
+                if(ImGui::MenuItem("Delete Sprite", "Delete")) {
+                    if(projectSprites->selectedSpriteId != -1) {
+                        auto nextID = spriteManager->NextSpriteID(projectSprites->selectedSpriteId);
+                        spriteManager->RemoveSprite(projectSprites->selectedSpriteId);
+                        projectSprites->selectedSpriteId = nextID;
+                    }
+                }
                 ImGui::EndMenu();
             }
 
             if(ImGui::BeginMenu("View")) {
                 if(ImGui::BeginMenu("Sprite List")) {
-                    if(ImGui::RadioButton("Details", &spriteListType, 0)) {}
-                    if(ImGui::RadioButton("Large Icons", &spriteListType, 1)) {}
+                    if(ImGui::RadioButton("Details", &spriteManager->spriteListType, 0)) {}
+                    if(ImGui::RadioButton("Large Icons", &spriteManager->spriteListType, 1)) {}
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenu();

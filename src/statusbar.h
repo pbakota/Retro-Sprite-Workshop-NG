@@ -16,6 +16,8 @@ struct StatusBar {
     int col, row;
     bool is_rowcol_visible = false;
     bool is_zoom_visible = false;
+    size_t totalBytes = 0;
+    size_t spriteCount = 0;
 
     StatusBar() {}
 
@@ -29,7 +31,7 @@ struct StatusBar {
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
             {
                 ImGui::TableNextRow();
-                ImGui::TableNextColumn(); ImGui::AlignTextToFramePadding(); ImGui::Text("%d images, %d bytes", 67, 16256);
+                ImGui::TableNextColumn(); ImGui::AlignTextToFramePadding(); ImGui::Text("%lu images, %lu bytes", spriteCount, totalBytes);
                 ImGui::TableNextColumn(); if(is_rowcol_visible) { ImGui::AlignTextToFramePadding(); ImGui::Text("Col=%d, Row=%d, ByteIndex=%d", col, row, 55); }
 
                 ImGui::TableNextColumn(); if(is_zoom_visible) {

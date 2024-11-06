@@ -8,8 +8,6 @@
 #include "imgui_filedialog.h"
 #include "advanced_settings.h"
 
-extern MenuBar menubar;
-
 struct ProjectSprites
 {
     SpriteManager *spriteManager;
@@ -27,7 +25,7 @@ struct ProjectSprites
         .fileName = "",
         .directoryPath = std::filesystem::current_path()
     };
-    char charIndex = 0;
+    char startCharIndex = 0;
     int one = 1;
     bool showAdvancedSettings = false;
     AdvancedSettings advancedSettings;
@@ -42,7 +40,7 @@ struct ProjectSprites
         {
             if (ImGui::BeginTabItem("Project Sprites"))
             {
-                switch (menubar.spriteListType)
+                switch (spriteManager->spriteListType)
                 {
                 case 0:
                     listView(renderer);
@@ -52,8 +50,8 @@ struct ProjectSprites
                     break;
                 }
 
-                if (ImGui::Button("Add New Sprite", ImVec2(150,25)))
-                {
+                if (ImGui::Button("Add New Sprite", ImVec2(150,25))) {
+                    spriteManager->NewSprite();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Capture from Screenshot", ImVec2(200,25)))
@@ -87,7 +85,7 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Length");
-                        ImGui::TableNextColumn(); ImGui::Text("%d bytes, ($%04x)", 16064, 16064);
+                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes ($%04x)", statusbar->totalBytes, (int)statusbar->totalBytes);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -108,7 +106,7 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Char Index");
-                        ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &charIndex, &one, nullptr, "%d", 0); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
                         ImGui::SameLine(); ImGui::PushID(7); if(ImGui::Button("Advanced ...")) {
                             showAdvancedSettings = true;
                         } ImGui::PopID();
@@ -148,6 +146,13 @@ struct ProjectSprites
             clipper.Begin(spriteManager->sprites.size());
             while (clipper.Step())
             {
+                size_t charOffset = 0;
+                // calculate char offset before clipping
+                for (int row = 0; row < clipper.DisplayStart; row++) {
+                    auto sprite = spriteManager->sprites[row];
+                    charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
+                }
+
                 for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
                 {
                     auto sprite = spriteManager->sprites[row];
@@ -185,17 +190,29 @@ struct ProjectSprites
                     ImGui::TextUnformatted(sprite->spriteID);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%d; Char %d", 0, row);
+                    ImGui::Text("%d; Char: %lu", row, charOffset);
+
+                    charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s", sprite->widthInBytes<<3, sprite->heightInPixels,
-                        sprite->GetByteAlignment().c_str(), sprite->multicolorMode ? "Multicolor" : "");
+                        sprite->GetByteAlignment().c_str(), sprite->multicolorMode ? "Multicolor" : "2 colors");
 
                     ImGui::PopID();
                 }
             }
+            statusbar->totalBytes = GetTotalBytes();
+            statusbar->spriteCount = spriteManager->sprites.size();
             ImGui::EndTable();
         }
+    }
+
+    size_t GetTotalBytes() {
+        size_t totalBytes = 0;
+        for(auto it=spriteManager->sprites.begin(); it != spriteManager->sprites.end(); ++it) {
+            totalBytes += (*it)->GetByteSize();
+        }
+        return totalBytes;
     }
 
     void iconView(SDL_Renderer *renderer) {

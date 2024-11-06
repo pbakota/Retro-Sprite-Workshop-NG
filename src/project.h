@@ -9,6 +9,7 @@ struct Project
 {
     const char *CR = "\n";
     const char* PROJECT_FILE_SIGNATURE = "# --- RETRO SPRITE WORKSHOP --- ";
+    const char* NEWLINE_PLACEHOLDER = "[{{NEWLINE}}]";
 
     char projectName[128] = {0};
     char platformName[128] = {0};
@@ -60,14 +61,14 @@ struct Project
                     // If the file is not a project file, report error
                     std::cerr << "ERROR: Invalid file signature!" << std::endl;
                     return false;
-                }                
+                }
                 firstLine = false;
             }
 
             if(kv.first == "ProjectName") {
                 strncpy(projectName, kv.second.c_str(), sizeof(projectName));
             } else if(kv.first == "Comments") {
-                strncpy(projectComments, kv.second.c_str(), sizeof(projectComments));
+                strncpy(projectComments, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(projectComments));
             } else if(kv.first == "Platform") {
                 strncpy(platformName, kv.second.c_str(), sizeof(platformName));
             } else if(kv.first == "CreatedOn") {
@@ -86,7 +87,7 @@ struct Project
                     sp = new Sprite(1,1, kv.second.c_str());
                     sprites.push_back(sp);
                 } else if(key == "Description") {
-                    strncpy(sp->description, kv.second.c_str(), sizeof(sp->description));
+                    strncpy(sp->description, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(sp->description));
                 } else if(key == "HeightInPixels") {
                     sp->heightInPixels = std::atoi(kv.second.c_str());
                 } else if(key == "WidthInBytes") {
@@ -96,13 +97,13 @@ struct Project
                 } else if(key == "MulticolorMode") {
                     sp->multicolorMode = kv.second == "True";
                 } else if(key == "BackgroundColor") {
-                    sp->backgroundColor = GetRGBColor(kv.second);
+                    sp->backgroundColor = ReadRGBColor(kv.second)|0xff000000;
                 } else if(key == "CharacterColor") {
-                    sp->characterColor = GetRGBColor(kv.second);
+                    sp->characterColor = ReadRGBColor(kv.second)|0xff000000;
                 } else if(key == "Multi1Color") {
-                    sp->multi1Color = GetRGBColor(kv.second);
+                    sp->multi1Color = ReadRGBColor(kv.second)|0xff000000;
                 } else if(key == "Multi2Color") {
-                    sp->multi2Color = GetRGBColor(kv.second);
+                    sp->multi2Color = ReadRGBColor(kv.second)|0xff000000;
                 } else if(key == "Palette") {
                     sp->palette = sp->GetPaletteName(kv.second);
                 } else if(key == "Data") {
@@ -129,7 +130,7 @@ struct Project
 
         fs << PROJECT_FILE_SIGNATURE << CR;
         fs << "ProjectName=" << projectName << CR;
-        fs << "Comments=" << projectComments << CR;
+        fs << "Comments=" << replace_string(std::string(projectComments), "\n", NEWLINE_PLACEHOLDER) << CR;
         fs << "Platform=" << platformName << CR;
         fs << "CreatedOn=" << createdOn << CR;
         fs << "AutomaticExportOnSave=" << (autoExportSourceCode ? "True" : "False") << CR;
@@ -140,15 +141,15 @@ struct Project
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {
             Sprite* sp = *it;
             fs << "Sprite" << n << ".ID=" << sp->spriteID << CR;
-            fs << "Sprite" << n << ".Description=" << sp->description << CR;
+            fs << "Sprite" << n << ".Description=" << replace_string(sp->description, "\n", NEWLINE_PLACEHOLDER) << CR;
             fs << "Sprite" << n << ".HeightInPixels=" << sp->heightInPixels << CR;
             fs << "Sprite" << n << ".WidthInBytes=" << sp->widthInBytes << CR;
             fs << "Sprite" << n << ".ByteAlignment=" << sp->GetByteAlignment() << CR;
             fs << "Sprite" << n << ".MulticolorMode=" << (sp->multicolorMode ? "True" : "False") << CR;
-            fs << "Sprite" << n << ".BackgroundColor=" << vformat("#0%6X", sp->backgroundColor) << CR;
-            fs << "Sprite" << n << ".CharacterColor=" << vformat("#0%6X", sp->characterColor) << CR;
-            fs << "Sprite" << n << ".Multi1Color=" << vformat("#0%6X", sp->multi1Color) << CR;
-            fs << "Sprite" << n << ".Multi2Color=" << vformat("#0%6X", sp->multi2Color) << CR;
+            fs << "Sprite" << n << ".BackgroundColor=" << WriteRGBColor(sp->backgroundColor) << CR;
+            fs << "Sprite" << n << ".CharacterColor=" << WriteRGBColor(sp->characterColor) << CR;
+            fs << "Sprite" << n << ".Multi1Color=" << WriteRGBColor(sp->multi1Color) << CR;
+            fs << "Sprite" << n << ".Multi2Color=" << WriteRGBColor(sp->multi2Color) << CR;
             fs << "Sprite" << n << ".Palette=" << sp->GetPaletteName() << CR;
             fs << "Sprite" << n << ".Data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CR;
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CR;
@@ -211,8 +212,8 @@ struct Project
         char temp[4096], *p = temp;
         memset((void*)p,0,sizeof(temp));
         for(auto it=str.begin(); it!=str.end(); it += 2) {
-            size_t hi = *(it+0)-'0'; if(hi>10) hi-=7;
-            size_t lo = *(it+1)-'0'; if(lo>10) lo-=7;
+            size_t hi = *(it+0)-'0'; if(hi>=10) hi-=7;
+            size_t lo = *(it+1)-'0'; if(lo>=10) lo-=7;
             *p++ = hi<<4|lo;
             // std::cerr << vformat("%02X", (size_t)(p[-1])&0xff) << std::endl;
         }
@@ -230,13 +231,17 @@ struct Project
         }
     }
 
-    ImU32 GetRGBColor(const std::string& str) {
+    ImU32 ReadRGBColor(const std::string& str) {
         if(str[0] != '#') return 0;
         ImU32 result = 0;
         for(auto it=str.begin()+1; it != str.end(); ++it) {
-            size_t d = (*it)-'0'; if(d>10) d-=7;
+            size_t d = (*it)-'0'; if(d>=10) d-=7;
             result = result << 4 | d;
         }
         return result;
+    }
+
+    std::string WriteRGBColor(ImU32 color) {
+        return vformat("#%02X%02X%02X", ABGR_RED(color), ABGR_GREEN(color), ABGR_BLUE(color));
     }
 };

@@ -29,9 +29,9 @@ struct Sprite
     };
 
     enum class PrerendingPrecision {
-        Low2Frames = 0,
+        High8Frames = 0,
         Medium4Frames = 1,
-        High8Frames = 2,
+        Low2Frames = 2,
     };
 
     // Metdata
@@ -114,6 +114,10 @@ struct Sprite
 
     void Free()
     {
+        #if 0
+        std::cerr << "[free] Sprite id " << spriteID << " (" << ID << ")" << std::endl;
+        #endif
+
         if(original) {
             SDL_DestroyTexture(original);
             original = nullptr;
@@ -246,6 +250,20 @@ struct Sprite
         return was_dirty;
     }
 
+    size_t GetByteSize() {
+        size_t sz = (byteAligment == ByteAligment::Mixed_Character_Based ? (size_t)(((size_t)(heightInPixels+7)/8))*8 : heightInPixels);
+        size_t size = widthInBytes*sz;
+        if(prerenderSoftwareSprite) {
+            size = (widthInBytes+1)*sz;
+            switch(renderingPrecision) {
+                case PrerendingPrecision::Low2Frames:    size *= 2; break;
+                case PrerendingPrecision::Medium4Frames: size *= 4; break;
+                case PrerendingPrecision::High8Frames:   size *= 8; break;
+            }
+        }
+        return size;
+    }
+
     std::string GetByteAlignment() {
         switch(byteAligment) {
             case ByteAligment::Horizontal_C64_Sprite: return "Horizontal";
@@ -281,14 +299,14 @@ struct Sprite
     std::string GetPaletteName() {
         switch(palette) {
             case PaletteType::C64_Pal: return "Commodore64";
-            case PaletteType::C264_Pal: return "Commodore16"; // TODO: Check this!
+            case PaletteType::C264_Pal: return "Commodore264Series";
         }
         return "<GetPaletteName: error>";
     }
 
     PaletteType GetPaletteName(const std::string &str) {
         if(str == "Commodore64") return PaletteType::C64_Pal;
-        if(str == "Commodore16") return PaletteType::C264_Pal;
+        if(str == "Commodore264Series") return PaletteType::C264_Pal;
         return PaletteType::C64_Pal;
     }
 };
