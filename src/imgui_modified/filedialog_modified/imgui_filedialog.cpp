@@ -329,7 +329,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 			dialogInfo->currentIndex = 0;
 		}
 
-		if (ImGui::Button("Cancel", ImVec2(100,25)))
+		if (ImGui::Button("Cancel", ImVec2(100,25)) || ImGui::IsKeyPressed(ImGuiKey_Escape))
 		{
 			fileNameSortOrder = ImGuiFileDialogSortOrder_None;
 			sizeSortOrder = ImGuiFileDialogSortOrder_None;

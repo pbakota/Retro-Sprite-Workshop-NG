@@ -33,6 +33,25 @@ struct ProjectSprites
     ProjectSprites(SpriteManager *spriteManager, SpriteImage *spriteImage, StatusBar *statusbar, Project *project)
         : spriteManager(spriteManager), spriteImage(spriteImage), statusbar(statusbar), project(project) {}
 
+
+    void Action_MoveUp() {
+        if(selectedSpriteId != -1) {
+            selectedSpriteId = spriteManager->MoveUp(selectedSpriteId);
+        }
+    }
+
+    void Action_MoveDown() {
+        if(selectedSpriteId != -1) {
+            selectedSpriteId = spriteManager->MoveDown(selectedSpriteId);
+        }
+    }
+
+    void Action_ClearSprite(size_t color) {
+        if(selectedSpriteId != -1) {
+            spriteManager->ClearSprite(selectedSpriteId, color);
+        }
+    }
+
     void render(SDL_Renderer *renderer)
     {
         ImGui::Begin("Project Sprites");

@@ -27,7 +27,7 @@ SpriteImage spriteImage(&statusbar);
 SpriteManager spriteManager(&project, &spriteImage, &statusbar);
 ProjectSprites projectSprites(&spriteManager, &spriteImage, &statusbar, &project);
 MenuBar menubar(&spriteManager, &projectSprites);
-KeyboardShortcuts keyboardShortcuts;
+KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites);
 
 // Main code
 int main(int, char **)
@@ -69,7 +69,7 @@ int main(int, char **)
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     // io.WantCaptureKeyboard = true;
@@ -100,6 +100,7 @@ int main(int, char **)
         while (SDL_PollEvent(&event))
         {
             ImGui_ImplSDL2_ProcessEvent(&event);
+
             if (event.type == SDL_QUIT)
                 done = true;
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
@@ -160,12 +161,11 @@ int main(int, char **)
 
         ImGui::End();
 
+        keyboardShortcuts.Handle();
         menubar.render();
         projectSprites.render(renderer);
         spriteImage.render();
         statusbar.render();
-
-        keyboardShortcuts.Handle();
 
         // Rendering
         ImGui::Render();

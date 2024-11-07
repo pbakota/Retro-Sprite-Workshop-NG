@@ -36,26 +36,67 @@ struct MenuBar
 
     MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites): spriteManager(spriteManager), projectSprites(projectSprites) {}
 
+    // File
+    void Action_NewProject() {
+        spriteManager->NewProject();
+    }
+
+    void Action_OpenProject() {
+        openOpenProjectDialog = true;
+        openDialogInfo.fileName = spriteManager->projectFile;
+    }
+
+    void Action_SaveAsProject() {
+        openSaveProjectDialog = true;
+        saveDialogInfo.fileName = "project1.spr";
+    }
+
+    void Action_SaveProject() {
+        if(!spriteManager->projectFile.empty()) {
+            spriteManager->SaveProject();
+            return;
+        }
+        Action_SaveAsProject();
+    }
+
+    void Action_ExportToClipboard() {
+
+    }
+
+    void Action_ExitApp() {
+        done = true;
+    }
+
+    void Action_DeleteSprite() {
+        if(projectSprites->selectedSpriteId != -1) {
+            auto nextID = spriteManager->NextSpriteID(projectSprites->selectedSpriteId);
+            spriteManager->RemoveSprite(projectSprites->selectedSpriteId);
+            projectSprites->selectedSpriteId = nextID;
+        }
+    }
+
     void render() {
         if(ImGui::BeginMainMenuBar()) {
             if(ImGui::BeginMenu("File")) {
                 if(ImGui::MenuItem("New Project", "Ctrl+N")) {
-                    spriteManager->NewProject();
+                    Action_NewProject();
                 }
                 if(ImGui::MenuItem("Open Project...", "Ctrl+O")) {
-                    openOpenProjectDialog = true;
-                    openDialogInfo.fileName = spriteManager->projectFile;
+                    Action_OpenProject();
                 }
-                if(ImGui::MenuItem("Save Project", "Ctrl+S")) {}
+                if(ImGui::MenuItem("Save Project", "Ctrl+S")) {
+                    Action_SaveProject();
+                }
                 if(ImGui::MenuItem("Save Project As...")) {
-                    openSaveProjectDialog = true;
-                    saveDialogInfo.fileName = "project1.spr";
+                    Action_SaveAsProject();
                 }
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Export as Source Code"))
                 {
                     if(ImGui::MenuItem("Export to File")) {}
-                    if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {}
+                    if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
+                        Action_ExportToClipboard();
+                    }
                     if(ImGui::Checkbox("Export with Comments and Metadata", &exporWithComments)) {}
                     ImGui::EndMenu();
                 }
@@ -63,8 +104,8 @@ struct MenuBar
                 if(ImGui::MenuItem("C:\\users\\sorel\\Deskt...ruce_lee_sprites.spr")) {}
                 if(ImGui::MenuItem("C:\\users\\sorel\\Deskt...raidomos_sprite.spr")) {}
                 ImGui::Separator();
-                if(ImGui::MenuItem("Exit")) {
-                  done = true;
+                if(ImGui::MenuItem("Exit", "Alt+F4")) {
+                  Action_ExitApp();
                 }
                 ImGui::EndMenu();
             }
@@ -80,8 +121,12 @@ struct MenuBar
                 if(ImGui::MenuItem("Paste")) {}
                 if(ImGui::MenuItem("Clone Sprite")) {}
                 if(ImGui::BeginMenu("Reorder Sprite")) {
-                    if(ImGui::MenuItem("Move Up", "F9")) { }
-                    if(ImGui::MenuItem("Move Down", "F10")) {}
+                    if(ImGui::MenuItem("Move Up", "F9")) {
+                        projectSprites->Action_MoveUp();
+                    }
+                    if(ImGui::MenuItem("Move Down", "F10")) {
+                        projectSprites->Action_MoveDown();
+                    }
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Recolor Sprite")) {
@@ -93,10 +138,18 @@ struct MenuBar
                 }
                 ImGui::Separator();
                 if(ImGui::BeginMenu("Clear Image")) {
-                    if(ImGui::MenuItem("Fill with Background Color")) {}
-                    if(ImGui::MenuItem("Fill with Multi1 Color")) {}
-                    if(ImGui::MenuItem("Fill with Multi2 Color")) {}
-                    if(ImGui::MenuItem("Fill with Character Color")) {}
+                    if(ImGui::MenuItem("Fill with Background Color")) {
+                        projectSprites->Action_ClearSprite(0);
+                    }
+                    if(ImGui::MenuItem("Fill with Multi1 Color")) {
+                        projectSprites->Action_ClearSprite(1);
+                    }
+                    if(ImGui::MenuItem("Fill with Multi2 Color")) {
+                        projectSprites->Action_ClearSprite(2);
+                    }
+                    if(ImGui::MenuItem("Fill with Character Color")) {
+                        projectSprites->Action_ClearSprite(3);
+                    }
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Flip Image")) {
@@ -120,12 +173,9 @@ struct MenuBar
                 }
                 ImGui::Separator();
                 if(ImGui::MenuItem("Rearrange Color Pixels...")) {}
-                if(ImGui::MenuItem("Delete Sprite", "Delete")) {
-                    if(projectSprites->selectedSpriteId != -1) {
-                        auto nextID = spriteManager->NextSpriteID(projectSprites->selectedSpriteId);
-                        spriteManager->RemoveSprite(projectSprites->selectedSpriteId);
-                        projectSprites->selectedSpriteId = nextID;
-                    }
+                ImGui::Separator();
+                if(ImGui::MenuItem("Delete Sprite", "Ctrl+Delete")) {
+                    Action_DeleteSprite();
                 }
                 ImGui::EndMenu();
             }
@@ -152,7 +202,7 @@ struct MenuBar
             {
                 // Result path in: saveDialogInfo.resultPath
                 //strncpy(exportTo, std::filesystem::relative(saveDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(exportTo));
-                if(!spriteManager->SaveProject(saveDialogInfo.resultPath)) {
+                if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath)) {
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
                 }
             }

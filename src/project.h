@@ -11,6 +11,7 @@ struct Project
     const char* PROJECT_FILE_SIGNATURE = "# --- RETRO SPRITE WORKSHOP --- ";
     const char* NEWLINE_PLACEHOLDER = "[{{NEWLINE}}]";
 
+    char projectFile[512] = {0};
     char projectName[128] = {0};
     char platformName[128] = {0};
     char projectComments[256] = {0};
@@ -119,6 +120,7 @@ struct Project
             }
         }
 
+        strncpy(projectFile, filename.c_str(), sizeof(projectFile));
         return true;
     }
 
@@ -238,7 +240,7 @@ struct Project
             size_t d = (*it)-'0'; if(d>=10) d-=7;
             result = result << 4 | d;
         }
-        return result;
+        return ABGR_RED(result)<<16|ABGR_GREEN(result)<<8|ABGR_BLUE(result); // RGB -> BGR
     }
 
     std::string WriteRGBColor(ImU32 color) {

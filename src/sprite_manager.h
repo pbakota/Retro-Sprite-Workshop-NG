@@ -19,22 +19,60 @@ struct SpriteManager {
     SpriteManager(Project *project, SpriteImage *spriteImage, StatusBar* statusbar) : project(project), spriteImage(spriteImage), statusbar(statusbar) { }
 
     ~SpriteManager() {
-        Clear();
+        ClearSpriteList();
     }
 
-    void Clear() {
+    void ClearSpriteList() {
         for (auto it = sprites.begin(); it != sprites.end(); ++it) {
             delete *it;
         }
         sprites.clear();
     }
 
+    int MoveUp(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        if(current == sprites.begin()) return (*current)->ID;
+        auto ci = current - sprites.begin();
+        auto prev = sprites.begin() + (ci-1);
+        std::swap(*current, *prev);
+        return (*prev)->ID;
+    }
+
+    int MoveDown(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        if(current == sprites.end()-1) return (*current)->ID;
+        auto ci = current - sprites.begin();
+        auto next = sprites.begin() + (ci+1);
+        std::swap(*current, *next);
+        return (*next)->ID;
+    }
+
+    void ClearSprite(int id, size_t color) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        if(!sp->multicolorMode&&(color==1||color==2)) return;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            if(sp->multicolorMode) {
+                for(size_t x=0; x<widthInPixels;x+=2) {
+                    sp->data[y*sp->pitch+x+0] = color>>1;
+                    sp->data[y*sp->pitch+x+1] = color&1;
+                }
+            } else {
+                for(size_t x=0;x<widthInPixels;++x) {
+                    sp->data[y*sp->pitch+x] = color&1;
+                }
+            }
+        }
+        sp->Invalidate();
+    }
+
     void NewProject() {
-        project->NewProject();
         DetachSprite();
-        Clear();
+        ClearSpriteList();
         // Always append one (default) sprite
         NewSprite();
+        project->NewProject();
     }
 
     void NewSprite() {
@@ -97,14 +135,22 @@ struct SpriteManager {
         bool result = project->Load(filename, temp);
         if(result) {
             DetachSprite();
-            Clear();
+            ClearSpriteList();
             sprites = temp;
         }
 
         return result;
     }
 
-    bool SaveProject(const std::string& filename) {
-        return project->Save(filename, sprites);
+    bool SaveProject() {
+        return project->Save(projectFile, sprites);
+    }
+
+    bool SaveProjectAs(const std::string& filename) {
+        if(project->Save(filename, sprites)) {
+            projectFile = filename;
+            return true;
+        }
+        return false;
     }
 };
