@@ -89,9 +89,11 @@ int main(int, char **)
     bool firstFrame = true;
 
     spriteManager.NewProject();
+    #ifdef USE_TEST_SPRITE
     for (auto i = 0; i < 63;++i) {
         spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft_works_aircraft_%d", i).c_str()));
     }
+    #endif
 
     // Main loop
     while (!done)

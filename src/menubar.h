@@ -39,16 +39,27 @@ struct MenuBar
     // File
     void Action_NewProject() {
         spriteManager->NewProject();
+        projectSprites->selectedSpriteId = -1;
     }
 
     void Action_OpenProject() {
-        openOpenProjectDialog = true;
-        openDialogInfo.fileName = spriteManager->projectFile;
+        if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+            openOpenProjectDialog = true;
+            openDialogInfo.fileName = spriteManager->projectFile;
+        }
+    }
+
+    void Action_OpenProjectAs(const char *filename) {
+        if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+            spriteManager->LoadProject(filename);
+        }
     }
 
     void Action_SaveAsProject() {
-        openSaveProjectDialog = true;
-        saveDialogInfo.fileName = "project1.spr";
+        if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+            openSaveProjectDialog = true;
+            saveDialogInfo.fileName = spriteManager->projectFile;
+        }
     }
 
     void Action_SaveProject() {
@@ -72,6 +83,12 @@ struct MenuBar
             auto nextID = spriteManager->NextSpriteID(projectSprites->selectedSpriteId);
             spriteManager->RemoveSprite(projectSprites->selectedSpriteId);
             projectSprites->selectedSpriteId = nextID;
+        }
+    }
+
+    void Action_CloneSprite() {
+        if(projectSprites->selectedSpriteId != -1) {
+            projectSprites->selectedSpriteId = spriteManager->CloneSprite(projectSprites->selectedSpriteId);
         }
     }
 
@@ -101,8 +118,14 @@ struct MenuBar
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
-                if(ImGui::MenuItem("C:\\users\\sorel\\Deskt...ruce_lee_sprites.spr")) {}
-                if(ImGui::MenuItem("C:\\users\\sorel\\Deskt...raidomos_sprite.spr")) {}
+                for(auto it=spriteManager->MRU.begin(); it!=spriteManager->MRU.end();++it) {
+                    auto entry = *it;
+                    ImGui::PushID(entry.c_str());
+                    if(ImGui::MenuItem(shrink_string(entry, 30).c_str())) {
+                        Action_OpenProjectAs(entry.c_str());
+                    }
+                    ImGui::PopID();
+                }
                 ImGui::Separator();
                 if(ImGui::MenuItem("Exit", "Alt+F4")) {
                   Action_ExitApp();
@@ -119,7 +142,9 @@ struct MenuBar
                     ImGui::EndMenu();
                 }
                 if(ImGui::MenuItem("Paste")) {}
-                if(ImGui::MenuItem("Clone Sprite")) {}
+                if(ImGui::MenuItem("Clone Sprite", "Ctrl+D")) {
+                    Action_CloneSprite();
+                }
                 if(ImGui::BeginMenu("Reorder Sprite")) {
                     if(ImGui::MenuItem("Move Up", "F9")) {
                         projectSprites->Action_MoveUp();

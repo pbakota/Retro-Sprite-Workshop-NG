@@ -7,7 +7,7 @@
 #include <cassert>
 #include <SDL_render.h>
 
-#define TEST_SPRITE
+//#define USE_TEST_SPRITE
 
 static int nextID = 0;
 
@@ -53,8 +53,8 @@ struct Sprite
     const size_t pitch = 64;
     char data[4096]; // 64x64 the maximum size
 
-#ifdef TEST_SPRITE
-    char test_sprite[32][16] = {
+#ifdef USE_TEST_SPRITE
+    char USE_test_sprite[32][16] = {
         {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
         {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0},
         {1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1},
@@ -97,15 +97,15 @@ struct Sprite
         strncpy(spriteID, imageName, sizeof(spriteID));
         memset((void*)data, 0, sizeof(data));
 
-#ifdef TEST_SPRITE
+#ifdef USE_TEST_SPRITE
         size_t widthInPixels = widthInBytes<<3;
         for(size_t y=0;y<heightInPixels;y++) {
             for(size_t x=0;x<widthInPixels;x++) {
-                data[y*pitch+x]=test_sprite[y][x];
+                data[y*pitch+x]=USE_test_sprite[y][x];
             }
         }
-    }
 #endif
+    }
 
     ~Sprite()
     {

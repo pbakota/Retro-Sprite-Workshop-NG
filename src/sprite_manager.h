@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <cstdlib>
 #include "sprite.h"
 #include "project.h"
 #include "sprite_image.h"
@@ -13,8 +14,10 @@ struct SpriteManager {
     StatusBar *statusbar;
 
     std::vector<Sprite*> sprites;
-    std::string projectFile = "";
+    std::string projectFile = ""; //"project.spr";
     int spriteListType = 0;
+    const size_t MAX_MRU_ENTRIES = 5;
+    std::vector<std::string> MRU;
 
     SpriteManager(Project *project, SpriteImage *spriteImage, StatusBar* statusbar) : project(project), spriteImage(spriteImage), statusbar(statusbar) { }
 
@@ -75,7 +78,7 @@ struct SpriteManager {
         project->NewProject();
     }
 
-    void NewSprite() {
+    int NewSprite() {
         Sprite* sprite = new Sprite(1,8, "sprite");
         sprite->byteAligment = Sprite::ByteAligment::Mixed_Character_Based;
         sprite->multicolorMode = false;
@@ -84,11 +87,39 @@ struct SpriteManager {
         // TODO: Copy last used colors into the new sprite
 
         AppendSprite(sprite);
+        return sprite->ID;
     }
 
     // Append new sprite at the end of the list
     void AppendSprite(Sprite *sprite) {
         sprites.push_back(sprite);
+    }
+
+    int CloneSprite(int id) {
+        auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        // if not found, exit
+        if(current == sprites.end()) return -1;
+        int newId = NewSprite();
+        auto it = std::find_if(sprites.begin(), sprites.end(), [newId](auto&&sp) { return (sp->ID == newId); });
+        Sprite *fromSp = *current;
+        Sprite *toSp = *it;
+        toSp->heightInPixels = fromSp->heightInPixels;
+        toSp->widthInBytes = fromSp->widthInBytes;
+        //char spriteID[128] = {0};
+        toSp->byteAligment = fromSp->byteAligment;
+        toSp->multicolorMode = fromSp->multicolorMode;
+        toSp->prerenderSoftwareSprite = fromSp->prerenderSoftwareSprite;
+        toSp->renderingPrecision = fromSp->renderingPrecision;
+        toSp->backgroundColor = fromSp->backgroundColor;
+        toSp->multi1Color     = fromSp->multi1Color;
+        toSp->multi2Color     = fromSp->multi2Color;
+        toSp->characterColor  = fromSp->characterColor;
+        toSp->palette = fromSp->palette;
+        toSp->zoomIndex = fromSp->zoomIndex;
+        memcpy(toSp->description, fromSp->description, sizeof(toSp->description));
+        memcpy(toSp->data, fromSp->data, sizeof(toSp->data));
+        toSp->Invalidate();
+        return toSp->ID;
     }
 
     // Remove sprite at index
@@ -137,6 +168,14 @@ struct SpriteManager {
             DetachSprite();
             ClearSpriteList();
             sprites = temp;
+            projectFile = filename;
+            // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
+            if(std::find_if(MRU.begin(), MRU.end(), [filename](auto&&e) { return e == filename; }) == MRU.end()) {
+                if(MRU.size() >= MAX_MRU_ENTRIES) {
+                    MRU.erase(MRU.begin()); // remove from top
+                }
+                MRU.emplace_back(filename);
+            }
         }
 
         return result;

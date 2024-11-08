@@ -20,6 +20,17 @@ struct Project
     bool autoExportSourceCode = true;
     bool includeMetadata = true;
 
+    std::vector<float> zoomValues = {
+        0.25f,
+        0.50f,
+        0.75f,
+        1.00f,
+        1.25f,
+        1.50f,
+        1.75f,
+        2.00f,
+    };
+
     typedef std::vector<std::pair<std::string, std::string>> keyvalue_list;
 
     Project() {}
@@ -115,7 +126,14 @@ struct Project
                     sp->renderingPrecision = sp->GetRenderingPrecision(kv.second);
                 } else if(key == "ZoomFactor") {
                     // force zoom between 0 and 7
-                    sp->zoomIndex = std::max(0, std::min(7, std::atoi(kv.second.c_str())));
+                    //sp->zoomIndex = std::max(0, std::min(7, std::atoi(kv.second.c_str())));
+                    auto index = std::atof(kv.second.c_str());
+                    auto it = find_if(zoomValues.begin(), zoomValues.end(), [index](auto&&value){ return index == value; });
+                    if(it == zoomValues.end()) {
+                        sp->zoomIndex = 3;
+                    } else {
+                        sp->zoomIndex = it - zoomValues.begin();
+                    }
                 }
             }
         }
@@ -156,7 +174,7 @@ struct Project
             fs << "Sprite" << n << ".Data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CR;
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CR;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CR;
-            fs << "Sprite" << n << ".ZoomFactor=" << sp->zoomIndex << CR;
+            fs << "Sprite" << n << ".ZoomFactor=" << zoomValues[sp->zoomIndex] << CR;
         }
         fs.close();
         return true;
@@ -212,7 +230,7 @@ struct Project
 
     void HexDeserializeData(const std::string &str, char *data, size_t widthInBytes, size_t heightInPixels, size_t pitch) {
         char temp[4096], *p = temp;
-        memset((void*)p,0,sizeof(temp));
+        memset(temp,0,sizeof(temp));
         for(auto it=str.begin(); it!=str.end(); it += 2) {
             size_t hi = *(it+0)-'0'; if(hi>=10) hi-=7;
             size_t lo = *(it+1)-'0'; if(lo>=10) lo-=7;
@@ -220,14 +238,13 @@ struct Project
             // std::cerr << vformat("%02X", (size_t)(p[-1])&0xff) << std::endl;
         }
 
-
         size_t widthInPixels = widthInBytes<<3;
         p = temp;
         for(size_t y=0; y<heightInPixels; ++y) {
             for(size_t x=0; x<widthInPixels; x+=8, ++p) {
                 // split bits into separate bytes
-                for(size_t t=0, m = 128; t<8; ++t, m >>= 1) {
-                    if(*p&m) data[y*pitch+x+t] = 1;
+                for(size_t t=0, m=128; t<8; ++t, m >>= 1) {
+                    data[y*pitch+x+t] = (*p&m) ? 1 : 0;
                 }
             }
         }

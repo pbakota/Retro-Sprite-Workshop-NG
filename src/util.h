@@ -110,3 +110,14 @@ std::string replace_string(std::string subject, const std::string& search, const
     }
     return subject;
 }
+
+// /home/user/work/p4tools/src/project1.spr
+// /home/user/wo.../project1.spr
+std::string shrink_string(const std::string &subject, size_t max_length) {
+    const std::string ELLIPSIS = "...";
+    if(subject.length() <= max_length) return subject;
+    float space_per_part = (max_length - ELLIPSIS.length()) / 2.0f;
+    auto before = subject.substr(0, std::ceil(space_per_part));
+    auto after = subject.substr(subject.length() - std::floor(space_per_part));
+    return before + ELLIPSIS + after;
+}

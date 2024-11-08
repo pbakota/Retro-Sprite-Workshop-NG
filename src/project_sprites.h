@@ -126,7 +126,7 @@ struct ProjectSprites
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Char Index");
                         ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
-                        ImGui::SameLine(); ImGui::PushID(7); if(ImGui::Button("Advanced ...")) {
+                        ImGui::SameLine(); ImGui::PushID(7); if(ImGui::Button("Advanced ...") && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
                             showAdvancedSettings = true;
                         } ImGui::PopID();
                     }
@@ -189,14 +189,16 @@ struct ProjectSprites
                         selectedSpriteId = sprite->ID;
                     }
 
-                    // Attach sprite to the editor if we double clicked on sprite
-                    if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        spriteManager->AttachSprite(sprite);
-                    } else {
-                        // Detach sprite from the editor if we selected different sprite
-                        if(selectedSpriteId != lastSelectedSpriteId) {
-                            spriteManager->DetachSprite();
-                            lastSelectedSpriteId = selectedSpriteId;
+                    if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+                        // Attach sprite to the editor if we double clicked on sprite
+                        if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                            spriteManager->AttachSprite(sprite);
+                        } else {
+                            // Detach sprite from the editor if we selected different sprite
+                            if(selectedSpriteId != lastSelectedSpriteId) {
+                                spriteManager->DetachSprite();
+                                lastSelectedSpriteId = selectedSpriteId;
+                            }
                         }
                     }
 

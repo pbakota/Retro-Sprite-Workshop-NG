@@ -31,7 +31,8 @@ struct KeyboardShortcuts {
             // Edit
             _S(ImGuiKey_F9, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveUp(); }),
             _S(ImGuiKey_F10, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveDown(); }),
-            _S(ImGuiKey_Delete, ImGuiKey_NoMod, [menubar]() { menubar->Action_DeleteSprite(); }),
+            _S(ImGuiKey_D, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_CloneSprite(); }),
+            _S(ImGuiKey_Delete, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_DeleteSprite(); }),
         };
     }
 
