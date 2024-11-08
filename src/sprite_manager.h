@@ -18,11 +18,21 @@ struct SpriteManager {
     int spriteListType = 0;
     const size_t MAX_MRU_ENTRIES = 5;
     std::vector<std::string> MRU;
+    const char *configPath;
+    std::string configFile;
+    bool exporWithComments = false;
+    bool shiftRollingAround = true;
+
+    char lineCommentSymbol[8] = ";";
+    char byteArrayType[8] = "byt";
+    char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
+    char labelDeclaration[128] = "{{LABEL}}";
 
     SpriteManager(Project *project, SpriteImage *spriteImage, StatusBar* statusbar) : project(project), spriteImage(spriteImage), statusbar(statusbar) { }
 
     ~SpriteManager() {
         ClearSpriteList();
+        SDL_free((void*)configPath);
     }
 
     void ClearSpriteList() {
@@ -191,5 +201,57 @@ struct SpriteManager {
             return true;
         }
         return false;
+    }
+
+    void SaveConfig() {
+        std::ofstream cfg(configFile, std::ios::binary|std::ios::trunc);
+        if(!cfg.is_open()) return;
+
+        cfg << "ExporWithComments=" << (exporWithComments ? "True":"False") << std::endl;
+        cfg << "ShiftRollingAround=" << (exporWithComments ? "True":"False") << std::endl;
+
+        cfg << "LineCommentSymbol=" << lineCommentSymbol << std::endl;
+        cfg << "ByteArrayType=" << byteArrayType << std::endl;
+        cfg << "ConstantDeclaration=" << constantDeclaration << std::endl;
+        cfg << "LabelDeclaration=" << labelDeclaration << std::endl;
+
+        size_t index = 0;
+        for(auto it=MRU.begin(); it!=MRU.end(); ++it) {
+            cfg << "MRU." << index ++ << "=" << *it << std::endl;
+        }
+
+        cfg.close();
+    }
+
+    void LoadConfig() {
+        std::ifstream cfg(configFile, std::ios::binary);
+        if(!cfg.is_open()) return;
+
+        for (std::string line; std::getline(cfg, line); ) {
+            std::string v = trim(line);
+            std::size_t firstEqual = v.find('=');
+            if(firstEqual==std::string::npos) continue; // skip invalid line
+
+            std::string key = v.substr(0,firstEqual);
+            std::string val = v.substr(firstEqual+1);
+
+            if(key.substr(0,4) == "MRU.") {
+                MRU.emplace_back(val);
+            } else if(key == "ExporWithComments") {
+                exporWithComments = val == "True";
+            } else if(key == "ShiftRollingAround") {
+                shiftRollingAround = val == "True";
+            } else if(key == "LineCommentSymbol") {
+                strncpy(lineCommentSymbol, val.c_str(), sizeof(lineCommentSymbol));
+            } else if(key == "ByteArrayType") {
+                strncpy(byteArrayType, val.c_str(), sizeof(byteArrayType));
+            } else if(key == "ConstantDeclaration") {
+                strncpy(constantDeclaration, val.c_str(), sizeof(constantDeclaration));
+            } else if(key == "LabelDeclaration") {
+                strncpy(labelDeclaration, val.c_str(), sizeof(labelDeclaration));
+            }
+        }
+
+        cfg.close();
     }
 };

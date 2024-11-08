@@ -1,3 +1,4 @@
+#include <filesystem>
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_sdl2.h"
@@ -38,6 +39,10 @@ int main(int, char **)
         printf("Error: %s\n", SDL_GetError());
         return -1;
     }
+
+    spriteManager.configPath = SDL_GetPrefPath("RetroSpriteWorkshop", "Config");
+    spriteManager.configFile = std::filesystem::path(std::string(spriteManager.configPath) + "/settings.cfg").make_preferred();
+    spriteManager.LoadConfig();
 
     // From 2.0.18: Enable native IME.
 #ifdef SDL_HINT_IME_SHOW_UI
@@ -185,6 +190,8 @@ int main(int, char **)
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+
+    spriteManager.SaveConfig();
     SDL_Quit();
 
     return 0;

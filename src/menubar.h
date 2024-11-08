@@ -13,9 +13,6 @@ struct MenuBar
     SpriteManager *spriteManager;
     ProjectSprites *projectSprites;
 
-    bool shiftRollingAround = true;
-    bool exporWithComments = false;
-
     ImFileDialogInfo saveDialogInfo = {
         .title = "Save Project As ...",
         .type = ImGuiFileDialogType_SaveFile,
@@ -114,7 +111,7 @@ struct MenuBar
                     if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
                         Action_ExportToClipboard();
                     }
-                    if(ImGui::Checkbox("Export with Comments and Metadata", &exporWithComments)) {}
+                    if(ImGui::Checkbox("Export with Comments and Metadata", &spriteManager->exporWithComments)) {}
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
@@ -188,7 +185,7 @@ struct MenuBar
                     if(ImGui::MenuItem("Left", "Ctrl+Alt+Left")) {}
                     if(ImGui::MenuItem("Right", "Ctrl+Alt+Right")) {}
                     ImGui::Separator();
-                    if(ImGui::Checkbox("Rolling around", &shiftRollingAround)) {}
+                    if(ImGui::Checkbox("Rolling around", &spriteManager->shiftRollingAround)) {}
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Rotate Image")) {

@@ -137,7 +137,7 @@ struct ProjectSprites
             ImGui::EndTabBar();
         }
 
-        if(advancedSettings.show(&showAdvancedSettings)) {
+        if(advancedSettings.show(spriteManager, &showAdvancedSettings)) {
             // Result
         }
 
