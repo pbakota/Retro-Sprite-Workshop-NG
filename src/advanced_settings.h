@@ -2,6 +2,7 @@
 
 struct AdvancedSettings
 {
+    const char *TITLE = "Advanced Settings - Code Generator";
     char lineCommentSymbol[8] = ";";
     char byteArrayType[8] = "byt";
     char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
@@ -22,7 +23,8 @@ struct AdvancedSettings
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         ImGui::SetNextWindowSize(ImVec2(640.0f,310.0f));
-        if(ImGui::Begin("Advanced Settings - Code Generator", open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
+        ImGui::OpenPopup(TITLE, ImGuiPopupFlags_None);
+        if(ImGui::BeginPopupModal(TITLE, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
             ImGui::SeparatorText("Assembly Language Compatibility");
             if (ImGui::BeginTable("#advancedSettings", 2, ImGuiTableFlags_NoBordersInBody))
             {
@@ -61,7 +63,7 @@ struct AdvancedSettings
                 } ImGui::PopID();
                 ImGui::EndTable();
             }
-            ImGui::End();
+            ImGui::EndPopup();
         }
 
         return completed;

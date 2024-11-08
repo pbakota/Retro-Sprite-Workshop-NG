@@ -161,6 +161,8 @@ ColorDef plus4pal[128] = {
 
 struct ColorSelector
 {
+	const char *TITLE = "Pick a Palette Color";
+
     const char* paletteValues[2] = {
         "VIC - Commodore 64 (16 colors)",
         "TED - Commodore 264 Series (120 colors)",
@@ -199,8 +201,8 @@ struct ColorSelector
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         ImGui::SetNextWindowSize(ImVec2(380.0f,310.0f));
-		ImGui::OpenPopup("Pick a Palette Color", ImGuiPopupFlags_None);
-        if(ImGui::BeginPopupModal("Pick a Palette Color", open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_Popup)) {
+		ImGui::OpenPopup(TITLE, ImGuiPopupFlags_None);
+        if(ImGui::BeginPopupModal(TITLE, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_Popup)) {
             ImGui::SetNextItemWidth(200.0f); ImGui::TextUnformatted("Palette");
             ImGui::SameLine(); ImGui::PushID(0); ImGui::SetNextItemWidth(-1); if(ImGui::BeginCombo("", paletteValues[(size_t)*palette])) {
                 for (int n = 0; n < IM_ARRAYSIZE(paletteValues); n++) {

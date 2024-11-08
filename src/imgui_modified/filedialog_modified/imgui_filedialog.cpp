@@ -78,7 +78,8 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-	if (ImGui::Begin(dialogInfo->title.c_str(), open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse))
+	ImGui::OpenPopup(dialogInfo->title.c_str(), ImGuiPopupFlags_None);
+	if (ImGui::BeginPopupModal(dialogInfo->title.c_str(), open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse))
 	{
 		if ((dialogInfo->currentFiles.empty() && dialogInfo->currentDirectories.empty()) || dialogInfo->refreshInfo)
 			RefreshInfo(dialogInfo);
@@ -277,6 +278,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 			index++;
 		}
 
+		bool dblClicked = false;
 		// Draw files
 		for (size_t i = 0; i < files->size(); ++i)
 		{
@@ -288,7 +290,9 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 			{
 				dialogInfo->currentIndex = index;
 				dialogInfo->fileName = fileName;
+				dblClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 			}
+
 
 			ImGui::NextColumn();
 			ImGui::TextUnformatted(std::to_string(fileEntry.file_size()).c_str());
@@ -348,7 +352,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 
 		if (dialogInfo->type == ImGuiFileDialogType_OpenFile)
 		{
-			if (ImGui::Button("Open", ImVec2(100,25)))
+			if (ImGui::Button("Open", ImVec2(100,25)) || dblClicked)
 			{
 				dialogInfo->resultPath = dialogInfo->directoryPath / dialogInfo->fileName;
 
@@ -392,7 +396,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 				}
 			}
 		}
-		ImGui::End();
+		ImGui::EndPopup();
 	}
 
 	ImGui::PopID();
