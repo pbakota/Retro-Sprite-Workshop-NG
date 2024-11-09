@@ -358,6 +358,10 @@ struct SpriteImage
                     }
                     ImGui::EndMenu();
                 }
+                ImGui::Separator();
+                if(ImGui::MenuItem("Rearrange Color Pixels...")) {
+                    projectSprites->Action_RearrangeColors();
+                }
                 ImGui::EndPopup();
             }
             #endif

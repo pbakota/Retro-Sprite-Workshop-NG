@@ -124,7 +124,7 @@ struct ProjectSprites
         }
     }
 
-    void Action_RearrangeColos() {
+    void Action_RearrangeColors() {
         if(selectedSpriteId != -1) {
             showRearrangeColors = true;
             selectedColors[0] = 0;
