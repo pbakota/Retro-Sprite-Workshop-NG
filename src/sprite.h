@@ -250,6 +250,21 @@ struct Sprite
         return was_dirty;
     }
 
+    size_t GetByteIndex(size_t row, size_t col) {
+        if(multicolorMode) col *= 2;
+        switch(byteAligment) {
+            case ByteAligment::Horizontal_C64_Sprite:       return row*widthInBytes+(size_t)(col/8);
+            case ByteAligment::Vertical_Software_Sprite:    return row+(size_t)(col/8)*heightInPixels;
+            case ByteAligment::Mixed_Character_Based:       return row%8+(size_t)(col/8)*8+(size_t)(row/8)*widthInBytes*8;
+        }
+        return 0;
+    }
+
+    size_t GetCharIndex(size_t row, size_t col) {
+        if(byteAligment != ByteAligment::Mixed_Character_Based) return 64;
+        return (size_t)(GetByteIndex(row, col)/8);
+    }
+
     size_t GetByteSize() {
         size_t sz = (byteAligment == ByteAligment::Mixed_Character_Based ? (size_t)(((size_t)(heightInPixels+7)/8))*8 : heightInPixels);
         size_t size = widthInBytes*sz;

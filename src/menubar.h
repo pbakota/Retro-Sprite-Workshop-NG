@@ -138,7 +138,9 @@ struct MenuBar
                     if(ImGui::MenuItem("Capture Sprite from Screenshot...", "F6")) {}
                     ImGui::EndMenu();
                 }
+                #if 0
                 if(ImGui::MenuItem("Paste")) {}
+                #endif
                 if(ImGui::MenuItem("Clone Sprite", "Ctrl+D")) {
                     Action_CloneSprite();
                 }
@@ -151,6 +153,7 @@ struct MenuBar
                     }
                     ImGui::EndMenu();
                 }
+                #if 0
                 if(ImGui::BeginMenu("Recolor Sprite")) {
                     if(ImGui::MenuItem("Change Background Color")) {}
                     if(ImGui::MenuItem("Change Multi1 Color")) {}
@@ -158,6 +161,7 @@ struct MenuBar
                     if(ImGui::MenuItem("Change Character Color")) {}
                     ImGui::EndMenu();
                 }
+                #endif
                 ImGui::Separator();
                 if(ImGui::BeginMenu("Clear Image")) {
                     if(ImGui::MenuItem("Fill with Background Color")) {
@@ -193,6 +197,16 @@ struct MenuBar
                     if(ImGui::MenuItem("Counter-clockwise")) {}
                     ImGui::EndMenu();
                 }
+                if(ImGui::BeginMenu("Row")) {
+                    if(ImGui::MenuItem("Inset Row")) {}
+                    if(ImGui::MenuItem("Remove Row")) {}
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Column")) {
+                    if(ImGui::MenuItem("Inset Column")) {}
+                    if(ImGui::MenuItem("Remove Column")) {}
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 if(ImGui::MenuItem("Rearrange Color Pixels...")) {}
                 ImGui::Separator();
@@ -222,8 +236,6 @@ struct MenuBar
 
             if (ImGui::FileDialog(&openSaveProjectDialog, &saveDialogInfo))
             {
-                // Result path in: saveDialogInfo.resultPath
-                //strncpy(exportTo, std::filesystem::relative(saveDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(exportTo));
                 if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath)) {
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
                 }

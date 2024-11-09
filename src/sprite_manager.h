@@ -13,10 +13,11 @@ struct SpriteManager {
     SpriteImage *spriteImage;
     StatusBar *statusbar;
 
+    const size_t MAX_MRU_ENTRIES = 5;
+
     std::vector<Sprite*> sprites;
     std::string projectFile = ""; //"project.spr";
     int spriteListType = 0;
-    const size_t MAX_MRU_ENTRIES = 5;
     std::vector<std::string> MRU;
     const char *configPath;
     std::string configFile;

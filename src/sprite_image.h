@@ -199,6 +199,8 @@ struct SpriteImage
 
                 statusbar->col = position_x;
                 statusbar->row = position_y;
+                statusbar->byteIndex = currentSprite->GetByteIndex(statusbar->row, statusbar->col);
+                statusbar->charIndex = currentSprite->GetCharIndex(statusbar->row, statusbar->col);
 
                 // Left mouse button set the pixel to selected color
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -276,6 +278,18 @@ struct SpriteImage
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }
             }
+            #if 0
+            // TODO: Make this popup to work somehow
+            if (ImGui::BeginPopupContextItem("my popup"))
+            {
+                static float value = 100.0f;
+                if (ImGui::Selectable("Set to zero")) value = 0.0f;
+                if (ImGui::Selectable("Set to PI")) value = 3.1415f;
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::DragFloat("##Value", &value, 0.1f, 0.0f, 0.0f);
+                ImGui::EndPopup();
+            }
+            #endif
             // The trick to fool ImGui to set up the scroll sizes properly,
             // otherwise the scroll bars will not be visible, and we would not be able to scroll the view.
             // the reason is: the drawing with drawlist does not update the cursor position. We have to do that.
