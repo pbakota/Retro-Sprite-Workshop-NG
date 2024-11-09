@@ -48,7 +48,9 @@ struct MenuBar
 
     void Action_OpenProjectAs(const char *filename) {
         if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
-            spriteManager->LoadProject(filename);
+            if(spriteManager->LoadProject(filename)) {
+                projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+            }
         }
     }
 
@@ -266,6 +268,8 @@ struct MenuBar
             if (ImGui::FileDialog(&openOpenProjectDialog, &openDialogInfo)) {
                 if(!spriteManager->LoadProject(openDialogInfo.resultPath)) {
                     std::cerr << "ERROR: Failed to load project!" << std::endl;
+                } else {
+                    projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
                 }
             }
         }
