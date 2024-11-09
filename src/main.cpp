@@ -24,11 +24,11 @@ bool show_demo_window = false;
 
 Project project;
 StatusBar statusbar;
-SpriteImage spriteImage(&statusbar);
-SpriteManager spriteManager(&project, &spriteImage, &statusbar);
-ProjectSprites projectSprites(&spriteManager, &spriteImage, &statusbar, &project);
+SpriteManager spriteManager(&project, &statusbar);
+ProjectSprites projectSprites(&spriteManager, &statusbar, &project);
+SpriteImage spriteImage(&spriteManager, &projectSprites, &statusbar);
 MenuBar menubar(&spriteManager, &projectSprites);
-KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites);
+KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites, &spriteManager);
 
 // Main code
 int main(int, char **)

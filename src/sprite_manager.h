@@ -5,13 +5,14 @@
 #include <cstdlib>
 #include "sprite.h"
 #include "project.h"
-#include "sprite_image.h"
+#include "sprite_manager.h"
 #include "statusbar.h"
 
 struct SpriteManager {
     Project *project;
-    SpriteImage *spriteImage;
     StatusBar *statusbar;
+
+    Sprite* currentSprite = nullptr;
 
     const size_t MAX_MRU_ENTRIES = 5;
 
@@ -29,7 +30,7 @@ struct SpriteManager {
     char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
     char labelDeclaration[128] = "{{LABEL}}";
 
-    SpriteManager(Project *project, SpriteImage *spriteImage, StatusBar* statusbar) : project(project), spriteImage(spriteImage), statusbar(statusbar) { }
+    SpriteManager(Project *project, StatusBar* statusbar) : project(project), statusbar(statusbar) { }
 
     ~SpriteManager() {
         ClearSpriteList();
@@ -77,6 +78,182 @@ struct SpriteManager {
                     sp->data[y*sp->pitch+x] = color&1;
                 }
             }
+        }
+        sp->Invalidate();
+    }
+
+    void FlipImage_Horizontal(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for (size_t y = 0; y < sp->heightInPixels; ++y) {
+            for (size_t x = 0; x < widthInPixels / 2; ++x) {
+                char val = sp->data[y * sp->pitch + x];
+                sp->data[y * sp->pitch + x] = sp->data[y * sp->pitch + ((widthInPixels - 1) - x)];
+                sp->data[y * sp->pitch + ((widthInPixels - 1) - x)] = val;
+            }
+        }
+        sp->Invalidate();
+    }
+
+    void FlipImage_Vertical(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+
+        char tmp[sp->pitch];
+        for (size_t y = 0; y < sp->heightInPixels / 2; ++y) {
+            memcpy((void *)tmp, (void *)&sp->data[y * sp->pitch], sp->pitch);
+            memcpy((void *)&sp->data[y * sp->pitch], (void *)&sp->data[((sp->heightInPixels - 1) - y) * sp->pitch], sp->pitch);
+            memcpy((void *)&sp->data[((sp->heightInPixels - 1) - y) * sp->pitch], (void *)tmp, sp->pitch);
+        }
+        sp->Invalidate();
+    }
+
+    void ShiftImage_Up(int id, bool rotate) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        if(sp->heightInPixels == 1) return;
+        char tmp[sp->pitch];
+        size_t widthInPixels = sp->widthInBytes<<3;
+		memcpy((void *)tmp, (void *)sp->data, widthInPixels);
+		for (size_t j = 1; j < sp->heightInPixels; ++j) {
+			memcpy((void *)&sp->data[(j - 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
+		}
+        if(rotate) {
+		    memcpy((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], (void *)&tmp, widthInPixels);
+        } else {
+            memset((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], 0, widthInPixels);
+        }
+        sp->Invalidate();
+    }
+
+    void ShiftImage_Down(int id, bool rotate) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        if(sp->heightInPixels == 1) return;
+        char tmp[sp->pitch];
+        size_t widthInPixels = sp->widthInBytes<<3;
+		memcpy((void *)tmp, (void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], widthInPixels);
+		for (int j = sp->heightInPixels - 2; j >= 0; --j) {
+			memcpy((void *)&sp->data[(j + 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
+		}
+        if(rotate) {
+		    memcpy((void *)sp->data, (void *)&tmp, widthInPixels);
+        } else {
+            memset((void *)sp->data, 0, widthInPixels);
+        }
+        sp->Invalidate();
+    }
+
+    void ShiftImage_Left(int id, bool rotate) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for (size_t j = 0; j < sp->heightInPixels; ++j) {
+			char *p = &sp->data[j * sp->pitch], c = *p;
+			for (size_t k = 1; k < widthInPixels; ++k) {
+				*(p + k - 1) = *(p + k);
+			}
+			*(p + widthInPixels - 1) = rotate ? c : 0;
+		}
+        sp->Invalidate();
+    }
+
+    void ShiftImage_Right(int id, bool rotate) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for (size_t j = 0; j < sp->heightInPixels; ++j)
+		{
+			char *p = &sp->data[j * sp->pitch], c = *(p + widthInPixels - 1);
+			for (int k = sp->heightInPixels - 1; k >= 0; --k) {
+				*(p + k) = *(p + k - 1);
+			}
+			*p = rotate ? c : 0;
+		}
+        sp->Invalidate();
+    }
+
+    void RotateImage_Clockwise(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        if(sp->widthInBytes<<3!=sp->heightInPixels) return;
+        char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            for(size_t x=0;x<sp->heightInPixels;++x) {
+                sp->data[y*sp->pitch+(sp->heightInPixels-x-1)] = tmp[x*sp->pitch+y];
+            }
+        }
+        sp->Invalidate();
+    }
+
+    void RotateImage_CounterClockwise(int id) {
+        #if 0
+        // With cheating :)
+        RotateImage_Clockwise(id);
+        RotateImage_Clockwise(id);
+        RotateImage_Clockwise(id);
+        #endif
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        if(sp->widthInBytes<<3!=sp->heightInPixels) return;
+        char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            for(size_t x=0;x<sp->heightInPixels;++x) {
+                sp->data[y*sp->pitch+x] = tmp[x*sp->pitch+(sp->heightInPixels-y-1)];
+            }
+        }
+        sp->Invalidate();
+    }
+
+    void InsertRow(int id, size_t row) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(int y=sp->heightInPixels-2;y>=(int)row;--y) {
+            for(size_t x=0;x<widthInPixels;++x) {
+                sp->data[(y+1)*sp->pitch+x] = sp->data[y*sp->pitch+x];
+            }
+        }
+        memset(&sp->data[row*sp->pitch], 0, widthInPixels);
+        sp->Invalidate();
+    }
+
+    void RemoveRow(int id, size_t row) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=row;y<sp->heightInPixels-1;++y) {
+            for(size_t x=0;x<widthInPixels;++x) {
+                sp->data[y*sp->pitch+x] = sp->data[(y+1)*sp->pitch+x];
+            }
+        }
+        memset(&sp->data[(sp->heightInPixels-1)*sp->pitch], 0, widthInPixels);
+        sp->Invalidate();
+    }
+
+    void InsertColumn(int id, size_t col) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            for(int x=widthInPixels-2;x>=(int)col;--x) {
+                sp->data[y*sp->pitch+x+1] = sp->data[y*sp->pitch+x];
+            }
+            sp->data[y*sp->pitch+col] = 0;
+        }
+        sp->Invalidate();
+    }
+
+    void RemoveColumn(int id, size_t col) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        Sprite *sp = *current;
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            for(size_t x=col;x<widthInPixels-1;++x) {
+                sp->data[y*sp->pitch+x] = sp->data[y*sp->pitch+x+1];
+            }
+            sp->data[y*sp->pitch+widthInPixels-1] = 0;
         }
         sp->Invalidate();
     }
@@ -162,13 +339,13 @@ struct SpriteManager {
     }
 
     void AttachSprite(Sprite* sprite) {
-        spriteImage->currentSprite = sprite;
+        currentSprite = sprite;
         statusbar->is_zoom_visible = true;
         statusbar->zoomIndex = sprite->zoomIndex;
     }
 
     void DetachSprite() {
-        spriteImage->currentSprite = nullptr;
+        currentSprite = nullptr;
         statusbar->is_zoom_visible = false;
     }
 
@@ -180,16 +357,20 @@ struct SpriteManager {
             ClearSpriteList();
             sprites = temp;
             projectFile = filename;
-            // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
-            if(std::find_if(MRU.begin(), MRU.end(), [filename](auto&&e) { return e == filename; }) == MRU.end()) {
-                if(MRU.size() >= MAX_MRU_ENTRIES) {
-                    MRU.erase(MRU.begin()); // remove from top
-                }
-                MRU.emplace_back(filename);
-            }
+            AddToMRU(filename);
         }
 
         return result;
+    }
+
+    void AddToMRU(const std::string& filename) {
+        // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
+        if(std::find_if(MRU.begin(), MRU.end(), [filename](auto&&e) { return e == filename; }) == MRU.end()) {
+            if(MRU.size() >= MAX_MRU_ENTRIES) {
+                MRU.erase(MRU.begin()); // remove from top
+            }
+            MRU.emplace_back(filename);
+        }
     }
 
     bool SaveProject() {
@@ -199,6 +380,7 @@ struct SpriteManager {
     bool SaveProjectAs(const std::string& filename) {
         if(project->Save(filename, sprites)) {
             projectFile = filename;
+            AddToMRU(filename);
             return true;
         }
         return false;
@@ -209,7 +391,7 @@ struct SpriteManager {
         if(!cfg.is_open()) return;
 
         cfg << "ExporWithComments=" << (exporWithComments ? "True":"False") << std::endl;
-        cfg << "ShiftRollingAround=" << (exporWithComments ? "True":"False") << std::endl;
+        cfg << "ShiftRollingAround=" << (shiftRollingAround ? "True":"False") << std::endl;
 
         cfg << "LineCommentSymbol=" << lineCommentSymbol << std::endl;
         cfg << "ByteArrayType=" << byteArrayType << std::endl;

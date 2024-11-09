@@ -13,26 +13,40 @@ struct Shortcut {
     Shortcut(ImGuiKey keycode, ImGuiKey mod, ShortcutFn fn) : keycode(keycode), mod(mod), fn(fn) {}
 };
 
-#define _S(a,b,c) Shortcut(a,b,c)
 #define ImGuiKey_NoMod ImGuiKey_None
 
 struct KeyboardShortcuts {
     std::vector<Shortcut> shortcuts;
 
-    KeyboardShortcuts(MenuBar *menubar, ProjectSprites *projectSprites) {
+    KeyboardShortcuts(MenuBar *menubar, ProjectSprites *projectSprites, SpriteManager *spriteManager) {
         shortcuts = {
             // File
-            _S(ImGuiKey_N, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_NewProject(); }),
-            _S(ImGuiKey_O, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_OpenProject(); }),
-            _S(ImGuiKey_S, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_SaveProject(); }),
-            _S(ImGuiKey_E, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_ExportToClipboard(); }),
-            _S(ImGuiKey_F4, ImGuiKey_ModAlt, [menubar]() { menubar->Action_ExitApp(); }),
+            Shortcut(ImGuiKey_N, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_NewProject(); }),
+            Shortcut(ImGuiKey_O, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_OpenProject(); }),
+            Shortcut(ImGuiKey_S, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_SaveProject(); }),
+            Shortcut(ImGuiKey_E, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_ExportToClipboard(); }),
+            Shortcut(ImGuiKey_F4, ImGuiKey_ModAlt, [menubar]() { menubar->Action_ExitApp(); }),
 
             // Edit
-            _S(ImGuiKey_F9, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveUp(); }),
-            _S(ImGuiKey_F10, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveDown(); }),
-            _S(ImGuiKey_D, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_CloneSprite(); }),
-            _S(ImGuiKey_Delete, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_DeleteSprite(); }),
+            Shortcut(ImGuiKey_F9, ImGuiKey_NoMod,  [projectSprites]() { projectSprites->Action_MoveUp(); }),
+            Shortcut(ImGuiKey_F10, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveDown(); }),
+            Shortcut(ImGuiKey_D, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_CloneSprite(); }),
+
+            // Flip
+            Shortcut(ImGuiKey_RightArrow, ImGuiKey_ModCtrl, [projectSprites]() { projectSprites->Action_FlipImage_Horizontal(); }),
+            Shortcut(ImGuiKey_UpArrow, ImGuiKey_ModCtrl, [projectSprites]() { projectSprites->Action_FlipImage_Vertical(); }),
+
+            // Shift
+            Shortcut(ImGuiKey_UpArrow, ImGuiKey_ModShift, [projectSprites, spriteManager]() { projectSprites->Action_ShiftImage_Up(spriteManager->shiftRollingAround); }),
+            Shortcut(ImGuiKey_DownArrow, ImGuiKey_ModShift, [projectSprites, spriteManager]() { projectSprites->Action_ShiftImage_Down(spriteManager->shiftRollingAround); }),
+            Shortcut(ImGuiKey_LeftArrow, ImGuiKey_ModShift, [projectSprites, spriteManager]() { projectSprites->Action_ShiftImage_Left(spriteManager->shiftRollingAround); }),
+            Shortcut(ImGuiKey_RightArrow, ImGuiKey_ModShift,[projectSprites, spriteManager]() { projectSprites->Action_ShiftImage_Right(spriteManager->shiftRollingAround); }),
+
+            // Rotate
+            Shortcut(ImGuiKey_RightArrow, ImGuiKey_ModAlt, [projectSprites]() { projectSprites->Action_RotateImage_Clockwise(); }),
+            Shortcut(ImGuiKey_LeftArrow, ImGuiKey_ModAlt, [projectSprites]() { projectSprites->Action_RotateImage_CounterClockwise(); }),
+
+            Shortcut(ImGuiKey_Delete, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_DeleteSprite(); }),
         };
     }
 

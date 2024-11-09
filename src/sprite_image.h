@@ -1,13 +1,16 @@
 #pragma once
 #include "imgui.h"
+#include "project_sprites.h"
+#include "sprite_manager.h"
 #include "statusbar.h"
 #include "color_selector.h"
 
 extern StatusBar statusbar;
 struct SpriteImage
 {
+    SpriteManager *spriteManager;
+    ProjectSprites *projectSprites;
     StatusBar *statusbar;
-    Sprite* currentSprite = nullptr;
 
     bool is_mouse_hovering = false;
     const char* prerendingPrecisionValues[3] = {
@@ -36,13 +39,13 @@ struct SpriteImage
     ColorSelector colorSelector;
     ImGuiID selectedColor = 0;
 
-    SpriteImage(StatusBar *statusbar): statusbar(statusbar) {}
+    SpriteImage(SpriteManager *spriteManager, ProjectSprites *projectSprites, StatusBar *statusbar): spriteManager(spriteManager), projectSprites(projectSprites), statusbar(statusbar) {}
 
     void render()
     {
         ImGui::SetNextWindowSize(ImVec2(800, 400));
         ImGui::Begin("Sprite Image");
-        if(!currentSprite) {
+        if(!spriteManager->currentSprite) {
 
             ImGui::TextUnformatted("no sprite is opened for editing");
             ImGui::Dummy(ImVec2(0, 10.0f));
@@ -61,12 +64,12 @@ struct SpriteImage
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Width ");
-                        ImGui::SameLine(); ImGui::PushID(0); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", spriteWidthValues[currentSprite->widthInBytes-1])) {
+                        ImGui::SameLine(); ImGui::PushID(0); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", spriteWidthValues[spriteManager->currentSprite->widthInBytes-1])) {
                             for (size_t n = 0; n < IM_ARRAYSIZE(spriteWidthValues); n++) {
-                                const bool is_selected = (currentSprite->widthInBytes == n+1);
+                                const bool is_selected = (spriteManager->currentSprite->widthInBytes == n+1);
                                 if (ImGui::Selectable(spriteWidthValues[n], is_selected)) {
-                                    currentSprite->widthInBytes = n+1;
-                                    currentSprite->Invalidate();
+                                    spriteManager->currentSprite->widthInBytes = n+1;
+                                    spriteManager->currentSprite->Invalidate();
                                 }
                                 if (is_selected) {
                                     ImGui::SetItemDefaultFocus();
@@ -75,11 +78,11 @@ struct SpriteImage
                             ImGui::EndCombo();
                         } ImGui::PopID();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Byte Order");
-                        ImGui::SameLine(); ImGui::PushID(1); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", byteOrderValues[(size_t)currentSprite->byteAligment])) {
+                        ImGui::SameLine(); ImGui::PushID(1); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", byteOrderValues[(size_t)spriteManager->currentSprite->byteAligment])) {
                             for (size_t n = 0; n < IM_ARRAYSIZE(byteOrderValues); n++) {
-                                const bool is_selected = ((size_t)currentSprite->byteAligment == n);
+                                const bool is_selected = ((size_t)spriteManager->currentSprite->byteAligment == n);
                                 if (ImGui::Selectable(byteOrderValues[n], is_selected)) {
-                                    currentSprite->byteAligment = (Sprite::ByteAligment)n;
+                                    spriteManager->currentSprite->byteAligment = (Sprite::ByteAligment)n;
                                 }
                                 if (is_selected) {
                                     ImGui::SetItemDefaultFocus();
@@ -89,16 +92,20 @@ struct SpriteImage
                         } ImGui::PopID();
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Height");
-                        heightPixelStep = currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based ? 8 : 1;
-                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &currentSprite->heightInPixels, &heightPixelStep, nullptr, "%d", 0)) {
-                            if(currentSprite->heightInPixels < 8) currentSprite->heightInPixels = 8;
-                            if(currentSprite->heightInPixels > 64) currentSprite->heightInPixels = 64;
+                        heightPixelStep = spriteManager->currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based ? 8 : 1;
+                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &spriteManager->currentSprite->heightInPixels, &heightPixelStep, nullptr, "%d", 0)) {
+                            if(spriteManager->currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based) {
+                                if(spriteManager->currentSprite->heightInPixels < 8) spriteManager->currentSprite->heightInPixels = 8;
+                            } else {
+                                if(spriteManager->currentSprite->heightInPixels < 1) spriteManager->currentSprite->heightInPixels = 1;
+                            }
+                            if(spriteManager->currentSprite->heightInPixels > 64) spriteManager->currentSprite->heightInPixels = 64;
 
-                            currentSprite->Invalidate();
+                            spriteManager->currentSprite->Invalidate();
                         } ImGui::PopID();
-                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Multicolor (2 bits per pixel)", &currentSprite->multicolorMode)) {
+                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Multicolor (2 bits per pixel)", &spriteManager->currentSprite->multicolorMode)) {
                             selectedColor = 0; // Reset drawing color to background
-                            currentSprite->Invalidate();
+                            spriteManager->currentSprite->Invalidate();
                         } ImGui::PopID();
                     }
                     ImGui::EndTable();
@@ -108,7 +115,7 @@ struct SpriteImage
 
                 // Store current zoom index
                 // FIXME: Somehow update this value when it was really changed
-                currentSprite->zoomIndex = statusbar->zoomIndex;
+                spriteManager->currentSprite->zoomIndex = statusbar->zoomIndex;
 
                 // Drawing color selector
                 DrawingColorSelector();
@@ -124,11 +131,11 @@ struct SpriteImage
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Image ID");
-                        ImGui::TableNextColumn(); ImGui::PushID(0); ImGui::InputText("", currentSprite->spriteID, IM_ARRAYSIZE(currentSprite->spriteID)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(0); ImGui::InputText("", spriteManager->currentSprite->spriteID, IM_ARRAYSIZE(spriteManager->currentSprite->spriteID)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Comments");
-                        ImGui::TableNextColumn(); ImGui::PushID(1); ImGui::SetNextItemWidth(-1); ImGui::InputTextMultiline("", currentSprite->description, IM_ARRAYSIZE(currentSprite->description)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(1); ImGui::SetNextItemWidth(-1); ImGui::InputTextMultiline("", spriteManager->currentSprite->description, IM_ARRAYSIZE(spriteManager->currentSprite->description)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Index");
@@ -140,22 +147,22 @@ struct SpriteImage
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Pre-render Software Sprites", &currentSprite->prerenderSoftwareSprite)) {} ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Pre-render Software Sprites", &spriteManager->currentSprite->prerenderSoftwareSprite)) {} ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
 
-                        ImGui::BeginDisabled(!currentSprite->prerenderSoftwareSprite);
-                            if(currentSprite->multicolorMode && currentSprite->renderingPrecision == Sprite::PrerendingPrecision::High8Frames) {
-                                currentSprite->renderingPrecision = Sprite::PrerendingPrecision::Medium4Frames;
+                        ImGui::BeginDisabled(!spriteManager->currentSprite->prerenderSoftwareSprite);
+                            if(spriteManager->currentSprite->multicolorMode && spriteManager->currentSprite->renderingPrecision == Sprite::PrerendingPrecision::High8Frames) {
+                                spriteManager->currentSprite->renderingPrecision = Sprite::PrerendingPrecision::Medium4Frames;
                             }
-                            const char* combo_preview_value = prerendingPrecisionValues[(size_t)currentSprite->renderingPrecision];
+                            const char* combo_preview_value = prerendingPrecisionValues[(size_t)spriteManager->currentSprite->renderingPrecision];
                             ImGui::TableNextColumn(); ImGui::PushID(4); ImGui::SetNextItemWidth(200.0f); if(ImGui::BeginCombo("", combo_preview_value)) {
-                                size_t startOption = currentSprite->multicolorMode ? 1 : 0;
+                                size_t startOption = spriteManager->currentSprite->multicolorMode ? 1 : 0;
                                 for (size_t n = startOption; n < IM_ARRAYSIZE(prerendingPrecisionValues); n++) {
-                                    const bool is_selected = ((size_t)currentSprite->renderingPrecision == n);
+                                    const bool is_selected = ((size_t)spriteManager->currentSprite->renderingPrecision == n);
                                     if (ImGui::Selectable(prerendingPrecisionValues[n], is_selected)) {
-                                        currentSprite->renderingPrecision = (Sprite::PrerendingPrecision)n;
+                                        spriteManager->currentSprite->renderingPrecision = (Sprite::PrerendingPrecision)n;
                                     }
 
                                     if (is_selected) {
@@ -168,7 +175,7 @@ struct SpriteImage
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Final Compiled Size");
-                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes", currentSprite->GetByteSize());
+                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes", spriteManager->currentSprite->GetByteSize());
                     }
                     ImGui::EndTable();
                 }
@@ -186,61 +193,61 @@ struct SpriteImage
         if(ImGui::BeginChild("#drawing", ImVec2(0, -30.0f), ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar)) {
             ImVec2 s = ImGui::GetCursorScreenPos();
 
-            size_t widthInPixels = (currentSprite->widthInBytes<<3);
+            size_t widthInPixels = (spriteManager->currentSprite->widthInBytes<<3);
             const float cs = cellSize*(((1+statusbar->zoomIndex)*25))/100.0f;
 
             float bx = s.x, by = s.y;
-            ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, currentSprite->heightInPixels*cs+by);
+            ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, spriteManager->currentSprite->heightInPixels*cs+by);
             statusbar->is_rowcol_visible = is_mouse_hovering = (ImGui::IsMouseHoveringRect(editor_pos, editor_size)) && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
             if(is_mouse_hovering) {
                 const ImVec2 m = ImGui::GetMousePos();
-                size_t position_x = (size_t)std::floor((m.x - s.x) / (cs * (currentSprite->multicolorMode ? 2 : 1)));
+                size_t position_x = (size_t)std::floor((m.x - s.x) / (cs * (spriteManager->currentSprite->multicolorMode ? 2 : 1)));
                 size_t position_y = std::floor((m.y - s.y) / cs);
 
                 statusbar->col = position_x;
                 statusbar->row = position_y;
-                statusbar->byteIndex = currentSprite->GetByteIndex(statusbar->row, statusbar->col);
-                statusbar->charIndex = currentSprite->GetCharIndex(statusbar->row, statusbar->col);
+                statusbar->byteIndex = spriteManager->currentSprite->GetByteIndex(statusbar->row, statusbar->col);
+                statusbar->charIndex = spriteManager->currentSprite->GetCharIndex(statusbar->row, statusbar->col);
 
                 // Left mouse button set the pixel to selected color
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    if(currentSprite->multicolorMode) {
+                    if(spriteManager->currentSprite->multicolorMode) {
                         switch(selectedColor) {
-                            case 0: currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate(); break;
-                            case 1: currentSprite->SetPixel(position_x, position_y, 1); currentSprite->Invalidate(); break;
-                            case 2: currentSprite->SetPixel(position_x, position_y, 2); currentSprite->Invalidate(); break;
-                            case 3: currentSprite->SetPixel(position_x, position_y, 3); currentSprite->Invalidate(); break;
+                            case 0: spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate(); break;
+                            case 1: spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate(); break;
+                            case 2: spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate(); break;
+                            case 3: spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate(); break;
                         }
                     } else {
                         switch(selectedColor) {
-                            case 0: currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate(); break;
-                            case 3: currentSprite->SetPixel(position_x, position_y, 1); currentSprite->Invalidate(); break;
+                            case 0: spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate(); break;
+                            case 3: spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate(); break;
                         }
                     }
                 }
 
                 // Right mouse button always erase pixel
-                if(ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-                    if(currentSprite->multicolorMode) {
-                        currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate();
+                if(ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsKeyDown(ImGuiKey_ModShift)) {
+                    if(spriteManager->currentSprite->multicolorMode) {
+                        spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
                     } else {
-                        currentSprite->SetPixel(position_x, position_y, 0); currentSprite->Invalidate();
+                        spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
                     }
                 }
             }
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
-            for(size_t y = 0; y < currentSprite->heightInPixels; ++y) {
-                if(currentSprite->multicolorMode) {
+            for(size_t y = 0; y < spriteManager->currentSprite->heightInPixels; ++y) {
+                if(spriteManager->currentSprite->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
                         ImU32 pixelColor;
-                        size_t c = (((char*)currentSprite->data)[y*currentSprite->pitch + x + 0] << 1) | ((char*)currentSprite->data)[y*currentSprite->pitch + x + 1];
+                        size_t c = (((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x + 0] << 1) | ((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x + 1];
                         // std::cerr << std::hex << c << std::endl;
                         switch(c) {
-                            case 0: pixelColor = currentSprite->backgroundColor; break;
-                            case 1: pixelColor = currentSprite->multi1Color; break;
-                            case 2: pixelColor = currentSprite->multi2Color; break;
-                            case 3: pixelColor = currentSprite->characterColor; break;
+                            case 0: pixelColor = spriteManager->currentSprite->backgroundColor; break;
+                            case 1: pixelColor = spriteManager->currentSprite->multi1Color; break;
+                            case 2: pixelColor = spriteManager->currentSprite->multi2Color; break;
+                            case 3: pixelColor = spriteManager->currentSprite->characterColor; break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), pixelColor);
@@ -248,45 +255,109 @@ struct SpriteImage
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
                         float xx = s.x + x * cs, yy = s.y + y * cs;
-                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), ((char*)currentSprite->data)[y*currentSprite->pitch + x]
-                            ? currentSprite->characterColor : currentSprite->backgroundColor);
+                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), ((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x]
+                            ? spriteManager->currentSprite->characterColor : spriteManager->currentSprite->backgroundColor);
                     }
                 }
             }
             if(1 /* TODO: make grid visibility configurable */) {
-                if(currentSprite->multicolorMode) {
+                if(spriteManager->currentSprite->multicolorMode) {
                     for(size_t x = 0; x <= widthInPixels; x+=2) {
-                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + currentSprite->heightInPixels*cs);
+                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
                         drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                     }
                 } else {
                     for(size_t x = 0; x <= widthInPixels; ++x) {
-                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + currentSprite->heightInPixels*cs);
+                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
                         drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                     }
                 }
-                for(size_t y = 0; y < currentSprite->heightInPixels; ++y) {
+                for(size_t y = 0; y < spriteManager->currentSprite->heightInPixels; ++y) {
                     ImVec2 p0 = ImVec2(s.x, s.y + y*cs), p1 = ImVec2(s.x + widthInPixels*cs, s.y + y*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                 }
                 for(size_t x = 0; x <= widthInPixels; x+=8) {
-                    ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + currentSprite->heightInPixels*cs);
+                    ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }
-                for(size_t y = 0; y <= currentSprite->heightInPixels; y+=8) {
+                for(size_t y = 0; y <= spriteManager->currentSprite->heightInPixels; y+=8) {
                     ImVec2 p0 = ImVec2(s.x, s.y + y*cs), p1 = ImVec2(s.x + widthInPixels*cs, s.y + y*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }
             }
-            #if 0
+            #if 1
             // TODO: Make this popup to work somehow
-            if (ImGui::BeginPopupContextItem("my popup"))
+            if (ImGui::BeginPopupContextWindow("my popup"))
             {
-                static float value = 100.0f;
-                if (ImGui::Selectable("Set to zero")) value = 0.0f;
-                if (ImGui::Selectable("Set to PI")) value = 3.1415f;
-                ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::DragFloat("##Value", &value, 0.1f, 0.0f, 0.0f);
+                if(ImGui::BeginMenu("Clear Image")) {
+                    if(ImGui::MenuItem("Fill with Background Color")) {
+                        projectSprites->Action_ClearSprite(0);
+                    }
+                    if(ImGui::MenuItem("Fill with Multi1 Color")) {
+                        projectSprites->Action_ClearSprite(1);
+                    }
+                    if(ImGui::MenuItem("Fill with Multi2 Color")) {
+                        projectSprites->Action_ClearSprite(2);
+                    }
+                    if(ImGui::MenuItem("Fill with Character Color")) {
+                        projectSprites->Action_ClearSprite(3);
+                    }
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Flip Image")) {
+                    if(ImGui::MenuItem("Horizontally", "Ctrl+Right")) {
+                        projectSprites->Action_FlipImage_Horizontal();
+                    }
+                    if(ImGui::MenuItem("Vertically", "Ctrl+Up")) {
+                        projectSprites->Action_FlipImage_Vertical();
+                    }
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Shift Image")) {
+                    if(ImGui::MenuItem("Up", "Shift+Up")) {
+                        projectSprites->Action_ShiftImage_Up(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Down", "Shift+Down")) {
+                        projectSprites->Action_ShiftImage_Down(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Left", "Shift+Left")) {
+                        projectSprites->Action_ShiftImage_Left(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Right", "Shift+Right")) {
+                        projectSprites->Action_ShiftImage_Right(spriteManager->shiftRollingAround);
+                    }
+                    ImGui::Separator();
+                    if(ImGui::Checkbox("Rolling around", &spriteManager->shiftRollingAround)) {}
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Rotate Image")) {
+                    if(ImGui::MenuItem("Clockwise", "Alt+Right")) {
+                        projectSprites->Action_RotateImage_Clockwise();
+                    }
+                    if(ImGui::MenuItem("Counter-clockwise", "Alt+Left")) {
+                        projectSprites->Action_RotateImage_CounterClockwise();
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if(ImGui::BeginMenu("Row")) {
+                    if(ImGui::MenuItem("Inset Row")) {
+                        projectSprites->Action_InsertRow(statusbar->row);
+                    }
+                    if(ImGui::MenuItem("Remove Row")) {
+                        projectSprites->Action_RemoveRow(statusbar->row);
+                    }
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Column")) {
+                    if(ImGui::MenuItem("Inset Column")) {
+                        projectSprites->Action_InsertColumn(statusbar->col);
+                    }
+                    if(ImGui::MenuItem("Remove Column")) {
+                        projectSprites->Action_RemoveColumn(statusbar->col);
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::EndPopup();
             }
             #endif
@@ -303,10 +374,10 @@ struct SpriteImage
     ImU32 *color = nullptr;
     void DrawingColorSelector() {
         bool hovered, is_hovered = false;
-        if(DrawColorButton(0, currentSprite->backgroundColor, "Background", &hovered)) {
+        if(DrawColorButton(0, spriteManager->currentSprite->backgroundColor, "Background", &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
-                color = &currentSprite->backgroundColor;
+                color = &spriteManager->currentSprite->backgroundColor;
             } else {
                 selectedColor = 0;
             }
@@ -314,11 +385,11 @@ struct SpriteImage
         if(hovered) {
             is_hovered = true;
         }
-        if(currentSprite->multicolorMode) {
-            ImGui::SameLine(); if(DrawColorButton(1, currentSprite->multi1Color, "Multi 1", &hovered)) {
+        if(spriteManager->currentSprite->multicolorMode) {
+            ImGui::SameLine(); if(DrawColorButton(1, spriteManager->currentSprite->multi1Color, "Multi 1", &hovered)) {
                 if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     colorSelectorOpen = true;
-                    color = &currentSprite->multi1Color;
+                    color = &spriteManager->currentSprite->multi1Color;
                 } else {
                     selectedColor = 1;
                 }
@@ -326,10 +397,10 @@ struct SpriteImage
             if(hovered) {
                 is_hovered = true;
             }
-            ImGui::SameLine(); if(DrawColorButton(2, currentSprite->multi2Color, "Multi 2", &hovered)) {
+            ImGui::SameLine(); if(DrawColorButton(2, spriteManager->currentSprite->multi2Color, "Multi 2", &hovered)) {
                 if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     colorSelectorOpen = true;
-                    color = &currentSprite->multi2Color;
+                    color = &spriteManager->currentSprite->multi2Color;
                 } else {
                     selectedColor = 2;
                 }
@@ -338,10 +409,10 @@ struct SpriteImage
                 is_hovered = true;
             }
         }
-        ImGui::SameLine(); if(DrawColorButton(3, currentSprite->characterColor, "Character", &hovered)) {
+        ImGui::SameLine(); if(DrawColorButton(3, spriteManager->currentSprite->characterColor, "Character", &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
-                color = &currentSprite->characterColor;
+                color = &spriteManager->currentSprite->characterColor;
             } else {
                 selectedColor = 3;
             }
@@ -355,9 +426,9 @@ struct SpriteImage
         }
 
         if(colorSelectorOpen) {
-            if(colorSelector.show(&colorSelectorOpen, *color, &currentSprite->palette)) {
+            if(colorSelector.show(&colorSelectorOpen, *color, &spriteManager->currentSprite->palette)) {
                 *color = colorSelector.selectedColor;
-                currentSprite->Invalidate();
+                spriteManager->currentSprite->Invalidate();
             }
         }
     }

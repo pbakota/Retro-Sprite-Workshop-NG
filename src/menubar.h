@@ -121,6 +121,7 @@ struct MenuBar
                     if(ImGui::MenuItem(shrink_string(entry, 30).c_str())) {
                         Action_OpenProjectAs(entry.c_str());
                     }
+                    ImGui::SetItemTooltip("%s", entry.c_str());
                     ImGui::PopID();
                 }
                 ImGui::Separator();
@@ -179,24 +180,42 @@ struct MenuBar
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Flip Image")) {
-                    if(ImGui::MenuItem("Horizontally", "Ctrl+Shift+Right")) {}
-                    if(ImGui::MenuItem("Vertically", "Ctrl+Shift+Down")) {}
+                    if(ImGui::MenuItem("Horizontally", "Ctrl+Right")) {
+                        projectSprites->Action_FlipImage_Horizontal();
+                    }
+                    if(ImGui::MenuItem("Vertically", "Ctrl+Up")) {
+                        projectSprites->Action_FlipImage_Vertical();
+                    }
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Shift Image")) {
-                    if(ImGui::MenuItem("Up", "Ctrl+Alt+Up")) {}
-                    if(ImGui::MenuItem("Down", "Ctrl+Alt+Down")) {}
-                    if(ImGui::MenuItem("Left", "Ctrl+Alt+Left")) {}
-                    if(ImGui::MenuItem("Right", "Ctrl+Alt+Right")) {}
+                    if(ImGui::MenuItem("Up", "Shift+Up")) {
+                        projectSprites->Action_ShiftImage_Up(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Down", "Shift+Down")) {
+                        projectSprites->Action_ShiftImage_Down(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Left", "Shift+Left")) {
+                        projectSprites->Action_ShiftImage_Left(spriteManager->shiftRollingAround);
+                    }
+                    if(ImGui::MenuItem("Right", "Shift+Right")) {
+                        projectSprites->Action_ShiftImage_Right(spriteManager->shiftRollingAround);
+                    }
                     ImGui::Separator();
                     if(ImGui::Checkbox("Rolling around", &spriteManager->shiftRollingAround)) {}
                     ImGui::EndMenu();
                 }
                 if(ImGui::BeginMenu("Rotate Image")) {
-                    if(ImGui::MenuItem("Clockwise")) {}
-                    if(ImGui::MenuItem("Counter-clockwise")) {}
+                    if(ImGui::MenuItem("Clockwise", "Alt+Right")) {
+                        projectSprites->Action_RotateImage_Clockwise();
+                    }
+                    if(ImGui::MenuItem("Counter-clockwise", "Alt+Left")) {
+                        projectSprites->Action_RotateImage_CounterClockwise();
+                    }
                     ImGui::EndMenu();
                 }
+                #if 0
+                ImGui::Separator();
                 if(ImGui::BeginMenu("Row")) {
                     if(ImGui::MenuItem("Inset Row")) {}
                     if(ImGui::MenuItem("Remove Row")) {}
@@ -207,6 +226,7 @@ struct MenuBar
                     if(ImGui::MenuItem("Remove Column")) {}
                     ImGui::EndMenu();
                 }
+                #endif
                 ImGui::Separator();
                 if(ImGui::MenuItem("Rearrange Color Pixels...")) {}
                 ImGui::Separator();

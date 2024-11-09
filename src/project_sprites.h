@@ -3,7 +3,6 @@
 #include "imgui.h"
 #include "menubar.h"
 #include "sprite_manager.h"
-#include "sprite_image.h"
 #include "util.h"
 #include "imgui_filedialog.h"
 #include "advanced_settings.h"
@@ -11,7 +10,6 @@
 struct ProjectSprites
 {
     SpriteManager *spriteManager;
-    SpriteImage *spriteImage;
     StatusBar *statusbar;
     Project *project;
 
@@ -30,8 +28,8 @@ struct ProjectSprites
     bool showAdvancedSettings = false;
     AdvancedSettings advancedSettings;
 
-    ProjectSprites(SpriteManager *spriteManager, SpriteImage *spriteImage, StatusBar *statusbar, Project *project)
-        : spriteManager(spriteManager), spriteImage(spriteImage), statusbar(statusbar), project(project) {}
+    ProjectSprites(SpriteManager *spriteManager, StatusBar *statusbar, Project *project)
+        : spriteManager(spriteManager), statusbar(statusbar), project(project) {}
 
 
     void Action_MoveUp() {
@@ -49,6 +47,78 @@ struct ProjectSprites
     void Action_ClearSprite(size_t color) {
         if(selectedSpriteId != -1) {
             spriteManager->ClearSprite(selectedSpriteId, color);
+        }
+    }
+
+    void Action_FlipImage_Horizontal() {
+        if(selectedSpriteId != -1) {
+            spriteManager->FlipImage_Horizontal(selectedSpriteId);
+        }
+    }
+
+    void Action_FlipImage_Vertical() {
+        if(selectedSpriteId != -1) {
+            spriteManager->FlipImage_Vertical(selectedSpriteId);
+        }
+    }
+
+    void Action_ShiftImage_Up(bool rotate) {
+        if(selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Up(selectedSpriteId, rotate);
+        }
+    }
+
+    void Action_ShiftImage_Down(bool rotate) {
+        if(selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Down(selectedSpriteId, rotate);
+        }
+    }
+
+    void Action_ShiftImage_Left(bool rotate) {
+        if(selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Left(selectedSpriteId, rotate);
+        }
+    }
+
+    void Action_ShiftImage_Right(bool rotate) {
+        if(selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Right(selectedSpriteId, rotate);
+        }
+    }
+
+    void Action_RotateImage_Clockwise() {
+        if(selectedSpriteId != -1) {
+            spriteManager->RotateImage_Clockwise(selectedSpriteId);
+        }
+    }
+
+    void Action_RotateImage_CounterClockwise() {
+        if(selectedSpriteId != -1) {
+            spriteManager->RotateImage_CounterClockwise(selectedSpriteId);
+        }
+    }
+
+    void Action_InsertRow(size_t row) {
+        if(selectedSpriteId != -1) {
+            spriteManager->InsertRow(selectedSpriteId, row);
+        }
+    }
+
+    void Action_RemoveRow(size_t row) {
+        if(selectedSpriteId != -1) {
+            spriteManager->RemoveRow(selectedSpriteId, row);
+        }
+    }
+
+    void Action_InsertColumn(size_t col) {
+        if(selectedSpriteId != -1) {
+            spriteManager->InsertColumn(selectedSpriteId, col);
+        }
+    }
+
+    void Action_RemoveColumn(size_t col) {
+        if(selectedSpriteId != -1) {
+            spriteManager->RemoveColumn(selectedSpriteId, col);
         }
     }
 
@@ -270,13 +340,13 @@ struct ProjectSprites
 
                     // Attach sprite to the editor if we double clicked on sprite
                     if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        spriteImage->currentSprite = sprite;
+                        spriteManager->currentSprite = sprite;
                         statusbar->is_zoom_visible = true;
                         statusbar->zoomIndex = sprite->zoomIndex;
                     } else {
                         // Detach sprite from the editor if we selected different sprite
                         if(selectedSpriteId != lastSelectedSpriteId) {
-                            spriteImage->currentSprite = nullptr;
+                            spriteManager->currentSprite = nullptr;
                             lastSelectedSpriteId = selectedSpriteId;
                         }
                     }
