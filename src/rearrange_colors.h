@@ -59,6 +59,9 @@ struct RearrangeColors
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
+                if(!ValidCombination(selected)) {
+                    ImGui::TextWrapped("%s", "The current combination of target colors will cause color loss which cannot be recovered");
+                }
                 ImGui::TableNextColumn();
                 ImGui::TableNextColumn();
                 ImGui::Dummy(ImVec2(0, 20.0f));
@@ -79,5 +82,14 @@ struct RearrangeColors
         }
 
         return completed;
+    }
+
+    bool ValidCombination(size_t selected[]) {
+        for(size_t i=0; i<3; ++i) {
+            for(size_t j=i+1; j<4; ++j) {
+                if(selected[i] == selected[j]) return false;
+            }
+        }
+        return true;
     }
 };
