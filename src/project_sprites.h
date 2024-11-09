@@ -6,6 +6,7 @@
 #include "util.h"
 #include "imgui_filedialog.h"
 #include "advanced_settings.h"
+#include "rearrange_colors.h"
 
 struct ProjectSprites
 {
@@ -25,12 +26,13 @@ struct ProjectSprites
     };
     char startCharIndex = 0;
     int one = 1;
-    bool showAdvancedSettings = false;
+    bool showAdvancedSettings = false, showRearrangeColors = false;
     AdvancedSettings advancedSettings;
+    RearrangeColors rearrangeColors;
+    size_t selectedColors[4];
 
     ProjectSprites(SpriteManager *spriteManager, StatusBar *statusbar, Project *project)
         : spriteManager(spriteManager), statusbar(statusbar), project(project) {}
-
 
     void Action_MoveUp() {
         if(selectedSpriteId != -1) {
@@ -122,6 +124,16 @@ struct ProjectSprites
         }
     }
 
+    void Action_RearrangeColos() {
+        if(selectedSpriteId != -1) {
+            showRearrangeColors = true;
+            selectedColors[0] = 0;
+            selectedColors[1] = 1;
+            selectedColors[2] = 2;
+            selectedColors[3] = 3;
+        }
+    }
+
     void render(SDL_Renderer *renderer)
     {
         ImGui::Begin("Project Sprites");
@@ -208,7 +220,11 @@ struct ProjectSprites
         }
 
         if(advancedSettings.show(spriteManager, &showAdvancedSettings)) {
-            // Result
+            //
+        }
+
+        if(selectedSpriteId != -1 && rearrangeColors.show(spriteManager->GetSprite(selectedSpriteId)->multicolorMode, selectedColors, &showRearrangeColors)) {
+            spriteManager->RearrangeColors(selectedSpriteId, selectedColors);
         }
 
         if (ImGui::FileDialog(&openExportToDialog, &fileDialogInfo))

@@ -44,6 +44,12 @@ struct SpriteManager {
         sprites.clear();
     }
 
+    Sprite *GetSprite(int id) {
+        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        assert(current != sprites.end());
+        return *current;
+    }
+
     int MoveUp(int id) {
         auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         if(current == sprites.begin()) return (*current)->ID;
@@ -63,8 +69,7 @@ struct SpriteManager {
     }
 
     void ClearSprite(int id, size_t color) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         if(!sp->multicolorMode&&(color==1||color==2)) return;
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
@@ -83,8 +88,7 @@ struct SpriteManager {
     }
 
     void FlipImage_Horizontal(int id) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t y = 0; y < sp->heightInPixels; ++y) {
             for (size_t x = 0; x < widthInPixels / 2; ++x) {
@@ -97,9 +101,7 @@ struct SpriteManager {
     }
 
     void FlipImage_Vertical(int id) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
-
+        Sprite *sp = GetSprite(id);
         char tmp[sp->pitch];
         for (size_t y = 0; y < sp->heightInPixels / 2; ++y) {
             memcpy((void *)tmp, (void *)&sp->data[y * sp->pitch], sp->pitch);
@@ -110,8 +112,7 @@ struct SpriteManager {
     }
 
     void ShiftImage_Up(int id, bool rotate) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
         char tmp[sp->pitch];
         size_t widthInPixels = sp->widthInBytes<<3;
@@ -128,8 +129,7 @@ struct SpriteManager {
     }
 
     void ShiftImage_Down(int id, bool rotate) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
         char tmp[sp->pitch];
         size_t widthInPixels = sp->widthInBytes<<3;
@@ -146,8 +146,7 @@ struct SpriteManager {
     }
 
     void ShiftImage_Left(int id, bool rotate) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j) {
 			char *p = &sp->data[j * sp->pitch], c = *p;
@@ -160,8 +159,7 @@ struct SpriteManager {
     }
 
     void ShiftImage_Right(int id, bool rotate) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j)
 		{
@@ -175,8 +173,7 @@ struct SpriteManager {
     }
 
     void RotateImage_Clockwise(int id) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
         for(size_t y=0;y<sp->heightInPixels;++y) {
@@ -194,8 +191,7 @@ struct SpriteManager {
         RotateImage_Clockwise(id);
         RotateImage_Clockwise(id);
         #endif
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
         for(size_t y=0;y<sp->heightInPixels;++y) {
@@ -207,8 +203,7 @@ struct SpriteManager {
     }
 
     void InsertRow(int id, size_t row) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(int y=sp->heightInPixels-2;y>=(int)row;--y) {
             for(size_t x=0;x<widthInPixels;++x) {
@@ -220,8 +215,7 @@ struct SpriteManager {
     }
 
     void RemoveRow(int id, size_t row) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=row;y<sp->heightInPixels-1;++y) {
             for(size_t x=0;x<widthInPixels;++x) {
@@ -233,8 +227,7 @@ struct SpriteManager {
     }
 
     void InsertColumn(int id, size_t col) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
             for(int x=widthInPixels-2;x>=(int)col;--x) {
@@ -246,8 +239,7 @@ struct SpriteManager {
     }
 
     void RemoveColumn(int id, size_t col) {
-        auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
-        Sprite *sp = *current;
+        Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
             for(size_t x=col;x<widthInPixels-1;++x) {
@@ -256,6 +248,38 @@ struct SpriteManager {
             sp->data[y*sp->pitch+widthInPixels-1] = 0;
         }
         sp->Invalidate();
+    }
+
+    void RearrangeColors(int id, size_t selected[]) {
+        Sprite *sp = GetSprite(id);
+        char tmp[4096]; memcpy(tmp, sp->data, sizeof(tmp));
+        for(size_t n=0;n<4;++n) {
+            if(selected[n] != n) {
+                SwapColorPixels(sp, tmp, n, selected[n]);
+            }
+        }
+        sp->Invalidate();
+    }
+
+    void SwapColorPixels(Sprite *sp, char *original, char from, char to) {
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            if(sp->multicolorMode) {
+                for(size_t x=0;x<widthInPixels;x+=2) {
+                    char b = (original[y*sp->pitch+x+0] << 1) | original[y*sp->pitch+x+1];
+                    if(b == from) {
+                        sp->data[y*sp->pitch+x+0] = (to>>1);
+                        sp->data[y*sp->pitch+x+1] = (to&1);
+                    }
+                }
+            } else {
+                for(size_t x=0;x<widthInPixels;++x) {
+                    if(original[y*sp->pitch+x] == (from&1)) {
+                        sp->data[y*sp->pitch+x] = (to&1);
+                    }
+                }
+            }
+        }
     }
 
     void NewProject() {

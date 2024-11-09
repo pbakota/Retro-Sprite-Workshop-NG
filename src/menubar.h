@@ -228,7 +228,9 @@ struct MenuBar
                 }
                 #endif
                 ImGui::Separator();
-                if(ImGui::MenuItem("Rearrange Color Pixels...")) {}
+                if(ImGui::MenuItem("Rearrange Color Pixels...")) {
+                    projectSprites->Action_RearrangeColos();
+                }
                 ImGui::Separator();
                 if(ImGui::MenuItem("Delete Sprite", "Ctrl+Delete")) {
                     Action_DeleteSprite();
