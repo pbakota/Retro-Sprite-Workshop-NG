@@ -91,10 +91,20 @@ struct SpriteManager {
         Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t y = 0; y < sp->heightInPixels; ++y) {
-            for (size_t x = 0; x < widthInPixels / 2; ++x) {
-                char val = sp->data[y * sp->pitch + x];
-                sp->data[y * sp->pitch + x] = sp->data[y * sp->pitch + ((widthInPixels - 1) - x)];
-                sp->data[y * sp->pitch + ((widthInPixels - 1) - x)] = val;
+            if(sp->multicolorMode) {
+                for (size_t x = 0; x < widthInPixels / 2; x+=2) {
+                    char p1 = sp->data[y * sp->pitch + x+0], p2 = sp->data[y * sp->pitch + x+1];
+                    sp->data[y * sp->pitch + x+0] = sp->data[y * sp->pitch + ((widthInPixels - 1) - x-1)];
+                    sp->data[y * sp->pitch + x+1] = sp->data[y * sp->pitch + ((widthInPixels - 1) - x-0)];
+                    sp->data[y * sp->pitch + ((widthInPixels - 1) - x)-1] = p1;
+                    sp->data[y * sp->pitch + ((widthInPixels - 1) - x)-0] = p2;
+                }
+            } else {
+                for (size_t x = 0; x < widthInPixels / 2; ++x) {
+                    char val = sp->data[y * sp->pitch + x];
+                    sp->data[y * sp->pitch + x] = sp->data[y * sp->pitch + ((widthInPixels - 1) - x)];
+                    sp->data[y * sp->pitch + ((widthInPixels - 1) - x)] = val;
+                }
             }
         }
         sp->Invalidate();
@@ -149,11 +159,21 @@ struct SpriteManager {
         Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j) {
-			char *p = &sp->data[j * sp->pitch], c = *p;
-			for (size_t k = 1; k < widthInPixels; ++k) {
-				*(p + k - 1) = *(p + k);
-			}
-			*(p + widthInPixels - 1) = rotate ? c : 0;
+            if(sp->multicolorMode) {
+                char *p = &sp->data[j * sp->pitch], c1 = p[0], c2 = p[1];
+                for (size_t k = 2; k < widthInPixels; k+=2) {
+                    p[k-2] = p[k+0];
+                    p[k-1] = p[k+1];
+                }
+                p[widthInPixels - 2] = rotate ? c1 : 0;
+                p[widthInPixels - 1] = rotate ? c2 : 0;
+            } else {
+                char *p = &sp->data[j * sp->pitch], c = *p;
+                for (size_t k = 1; k < widthInPixels; ++k) {
+                    *(p + k - 1) = *(p + k);
+                }
+                *(p + widthInPixels - 1) = rotate ? c : 0;
+            }
 		}
         sp->Invalidate();
     }
@@ -163,11 +183,21 @@ struct SpriteManager {
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j)
 		{
-			char *p = &sp->data[j * sp->pitch], c = *(p + widthInPixels - 1);
-			for (int k = sp->heightInPixels - 1; k >= 0; --k) {
-				*(p + k) = *(p + k - 1);
-			}
-			*p = rotate ? c : 0;
+            if(sp->multicolorMode) {
+                char *p = &sp->data[j * sp->pitch], c1 = p[widthInPixels - 1], c2= p[widthInPixels - 2];
+                for (int k = sp->heightInPixels - 2; k >= 2; k-=2) {
+                    p[k+0] = p[k-2];
+                    p[k+1] = p[k-1];
+                }
+                p[0] = rotate ? c2 : 0;
+                p[1] = rotate ? c1 : 0;
+            } else {
+                char *p = &sp->data[j * sp->pitch], c = *(p + widthInPixels - 1);
+                for (int k = sp->heightInPixels - 1; k >= 0; --k) {
+                    *(p + k) = *(p + k - 1);
+                }
+                *p = rotate ? c : 0;
+            }
 		}
         sp->Invalidate();
     }
@@ -176,27 +206,31 @@ struct SpriteManager {
         Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
-        for(size_t y=0;y<sp->heightInPixels;++y) {
-            for(size_t x=0;x<sp->heightInPixels;++x) {
-                sp->data[y*sp->pitch+(sp->heightInPixels-x-1)] = tmp[x*sp->pitch+y];
+        if(sp->multicolorMode) {
+            FlipImage_Horizontal(id);
+            FlipImage_Vertical(id);
+        } else {
+            for(size_t y=0;y<sp->heightInPixels;++y) {
+                for(size_t x=0;x<sp->heightInPixels;++x) {
+                    sp->data[y*sp->pitch+(sp->heightInPixels-x)-1] = tmp[x*sp->pitch+y];
+                }
             }
         }
         sp->Invalidate();
     }
 
     void RotateImage_CounterClockwise(int id) {
-        #if 0
-        // With cheating :)
-        RotateImage_Clockwise(id);
-        RotateImage_Clockwise(id);
-        RotateImage_Clockwise(id);
-        #endif
         Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
-        for(size_t y=0;y<sp->heightInPixels;++y) {
-            for(size_t x=0;x<sp->heightInPixels;++x) {
-                sp->data[y*sp->pitch+x] = tmp[x*sp->pitch+(sp->heightInPixels-y-1)];
+        if(sp->multicolorMode) {
+            FlipImage_Vertical(id);
+            FlipImage_Horizontal(id);
+        } else {
+            for(size_t y=0;y<sp->heightInPixels;++y) {
+                for(size_t x=0;x<sp->heightInPixels;++x) {
+                    sp->data[y*sp->pitch+x] = tmp[x*sp->pitch+(sp->heightInPixels-y)-1];
+                }
             }
         }
         sp->Invalidate();

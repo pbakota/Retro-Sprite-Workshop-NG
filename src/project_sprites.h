@@ -251,7 +251,7 @@ struct ProjectSprites
             clipper.Begin(spriteManager->sprites.size());
             while (clipper.Step())
             {
-                size_t charOffset = 0;
+                size_t charOffset = startCharIndex;
                 // calculate char offset before clipping
                 for (int row = 0; row < clipper.DisplayStart; row++) {
                     auto sprite = spriteManager->sprites[row];

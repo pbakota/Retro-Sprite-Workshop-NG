@@ -139,6 +139,7 @@ struct SpriteImage
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Index");
+                        // FIXME: Get somehow the real values for index and offset
                         ImGui::TableNextColumn(); ImGui::Text("%d; Char: %d", 0, 0);
 
                         ImGui::Dummy(ImVec2(0,10.0f));

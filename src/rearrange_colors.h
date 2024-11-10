@@ -60,7 +60,7 @@ struct RearrangeColors
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if(!ValidCombination(selected)) {
-                    ImGui::TextWrapped("%s", "The current combination of target colors will cause color loss which cannot be recovered");
+                    ImGui::TextWrapped("%s", "WARNING: The current combination of target colors will cause color loss which cannot be recovered");
                 }
                 ImGui::TableNextColumn();
                 ImGui::TableNextColumn();

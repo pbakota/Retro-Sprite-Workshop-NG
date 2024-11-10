@@ -130,10 +130,10 @@ struct Sprite
 
     void SetPixel(size_t position_x, size_t position_y, size_t val) {
         if(multicolorMode) {
-            data[(size_t)(position_y) * pitch + 2*(size_t)position_x+0] = val>>1;
-            data[(size_t)(position_y) * pitch + 2*(size_t)position_x+1] = val&1;
+            data[position_y * pitch + 2*position_x+0] = val>>1;
+            data[position_y * pitch + 2*position_x+1] = val&1;
         } else {
-            data[(size_t)(position_y) * pitch + (size_t)position_x] = val;
+            data[position_y * pitch + position_x] = val;
         }
     }
 
