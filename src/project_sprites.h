@@ -7,6 +7,7 @@
 #include "imgui_filedialog.h"
 #include "advanced_settings.h"
 #include "rearrange_colors.h"
+#include "capture.h"
 
 struct ProjectSprites
 {
@@ -27,9 +28,11 @@ struct ProjectSprites
     char startCharIndex = 0;
     int one = 1;
     bool showAdvancedSettings = false, showRearrangeColors = false;
+    size_t selectedColors[4];
+    bool captureVisible=false;
     AdvancedSettings advancedSettings;
     RearrangeColors rearrangeColors;
-    size_t selectedColors[4];
+    Capture capture;
 
     ProjectSprites(SpriteManager *spriteManager, StatusBar *statusbar, Project *project)
         : spriteManager(spriteManager), statusbar(statusbar), project(project) {}
@@ -134,6 +137,10 @@ struct ProjectSprites
         }
     }
 
+    void Action_Capture() {
+        captureVisible = true;
+    }
+
     void render(SDL_Renderer *renderer)
     {
         ImGui::Begin("Project Sprites");
@@ -155,8 +162,8 @@ struct ProjectSprites
                     spriteManager->NewSprite();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Capture from Screenshot", ImVec2(200,25)))
-                {
+                if (ImGui::Button("Capture from Screenshot", ImVec2(200,25))) {
+                    Action_Capture();
                 }
 
                 ImGui::EndTabItem();
@@ -231,6 +238,15 @@ struct ProjectSprites
         {
             // Result path in: fileDialogInfo.resultPath
             strncpy(project->exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(project->exportTo));
+        }
+
+        if(captureVisible) {
+            if(capture.show(spriteManager, &captureVisible)) {
+                int spId = spriteManager->CloneSprite(&capture.capturedSprite);
+                Sprite *sp = spriteManager->GetSprite(spId);
+                strncpy(sp->description, vformat("Captured from Screenshot (%s)\nPosX=%d; PosY=%d", capture.screenCaptureFile,
+                    (int)capture.cutter_x, (int)capture.cutter_y).c_str(), sizeof(sp->description));
+            }
         }
 
         ImGui::End();

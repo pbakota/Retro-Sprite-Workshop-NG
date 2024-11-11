@@ -286,9 +286,7 @@ struct SpriteImage
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }
             }
-            #if 1
-            // TODO: Make this popup to work somehow
-            if (ImGui::BeginPopupContextWindow("my popup"))
+            if (ImGui::BeginPopupContextWindow("##spriteImagePopup"))
             {
                 if(ImGui::BeginMenu("Clear Image")) {
                     if(ImGui::MenuItem("Fill with Background Color")) {
@@ -341,6 +339,10 @@ struct SpriteImage
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
+                if(ImGui::MenuItem("Capture Sprite from Screenshot ...", "F6")) {
+                    projectSprites->Action_Capture();
+                }
+                ImGui::Separator();
                 if(ImGui::BeginMenu("Row")) {
                     if(ImGui::MenuItem("Inset Row")) {
                         projectSprites->Action_InsertRow(statusbar->row);
@@ -365,7 +367,6 @@ struct SpriteImage
                 }
                 ImGui::EndPopup();
             }
-            #endif
             // The trick to fool ImGui to set up the scroll sizes properly,
             // otherwise the scroll bars will not be visible, and we would not be able to scroll the view.
             // the reason is: the drawing with drawlist does not update the cursor position. We have to do that.

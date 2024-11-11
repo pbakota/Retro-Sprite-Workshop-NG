@@ -22,6 +22,7 @@
 #include <imgui.h>
 
 #include "imgui_filedialog.h"
+#include "imgui_clamped_window.h"
 
 using namespace std::chrono_literals;
 
@@ -77,6 +78,8 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 	// Always center this window when appearing
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+	ImGui::ClampingWindowToTheScreenEdges(dialogInfo->title.c_str());
 
 	ImGui::OpenPopup(dialogInfo->title.c_str(), ImGuiPopupFlags_None);
 	if (ImGui::BeginPopupModal(dialogInfo->title.c_str(), open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse))

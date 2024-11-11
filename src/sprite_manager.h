@@ -13,6 +13,9 @@ struct SpriteManager {
     StatusBar *statusbar;
 
     Sprite* currentSprite = nullptr;
+    SDL_Texture *captureScreenshot = nullptr;
+    SDL_Surface *captureSurface = nullptr;
+    ImVec2 captureScreenshotSize = ImVec2(-FLT_MIN, -FLT_MIN);
 
     const size_t MAX_MRU_ENTRIES = 5;
 
@@ -20,6 +23,7 @@ struct SpriteManager {
     std::string projectFile = ""; //"project.spr";
     int spriteListType = 0;
     std::vector<std::string> MRU;
+    std::vector<std::string> captureMRU;
     const char *configPath;
     std::string configFile;
     bool exporWithComments = false;
@@ -30,11 +34,23 @@ struct SpriteManager {
     char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
     char labelDeclaration[128] = "{{LABEL}}";
 
-    SpriteManager(Project *project, StatusBar* statusbar) : project(project), statusbar(statusbar) { }
+    SpriteManager(Project *project, StatusBar* statusbar) : project(project), statusbar(statusbar) {
+        captureMRU.emplace_back("/home/sorel/work/p4tools/src/bruce_lee_sprites2.spr");
+        captureMRU.emplace_back("/home/sorel/work/p4tools/src/project3.spr");
+        captureMRU.emplace_back("/home/sorel/work/p4tools/src/charset.spr");
+        captureMRU.emplace_back("/home/sorel/work/p4tools/src/examples/charset.spr");
+        captureMRU.emplace_back("/home/sorel/work/p4tools/src/figure1.spr");
+    }
 
     ~SpriteManager() {
         ClearSpriteList();
         SDL_free((void*)configPath);
+        if(captureScreenshot) {
+            SDL_DestroyTexture(captureScreenshot);
+        }
+        if(captureSurface) {
+            SDL_FreeSurface(captureSurface);
+        }
     }
 
     void ClearSpriteList() {
@@ -264,10 +280,19 @@ struct SpriteManager {
         Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
-            for(int x=widthInPixels-2;x>=(int)col;--x) {
-                sp->data[y*sp->pitch+x+1] = sp->data[y*sp->pitch+x];
+            if(sp->multicolorMode) {
+                for(int x=widthInPixels-4;x>=(int)col*2;x-=2) {
+                    sp->data[y*sp->pitch+x+2] = sp->data[y*sp->pitch+x+0];
+                    sp->data[y*sp->pitch+x+3] = sp->data[y*sp->pitch+x+1];
+                }
+                sp->data[y*sp->pitch+col+0] = 0;
+                sp->data[y*sp->pitch+col+1] = 0;
+            } else {
+                for(int x=widthInPixels-2;x>=(int)col;--x) {
+                    sp->data[y*sp->pitch+x+1] = sp->data[y*sp->pitch+x];
+                }
+                sp->data[y*sp->pitch+col] = 0;
             }
-            sp->data[y*sp->pitch+col] = 0;
         }
         sp->Invalidate();
     }
@@ -345,10 +370,15 @@ struct SpriteManager {
         auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         // if not found, exit
         if(current == sprites.end()) return -1;
+        Sprite *fromSp = *current;
+        return CloneSprite(fromSp);
+    }
+
+    int CloneSprite(const Sprite* fromSp) {
         int newId = NewSprite();
         auto it = std::find_if(sprites.begin(), sprites.end(), [newId](auto&&sp) { return (sp->ID == newId); });
-        Sprite *fromSp = *current;
         Sprite *toSp = *it;
+
         toSp->heightInPixels = fromSp->heightInPixels;
         toSp->widthInBytes = fromSp->widthInBytes;
         //char spriteID[128] = {0};

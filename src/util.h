@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <cmath>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
@@ -7,14 +9,19 @@
 #include <string>
 
 // ABGR
-#define ABGR_BLUE(color) ((color>>16)&0xff)
-#define ABGR_GREEN(color) ((color>>8)&0xff)
-#define ABGR_RED(color) ((color)&0xff)
+#define ABGR_BLUE(color) ((unsigned char)((color>>16)&0xff))
+#define ABGR_GREEN(color) ((unsigned char)((color>>8)&0xff))
+#define ABGR_RED(color) ((unsigned char)((color)&0xff))
+
+#ifndef ABS
+#define ABS(x) ((x)<0?(-(x)):(x))
+#endif
 
 const std::string vformat(const char *const zcFormat, ...);
 std::string trucate_text(const std::string &p_text, float p_truncated_width);
 std::string return_current_time_and_date();
 bool is_light_color(ImU32 color);
+ImVec4 rgb_to_lab(ImVec4 color);
 
 // requires at least C++11
 const std::string vformat(const char * const zcFormat, ...) {
@@ -44,6 +51,48 @@ bool is_light_color(ImU32 color)
 	float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
 	float luma = 0.2126*r+0.7152*g+0.0722*b;
 	return (luma > 128);
+}
+
+// Calculate color distance between two colors, return value between 0%..100% where 0% means they are totally same, 100% means they are complementary colors to each others.
+float color_distance(ImU32 c1, ImU32 c2) {
+#if 0
+    // Very simple not very accurate solution
+    float d = (0.3f*(ABGR_RED(c1)-ABGR_RED(c2))*(ABGR_RED(c1)-ABGR_RED(c2)))
+        +(0.59f*(ABGR_GREEN(c1)-ABGR_GREEN(c2))*(ABGR_GREEN(c1)-ABGR_GREEN(c2)))
+        +(0.11f*(ABGR_BLUE(c1)-ABGR_BLUE(c2))*(ABGR_BLUE(c1)-ABGR_BLUE(c2)));
+    return d;
+#else
+    // a better approximation
+    ImVec4 v1, v2;
+    v1 = rgb_to_lab(ImGui::ColorConvertU32ToFloat4(c1));
+    v2 = rgb_to_lab(ImGui::ColorConvertU32ToFloat4(c2));
+    float d = std::sqrt((v1.x-v2.x)*(v1.x-v2.x)+(v1.y-v2.y)*(v1.y-v2.y)+(v1.z-v2.z)+(v1.z-v2.z));
+    // std::cerr << vformat("0x%08x 0x%08x = %.2f\n", c1,c2,d);
+    return d;
+#endif
+}
+
+ImVec4 rgb_to_lab(const ImVec4 color) {
+
+    ImVec4 XYZ;
+
+    XYZ.x = 100.0f*((color.x > 0.04045f) ? std::pow((color.x + 0.055f)/1.055f, 2.4f) : color.x/12.92f);
+    XYZ.y = 100.0f*((color.y > 0.04045f) ? std::pow((color.y + 0.055f)/1.055f, 2.4f) : color.y/12.92f);
+    XYZ.z = 100.0f*((color.z > 0.04045f) ? std::pow((color.z + 0.055f)/1.055f, 2.4f) : color.z/12.92f);
+
+    XYZ.x = (XYZ.x * 0.4124f + XYZ.y * 0.3576f + XYZ.z * 0.1805f)/95.047f; // perfect reflecting diffuser D65
+    XYZ.y = (XYZ.x * 0.2126f + XYZ.y * 0.7152f + XYZ.y * 0.0722f)/100.0f;
+    XYZ.z = (XYZ.x * 0.0193f + XYZ.y * 0.1192f + XYZ.y * 0.9505f)/108.883f;
+
+    XYZ.x = (XYZ.x>0.008856f) ? std::pow(XYZ.x, (1/3)) : (XYZ.x * 7.787f)+(16/116);
+    XYZ.y = (XYZ.y>0.008856f) ? std::pow(XYZ.y, (1/3)) : (XYZ.y * 7.787f)+(16/116);
+    XYZ.z = (XYZ.z>0.008856f) ? std::pow(XYZ.z, (1/3)) : (XYZ.z * 7.787f)+(16/116);
+
+    float L = (116 * XYZ.y) - 16;
+    float a = 500*(XYZ.x-XYZ.y);
+    float b = 200*(XYZ.y-XYZ.z);
+
+    return ImVec4(L,a,b,0);
 }
 
 std::string trucate_text(const std::string& p_text, float p_truncated_width) {
@@ -116,7 +165,7 @@ std::string replace_string(std::string subject, const std::string& search, const
 std::string shrink_string(const std::string &subject, size_t max_length) {
     const std::string ELLIPSIS = "...";
     if(subject.length() <= max_length) return subject;
-    float space_per_part = (max_length - ELLIPSIS.length()) / 2.0f;
+    float space_per_part = (max_length - ELLIPSIS.length()) * 0.5f;
     auto before = subject.substr(0, std::ceil(space_per_part));
     auto after = subject.substr(subject.length() - std::floor(space_per_part));
     return before + ELLIPSIS + after;

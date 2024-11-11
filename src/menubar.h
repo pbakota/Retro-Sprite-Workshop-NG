@@ -4,9 +4,13 @@
 #include "imgui_filedialog.h"
 #include "sprite_manager.h"
 #include "project_sprites.h"
+#include "about.h"
 
 extern bool done;
+
+#ifndef EXCLUDE_IMGUI_DEMO
 extern bool show_demo_window;
+#endif
 
 struct MenuBar
 {
@@ -30,6 +34,8 @@ struct MenuBar
         .directoryPath = std::filesystem::current_path()
     };
     bool openOpenProjectDialog = false;
+    bool showAboutDialog = false;
+    About about;
 
     MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites): spriteManager(spriteManager), projectSprites(projectSprites) {}
 
@@ -138,7 +144,9 @@ struct MenuBar
                     if(ImGui::MenuItem("Blank Sprite")) {
                         spriteManager->NewSprite();
                     }
-                    if(ImGui::MenuItem("Capture Sprite from Screenshot...", "F6")) {}
+                    if(ImGui::MenuItem("Capture Sprite from Screenshot...", "F6")) {
+                        projectSprites->Action_Capture();
+                    }
                     ImGui::EndMenu();
                 }
                 #if 0
@@ -216,19 +224,6 @@ struct MenuBar
                     }
                     ImGui::EndMenu();
                 }
-                #if 0
-                ImGui::Separator();
-                if(ImGui::BeginMenu("Row")) {
-                    if(ImGui::MenuItem("Inset Row")) {}
-                    if(ImGui::MenuItem("Remove Row")) {}
-                    ImGui::EndMenu();
-                }
-                if(ImGui::BeginMenu("Column")) {
-                    if(ImGui::MenuItem("Inset Column")) {}
-                    if(ImGui::MenuItem("Remove Column")) {}
-                    ImGui::EndMenu();
-                }
-                #endif
                 ImGui::Separator();
                 if(ImGui::MenuItem("Rearrange Color Pixels...")) {
                     projectSprites->Action_RearrangeColors();
@@ -250,10 +245,14 @@ struct MenuBar
             }
 
             if(ImGui::BeginMenu("Help")) {
-                if(ImGui::MenuItem("About...")) {}
+                if(ImGui::MenuItem("About...")) {
+                    showAboutDialog = true;
+                }
+                #ifndef EXCLUDE_IMGUI_DEMO
                 if(ImGui::MenuItem("Show Demo Window...")) {
                     show_demo_window = true;
                 }
+                #endif
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -271,6 +270,10 @@ struct MenuBar
                 } else {
                     projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
                 }
+            }
+
+            if(showAboutDialog) {
+               about.show(&showAboutDialog);
             }
         }
     }

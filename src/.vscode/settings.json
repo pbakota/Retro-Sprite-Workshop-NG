@@ -92,5 +92,11 @@
         "spanstream": "cpp",
         "stacktrace": "cpp",
         "*.ipp": "cpp"
+    },
+    "workbench.colorCustomizations": {
+        "tab.activeBackground": "#4c4c8f",
+        "tab.hoverBackground": "#4c435c",
+        "tab.activeBorder": "#00ff00",
+        "tab.unfocusedActiveBorder": "#000000"
     }
 }

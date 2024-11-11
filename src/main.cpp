@@ -30,6 +30,7 @@ SpriteImage spriteImage(&spriteManager, &projectSprites, &statusbar);
 MenuBar menubar(&spriteManager, &projectSprites);
 KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites, &spriteManager);
 
+SDL_Renderer *renderer;
 // Main code
 int main(int, char **)
 {
@@ -57,7 +58,7 @@ int main(int, char **)
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
         return -1;
     }
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr)
     {
         SDL_Log("Error creating SDL_Renderer!");
@@ -135,11 +136,13 @@ int main(int, char **)
         window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
         window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        #ifndef EXCLUDE_IMGUI_DEMO
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).        
         if (show_demo_window)
         {
             ImGui::ShowDemoWindow(&show_demo_window);
         }
+        #endif
 
         ImGui::Begin("P4Tools Main", nullptr, window_flags);
         ImGui::PopStyleVar(3);

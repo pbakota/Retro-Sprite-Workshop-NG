@@ -89,13 +89,14 @@ struct Sprite
         {0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0}
     };
 #endif
+    Sprite() {}
     Sprite(std::size_t widthInBytes, std::size_t heightInPixels, const char *imageName) : heightInPixels(heightInPixels), widthInBytes(widthInBytes)
     {
         ID = nextID++;
         assert(widthInBytes<=8);
         assert(heightInPixels<=64);
         strncpy(spriteID, imageName, sizeof(spriteID));
-        memset((void*)data, 0, sizeof(data));
+        ClearData();
 
 #ifdef USE_TEST_SPRITE
         size_t widthInPixels = widthInBytes<<3;
@@ -126,6 +127,10 @@ struct Sprite
             SDL_DestroyTexture(scaled);
             scaled = nullptr;
         }
+    }
+
+    void ClearData() {
+        memset((void*)data, 0, sizeof(data));
     }
 
     void SetPixel(size_t position_x, size_t position_y, size_t val) {

@@ -6,6 +6,7 @@
                 "${default}",
                 "imgui_modified",
                 "imgui_modified/filedialog_modified",
+                "imgui_modified/stb_image",
                 "/usr/include/SDL2"
             ],
             "defines": [],
