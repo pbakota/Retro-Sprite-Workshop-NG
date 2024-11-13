@@ -3,10 +3,15 @@
 #include <algorithm>
 #include <memory>
 #include <cstdlib>
+#include <SDL.h>
+#define SDL_STBIMAGE_IMPLEMENTATION
+#include "SDL_stbimage.h"
 #include "sprite.h"
 #include "project.h"
 #include "sprite_manager.h"
 #include "statusbar.h"
+
+extern SDL_Renderer *renderer;
 
 struct SpriteManager {
     Project *project;
@@ -16,14 +21,16 @@ struct SpriteManager {
     SDL_Texture *captureScreenshot = nullptr;
     SDL_Surface *captureSurface = nullptr;
     ImVec2 captureScreenshotSize = ImVec2(-FLT_MIN, -FLT_MIN);
+    std::vector<std::string> captureMRU;
+    size_t captureBorderTop = 0;
+    size_t captureBorderLeft = 0;
 
     const size_t MAX_MRU_ENTRIES = 5;
 
     std::vector<Sprite*> sprites;
     std::string projectFile = ""; //"project.spr";
-    int spriteListType = 0;
     std::vector<std::string> MRU;
-    std::vector<std::string> captureMRU;
+    int spriteListType = 0;
     const char *configPath;
     std::string configFile;
     bool exporWithComments = false;
@@ -34,13 +41,7 @@ struct SpriteManager {
     char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
     char labelDeclaration[128] = "{{LABEL}}";
 
-    SpriteManager(Project *project, StatusBar* statusbar) : project(project), statusbar(statusbar) {
-        captureMRU.emplace_back("/home/sorel/work/p4tools/src/bruce_lee_sprites2.spr");
-        captureMRU.emplace_back("/home/sorel/work/p4tools/src/project3.spr");
-        captureMRU.emplace_back("/home/sorel/work/p4tools/src/charset.spr");
-        captureMRU.emplace_back("/home/sorel/work/p4tools/src/examples/charset.spr");
-        captureMRU.emplace_back("/home/sorel/work/p4tools/src/figure1.spr");
-    }
+    SpriteManager(Project *project, StatusBar* statusbar) : project(project), statusbar(statusbar) {}
 
     ~SpriteManager() {
         ClearSpriteList();
@@ -437,21 +438,7 @@ struct SpriteManager {
         statusbar->is_zoom_visible = false;
     }
 
-    bool LoadProject(const std::string& filename) {
-        std::vector<Sprite*> temp;
-        bool result = project->Load(filename, temp);
-        if(result) {
-            DetachSprite();
-            ClearSpriteList();
-            sprites = temp;
-            projectFile = filename;
-            AddToMRU(filename);
-        }
-
-        return result;
-    }
-
-    void AddToMRU(const std::string& filename) {
+    void AddToProjectMRU(const std::string& filename) {
         // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
         if(std::find_if(MRU.begin(), MRU.end(), [filename](auto&&e) { return e == filename; }) == MRU.end()) {
             if(MRU.size() >= MAX_MRU_ENTRIES) {
@@ -461,6 +448,20 @@ struct SpriteManager {
         }
     }
 
+    bool LoadProject(const std::string& filename) {
+        std::vector<Sprite*> temp;
+        bool result = project->Load(filename, temp);
+        if(result) {
+            DetachSprite();
+            ClearSpriteList();
+            sprites = temp;
+            projectFile = filename;
+            AddToProjectMRU(filename);
+        }
+
+        return result;
+    }
+
     bool SaveProject() {
         return project->Save(projectFile, sprites);
     }
@@ -468,10 +469,39 @@ struct SpriteManager {
     bool SaveProjectAs(const std::string& filename) {
         if(project->Save(filename, sprites)) {
             projectFile = filename;
-            AddToMRU(filename);
+            AddToProjectMRU(filename);
             return true;
         }
         return false;
+    }
+
+    void AddToCaptureMRU(const std::string& filename) {
+        // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
+        if(std::find_if(captureMRU.begin(), captureMRU.end(), [filename](auto&&e) { return e == filename; }) == captureMRU.end()) {
+            if(captureMRU.size() >= MAX_MRU_ENTRIES) {
+                captureMRU.erase(captureMRU.begin()); // remove from top
+            }
+            captureMRU.emplace_back(filename);
+        }
+    }
+
+    bool LoadCaptureImage(const std::string &filename) {
+        SDL_Surface *image = STBIMG_Load(filename.c_str());
+        if(!image) {
+            std::cerr << "ERROR: " << SDL_GetError() << std::endl;
+            return false;
+        }
+        if(captureScreenshot) {
+            SDL_DestroyTexture(captureScreenshot);
+        }
+        if(captureSurface) {
+            SDL_FreeSurface(captureSurface);
+        }
+        captureSurface = image;
+        captureScreenshotSize = ImVec2(image->w, image->h);
+        captureScreenshot = SDL_CreateTextureFromSurface(renderer, image);
+        AddToCaptureMRU(filename);
+        return true;
     }
 
     void SaveConfig() {
@@ -485,10 +515,17 @@ struct SpriteManager {
         cfg << "ByteArrayType=" << byteArrayType << std::endl;
         cfg << "ConstantDeclaration=" << constantDeclaration << std::endl;
         cfg << "LabelDeclaration=" << labelDeclaration << std::endl;
+        cfg << "CaptureBorderLeft=" << captureBorderLeft << std::endl;
+        cfg << "CaptureBorderTop=" << captureBorderTop << std::endl;
 
         size_t index = 0;
         for(auto it=MRU.begin(); it!=MRU.end(); ++it) {
             cfg << "MRU." << index ++ << "=" << *it << std::endl;
+        }
+
+        index = 0;
+        for(auto it=captureMRU.begin(); it!=captureMRU.end(); ++it) {
+            cfg << "CaptureMRU." << index ++ << "=" << *it << std::endl;
         }
 
         cfg.close();
@@ -508,6 +545,8 @@ struct SpriteManager {
 
             if(key.substr(0,4) == "MRU.") {
                 MRU.emplace_back(val);
+            } else if(key.substr(0,11) == "CaptureMRU.") {
+                captureMRU.emplace_back(val);
             } else if(key == "ExporWithComments") {
                 exporWithComments = val == "True";
             } else if(key == "ShiftRollingAround") {
@@ -520,6 +559,10 @@ struct SpriteManager {
                 strncpy(constantDeclaration, val.c_str(), sizeof(constantDeclaration));
             } else if(key == "LabelDeclaration") {
                 strncpy(labelDeclaration, val.c_str(), sizeof(labelDeclaration));
+            } else if(key == "CaptureBorderLeft") {
+                captureBorderLeft = atoi(val.c_str());
+            } else if(key == "CaptureBorderTop") {
+                captureBorderTop = atoi(val.c_str());
             }
         }
 

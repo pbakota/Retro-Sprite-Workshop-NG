@@ -1,8 +1,5 @@
 #pragma once
 #include <bits/stdc++.h>
-#include <SDL.h>
-#define SDL_STBIMAGE_IMPLEMENTATION
-#include "SDL_stbimage.h"
 #include "imgui.h"
 #include "imgui_filedialog.h"
 #include "imgui_clamped_window.h"
@@ -24,6 +21,12 @@ struct Capture {
     bool position_visible = false;
     bool cutter_dropped = false, cutter_drag = false;
     float cutter_x, cutter_y;
+    ImVec2 imageViewRegionAvail;
+
+    size_t pBorderTop;
+    size_t pBorderLeft;
+
+    bool openSetIgnoredBorderSize = false;
 
     ImFileDialogInfo captureImageDialog = {
         .title = "Load Screenshot",
@@ -66,6 +69,19 @@ struct Capture {
         /* 9*/"2000%",
         /*10*/"4000%",
     };
+    const float zoomParams[11] = {
+        /* 0*/ 1.00f,
+        /* 1*/ 2.00f,
+        /* 2*/ 3.00f,
+        /* 3*/ 4.00f,
+        /* 4*/ 5.00f,
+        /* 5*/ 6.00f,
+        /* 6*/ 8.00f,
+        /* 7*/10.00f,
+        /* 8*/10.50f,
+        /* 9*/20.00f,
+        /*10*/40.00f,
+    };
     float scaleFactor = 1.0f;
     bool firstFrame = true;
     Uint32 capturedBitmap[4096];
@@ -85,7 +101,7 @@ struct Capture {
 
         bool completed = false;
         this->spriteManager = spriteManager;
-        scaleFactor = ((zoomIndex+1)*100.0f)/100.0f;
+        scaleFactor = zoomParams[zoomIndex];
 
         // Always center this window when appearing
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -136,6 +152,10 @@ struct Capture {
                                 ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndListBox();
+
+                        if(item_selected_idx != -1 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                            LoadCapture(spriteManager->captureMRU[item_selected_idx]);
+                        }
                     }
                 }
                 if(!spriteManager->captureScreenshot) ImGui::BeginDisabled();
@@ -202,18 +222,7 @@ struct Capture {
             }
 
             if (ImGui::FileDialog(&showCaptureImageDialog, &captureImageDialog)) {
-                SDL_Surface *image = STBIMG_Load(captureImageDialog.resultPath.c_str());
-                if(!image) {
-                    std::cerr << "ERROR: " << SDL_GetError() << std::endl;
-                } else {
-                    spriteManager->captureScreenshotSize = ImVec2(image->w, image->h);
-                    spriteManager->captureScreenshot = SDL_CreateTextureFromSurface(renderer, image);
-                    spriteManager->captureSurface = image;
-
-                    CaptureColors(image);
-
-                    strncpy(screenCaptureFile, std::filesystem::path(captureImageDialog.resultPath).filename().c_str(), sizeof(screenCaptureFile));
-                }
+                LoadCapture(captureImageDialog.resultPath);
             }
 
             Statusbar();
@@ -222,6 +231,13 @@ struct Capture {
         }
 
         return completed;
+    }
+
+    void LoadCapture(const std::string &filename) {
+        if(spriteManager->LoadCaptureImage(filename)) {
+            strncpy(screenCaptureFile, std::filesystem::path(filename).filename().c_str(), sizeof(screenCaptureFile));
+            CaptureColors(spriteManager->captureSurface);
+        }
     }
 
     bool PaletteMapping(ImGuiID id, CapturedColor &cc) {
@@ -257,8 +273,13 @@ struct Capture {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
+        imageViewRegionAvail = ImGui::GetContentRegionAvail();
         if(ImGui::BeginChild("##image", ImVec2(-FLT_MIN, -30.0f), ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar)) {
-            const ImVec2 s = ImGui::GetCursorScreenPos();
+            ImVec2 s = ImGui::GetCursorScreenPos();
+            s.x += spriteManager->captureBorderLeft*scaleFactor;
+            s.y += spriteManager->captureBorderTop*scaleFactor;
+
+            // ImGui::GetWindowDrawList()->AddRect(ImVec2(s.x, s.y), ImVec2(s.x + imageViewRegionAvail.x, s.y + imageViewRegionAvail.y), 0xffff0000, 0.0f, 2.0f);
 
             ImVec2 size = ImVec2(spriteManager->captureScreenshotSize.x * scaleFactor, spriteManager->captureScreenshotSize.y * scaleFactor);
 
@@ -490,6 +511,7 @@ struct Capture {
         ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 35.0f);
         ImGui::Separator();
         if(ImGui::BeginChild("##statusbar", ImVec2(0,0), ImGuiChildFlags_None)) {
+            ImGui::BeginDisabled(spriteManager->captureSurface == nullptr);
 
             ImGui::SetNextItemWidth(600.0f);
             ImGui::AlignTextToFramePadding();
@@ -510,12 +532,34 @@ struct Capture {
                         ImGui::SetItemDefaultFocus();
                     }
                 }
-                ImGui::Separator(); if(ImGui::Button("Zoom to Fit", ImVec2(-FLT_MIN, 20))) {}
+                ImGui::Separator(); if(ImGui::Button("Zoom to Fit", ImVec2(-FLT_MIN, 20))) {
+                    float w = (imageViewRegionAvail.x/spriteManager->captureScreenshotSize.x)-50.0f;
+                    float h = (imageViewRegionAvail.y/spriteManager->captureScreenshotSize.y)-50.0f;
+
+                    if(w>h) {
+                        for(int i=IM_ARRAYSIZE(zoomParams)-1;i>=0;--i) {
+                            float n = zoomParams[i]*spriteManager->captureScreenshotSize.y;
+                            if(n<imageViewRegionAvail.y) {
+                                zoomIndex = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        for(int i=IM_ARRAYSIZE(zoomParams)-1;i>=0;--i) {
+                            float n = zoomParams[i]*spriteManager->captureScreenshotSize.x;
+                            if(n<imageViewRegionAvail.x) {
+                                zoomIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
                 ImGui::EndCombo();
             } ImGui::PopID();
 
             ImGui::SameLine(); ImGui::AlignTextToFramePadding(); ImGui::Text("| Border Size: %d; %d", 0, 0);
 
+            ImGui::EndDisabled();
             ImGui::EndChild();
         }
     }
@@ -531,6 +575,7 @@ struct Capture {
                     auto entry = *it;
                     ImGui::PushID(entry.c_str());
                     if(ImGui::MenuItem(shrink_string(entry, 30).c_str())) {
+                        LoadCapture(entry);
                     }
                     ImGui::SetItemTooltip("%s", entry.c_str());
                     ImGui::PopID();
@@ -553,6 +598,9 @@ struct Capture {
                     }
                     if(ImGui::MenuItem("Align with one pixel", nullptr, &alignOnePixel)) {}
                     if(ImGui::MenuItem("Set Ignored Border Size...")) {
+                        openSetIgnoredBorderSize = true;
+                        pBorderLeft = spriteManager->captureBorderLeft;
+                        pBorderTop = spriteManager->captureBorderTop;
                     }
                     ImGui::EndMenu();
                 }
@@ -582,6 +630,63 @@ struct Capture {
                 }
             }
             ImGui::EndMenuBar();
+
+            if(openSetIgnoredBorderSize) {
+                if(SetIgnoredBorderSize(&openSetIgnoredBorderSize)) {
+                    spriteManager->captureBorderTop =  pBorderTop;
+                    spriteManager->captureBorderLeft = pBorderLeft;
+                }
+            }
         }
+    }
+
+    bool SetIgnoredBorderSize(bool *open) {
+        if(!*open)
+            return false;
+
+        // NOTE: The return value is here opposite of the normal behavior
+        // here we return true when the user cancelled the settings.
+        bool cancel = false;
+        const char* title = "Border Size";
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        ImGui::SetNextWindowSize(ImVec2(400.0f,130.0f));
+        ImGui::OpenPopup(title, ImGuiPopupFlags_None);
+        if(ImGui::BeginPopupModal(title, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
+            ImGui::TextUnformatted("Horizontal Border (margin on the top)");
+            ImGui::SameLine(280.0f); ImGui::PushID(0); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &spriteManager->captureBorderTop, &one, nullptr, "%d", 0)) {
+                if(spriteManager->captureBorderTop < 1) spriteManager->captureBorderTop = 0;
+                if(spriteManager->captureBorderTop > 500) spriteManager->captureBorderTop = 500;
+            } ImGui::PopID();
+            ImGui::TextUnformatted("Vertical Border (margin on the left)");
+            ImGui::SameLine(280.0f); ImGui::PushID(1); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &spriteManager->captureBorderLeft, &one, nullptr, "%d", 0)) {
+                if(spriteManager->captureBorderLeft < 1) spriteManager->captureBorderLeft = 0;
+                if(spriteManager->captureBorderLeft > 500) spriteManager->captureBorderLeft = 500;
+            } ImGui::PopID();
+
+            ImGui::Dummy(ImVec2(0, 20.0f));
+            ImVec2 buttonSize(100,20);
+            float widthNeeded = 3*buttonSize.x + 2*style.ItemSpacing.x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - widthNeeded);
+            ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 30.0f);
+            ImGui::PushID(2); if(ImGui::Button("Reset", buttonSize)) {
+                spriteManager->captureBorderLeft = 0;
+                spriteManager->captureBorderTop = 0;
+            } ImGui::PopID(); ImGui::SameLine();
+            ImGui::PushID(3); if(ImGui::Button("OK", buttonSize)) {
+                *open = false;
+            } ImGui::PopID(); ImGui::SameLine();
+            ImGui::PushID(4); if(ImGui::Button("Cancel", buttonSize)) {
+                cancel = true;
+                *open = false;
+            } ImGui::PopID();
+            ImGui::EndPopup();
+        }
+
+        return cancel;
     }
 };
