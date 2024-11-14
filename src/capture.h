@@ -181,7 +181,7 @@ struct Capture {
                     refresh_capture = true;
                 } ImGui::PopID();
                 ImGui::TextUnformatted("Multicolor"); ImGui::SameLine(110.0f); ImGui::PushID(3); if(ImGui::Checkbox("##multicolor", &captureSettingsMulticolor)) {
-                    UpdateSpriteBitmap();
+                    UpdateCapturedSpriteBitmap();
                 } ImGui::PopID();
 
                 ImGui::SeparatorText("Palette Mapping");
@@ -189,7 +189,7 @@ struct Capture {
                     int mapId = 0; for(auto it=capturedColors.begin(); it!=capturedColors.end(); ++it) {
                         CapturedColor &cc = *it;
                         if(PaletteMapping(mapId++, cc)) {
-                            UpdateSpriteBitmap();
+                            UpdateCapturedSpriteBitmap();
                         }
                     }
                     if(ImGui::Button("Ignore All", ImVec2(-FLT_MIN, 30.0f))) {
@@ -197,7 +197,7 @@ struct Capture {
                             CapturedColor &color = *it;
                             color.paletteIndex = 4;
                         }
-                        UpdateSpriteBitmap();
+                        UpdateCapturedSpriteBitmap();
                     }
                     ImGui::EndChild();
                 }
@@ -241,8 +241,7 @@ struct Capture {
     }
 
     bool PaletteMapping(ImGuiID id, CapturedColor &cc) {
-
-        bool clicked = false;
+        bool changed = false;
         ImDrawList *draw = ImGui::GetWindowDrawList();
         ImGui::BeginGroup(); {
             ImVec2 p1 = ImGui::GetCursorScreenPos();
@@ -251,7 +250,7 @@ struct Capture {
                     const bool is_selected = (cc.paletteIndex == n);
                     if (ImGui::Selectable(paletteMapping[n], is_selected)) {
                         cc.paletteIndex = n;
-                        clicked = true;
+                        changed = true;
                     }
                     if (is_selected) {
                         ImGui::SetItemDefaultFocus();
@@ -266,7 +265,7 @@ struct Capture {
                 ImGui::SetTooltip("$%06x", cc.color&0x00ffffff);
             }
          } ImGui::EndGroup();
-        return clicked;
+        return changed;
     }
 
     void CaptureNow() {
@@ -278,8 +277,6 @@ struct Capture {
             ImVec2 s = ImGui::GetCursorScreenPos();
             s.x += spriteManager->captureBorderLeft*scaleFactor;
             s.y += spriteManager->captureBorderTop*scaleFactor;
-
-            // ImGui::GetWindowDrawList()->AddRect(ImVec2(s.x, s.y), ImVec2(s.x + imageViewRegionAvail.x, s.y + imageViewRegionAvail.y), 0xffff0000, 0.0f, 2.0f);
 
             ImVec2 size = ImVec2(spriteManager->captureScreenshotSize.x * scaleFactor, spriteManager->captureScreenshotSize.y * scaleFactor);
 
@@ -405,10 +402,9 @@ struct Capture {
     }
 
     void AnalyzeAndCapture() {
-
-        // capture bitmap
         if(SDL_MUSTLOCK(spriteManager->captureSurface)) SDL_LockSurface(spriteManager->captureSurface);
 
+        // capture bitmap
         Uint32 *p = capturedBitmap;
         size_t widthInPixels = widthInBytes<<3;
         int cx = (int)cutter_x, cy=(int)cutter_y;
@@ -431,10 +427,10 @@ struct Capture {
         capturedSprite.multi1Color = 0xff00ff00;
         capturedSprite.multi2Color = 0xffffff00;
 
-        UpdateSpriteBitmap();
+        UpdateCapturedSpriteBitmap();
     }
 
-    void UpdateSpriteBitmap() {
+    void UpdateCapturedSpriteBitmap() {
         size_t widthInPixels = widthInBytes<<3;
         memset(capturedSprite.data, 0, sizeof(capturedSprite.data));
         for(size_t y=0;y<heightInPixels;++y) {
@@ -507,7 +503,6 @@ struct Capture {
     }
 
     void Statusbar() {
-
         ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 35.0f);
         ImGui::Separator();
         if(ImGui::BeginChild("##statusbar", ImVec2(0,0), ImGuiChildFlags_None)) {
@@ -589,13 +584,13 @@ struct Capture {
 
             if(spriteManager->captureScreenshot) {
                 if(ImGui::BeginMenu("Edit")) {
-                    if(ImGui::BeginMenu("Resize Capture Frame")) {
-                        if(ImGui::MenuItem("Increase Width")) {}
-                        if(ImGui::MenuItem("Decrease Width")) {}
-                        if(ImGui::MenuItem("Increse Height")) {}
-                        if(ImGui::MenuItem("Decrease Height")) {}
-                        ImGui::EndMenu();
-                    }
+                    // if(ImGui::BeginMenu("Resize Capture Frame")) {
+                    //     if(ImGui::MenuItem("Increase Width")) {}
+                    //     if(ImGui::MenuItem("Decrease Width")) {}
+                    //     if(ImGui::MenuItem("Increse Height")) {}
+                    //     if(ImGui::MenuItem("Decrease Height")) {}
+                    //     ImGui::EndMenu();
+                    // }
                     if(ImGui::MenuItem("Align with one pixel", nullptr, &alignOnePixel)) {}
                     if(ImGui::MenuItem("Set Ignored Border Size...")) {
                         openSetIgnoredBorderSize = true;
@@ -607,16 +602,16 @@ struct Capture {
 
                 if(ImGui::BeginMenu("View")) {
                     if(ImGui::BeginMenu("Grid Lines")) {
-                        if(ImGui::RadioButton("Dark", &gridLines, 1)) {}
-                        if(ImGui::RadioButton("Soft", &gridLines, 2)) {}
+                        // if(ImGui::RadioButton("Dark", &gridLines, 1)) {}
+                        // if(ImGui::RadioButton("Soft", &gridLines, 2)) {}
                         if(ImGui::RadioButton("Light", &gridLines, 3)) {}
-                        if(ImGui::RadioButton("Auto", &gridLines, 4)) {}
+                        // if(ImGui::RadioButton("Auto", &gridLines, 4)) {}
                         ImGui::Separator();
                         if(ImGui::RadioButton("None", &gridLines, 0)) {}
                         ImGui::EndMenu();
                     }
-                    if(ImGui::MenuItem("Scroll to Capture Frame", "F4")) {}
-                    if(ImGui::MenuItem("Match Cahracters from Sprite Set", "F5")) {}
+                    // if(ImGui::MenuItem("Scroll to Capture Frame", "F4")) {}
+                    // if(ImGui::MenuItem("Match Cahracters from Sprite Set", "F5")) {}
                     ImGui::Separator();
                     if(ImGui::BeginMenu("Zoom")) {
                         if(ImGui::RadioButton("100%", &zoomIndex, 0)) {}
