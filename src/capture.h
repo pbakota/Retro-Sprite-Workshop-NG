@@ -230,6 +230,11 @@ struct Capture {
             ImGui::EndPopup();
         }
 
+        // Escape closes the dialog if this window is the top most window
+        if(ImGui::IsKeyPressed(ImGuiKey_Escape) && ImGui::GetTopMostPopupModal()->ID == ImGui::FindWindowByName(title.c_str())->ID) {
+            *open = false;
+        }
+
         return completed;
     }
 

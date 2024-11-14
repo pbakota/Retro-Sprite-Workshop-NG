@@ -49,6 +49,7 @@ struct Sprite
     PaletteType palette = PaletteType::C64_Pal;
     size_t zoomIndex = 3; // 100%
     bool dirty = true;
+    size_t charOffset, charIndex;
 
     const size_t pitch = 64;
     char data[4096]; // 64x64 the maximum size

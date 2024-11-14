@@ -315,6 +315,9 @@ struct ProjectSprites
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%d; Char: %lu", row, charOffset);
 
+                    sprite->charOffset = charOffset;
+                    sprite->charIndex = row;
+
                     charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);

@@ -140,7 +140,7 @@ struct SpriteImage
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Index");
                         // FIXME: Get somehow the real values for index and offset
-                        ImGui::TableNextColumn(); ImGui::Text("%d; Char: %d", 0, 0);
+                        ImGui::TableNextColumn(); ImGui::Text("%lu; Char: %lu", spriteManager->currentSprite->charIndex, spriteManager->currentSprite->charOffset);
 
                         ImGui::Dummy(ImVec2(0,10.0f));
                         ImGui::SeparatorText("Source Code Generator Settings");
