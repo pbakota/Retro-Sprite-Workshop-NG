@@ -13,7 +13,7 @@ struct Project
 
     char projectFile[512] = {0};
     char projectName[128] = {0};
-    char platformName[128] = {0};
+    char projectPlatform[128] = {0};
     char projectComments[256] = {0};
     char createdOn[128] = {0};
     char exportTo[128] = {0};
@@ -37,13 +37,13 @@ struct Project
 
     void NewProject() {
         memset((void*)projectName, 0, sizeof(projectName));
-        memset((void*)platformName, 0, sizeof(platformName));
+        memset((void*)projectPlatform, 0, sizeof(projectPlatform));
         memset((void*)projectComments, 0, sizeof(projectComments));
         memset((void*)createdOn, 0, sizeof(createdOn));
         memset((void*)exportTo, 0, sizeof(exportTo));
         strncpy(projectName, "Blank Project", sizeof(projectName));
         strncpy(createdOn, return_current_time_and_date().c_str(), sizeof(createdOn));
-        strncpy(exportTo, "./export.int", sizeof(exportTo));
+        strncpy(exportTo, "./export.inc", sizeof(exportTo));
         autoExportSourceCode = false;
         includeMetadata = true;
     }
@@ -82,7 +82,7 @@ struct Project
             } else if(kv.first == "Comments") {
                 strncpy(projectComments, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(projectComments));
             } else if(kv.first == "Platform") {
-                strncpy(platformName, kv.second.c_str(), sizeof(platformName));
+                strncpy(projectPlatform, kv.second.c_str(), sizeof(projectPlatform));
             } else if(kv.first == "CreatedOn") {
                 strncpy(createdOn, kv.second.c_str(), sizeof(createdOn));
             } else if(kv.first == "AutomaticExportOnSave") {
@@ -151,7 +151,7 @@ struct Project
         fs << PROJECT_FILE_SIGNATURE << CR;
         fs << "ProjectName=" << projectName << CR;
         fs << "Comments=" << replace_string(std::string(projectComments), "\n", NEWLINE_PLACEHOLDER) << CR;
-        fs << "Platform=" << platformName << CR;
+        fs << "Platform=" << projectPlatform << CR;
         fs << "CreatedOn=" << createdOn << CR;
         fs << "AutomaticExportOnSave=" << (autoExportSourceCode ? "True" : "False") << CR;
         fs << "SourceCodeExportPath=" << exportTo << CR;

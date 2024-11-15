@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bits/stdc++.h>
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -169,4 +170,17 @@ std::string shrink_string(const std::string &subject, size_t max_length) {
     auto before = subject.substr(0, std::ceil(space_per_part));
     auto after = subject.substr(subject.length() - std::floor(space_per_part));
     return before + ELLIPSIS + after;
+}
+
+std::vector<std::string> split_string(const std::string &str, const std::string &delim) {
+    std::regex del(delim);
+    std::sregex_token_iterator it(str.begin(), str.end(), del, -1);
+    std::sregex_token_iterator end;
+
+    std::vector<std::string> v;
+    while (it != end) {
+        v.emplace_back(*it);
+        ++it;
+    }
+    return v;
 }

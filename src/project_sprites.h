@@ -185,7 +185,7 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Platform");
-                        ImGui::TableNextColumn(); ImGui::PushID(2); ImGui::InputText("", project->platformName, IM_ARRAYSIZE(project->platformName)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(2); ImGui::InputText("", project->projectPlatform, IM_ARRAYSIZE(project->projectPlatform)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Created On");

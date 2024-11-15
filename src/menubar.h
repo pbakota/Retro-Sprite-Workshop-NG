@@ -4,6 +4,8 @@
 #include "imgui_filedialog.h"
 #include "sprite_manager.h"
 #include "project_sprites.h"
+#include "project.h"
+#include "generator.h"
 #include "about.h"
 
 extern bool done;
@@ -12,10 +14,14 @@ extern bool done;
 extern bool show_demo_window;
 #endif
 
+extern Generator generator;
+
 struct MenuBar
 {
     SpriteManager *spriteManager;
     ProjectSprites *projectSprites;
+    Project *project;
+    Generator *generator;
 
     ImFileDialogInfo saveDialogInfo = {
         .title = "Save Project As ...",
@@ -37,7 +43,8 @@ struct MenuBar
     bool showAboutDialog = false;
     About about;
 
-    MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites): spriteManager(spriteManager), projectSprites(projectSprites) {}
+    MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites, Project *project, Generator *generator)
+        : spriteManager(spriteManager), projectSprites(projectSprites), project(project), generator(generator) {}
 
     // File
     void Action_NewProject() {
@@ -76,7 +83,12 @@ struct MenuBar
     }
 
     void Action_ExportToClipboard() {
+    }
 
+    void Action_ExportToFile() {
+        if(generator->GenerateToFile(project->exportTo)) {
+            //
+        }
     }
 
     void Action_ExitApp() {
@@ -115,7 +127,9 @@ struct MenuBar
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Export as Source Code"))
                 {
-                    if(ImGui::MenuItem("Export to File")) {}
+                    if(ImGui::MenuItem("Export to File")) {
+                        Action_ExportToFile();
+                    }
                     if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
                         Action_ExportToClipboard();
                     }

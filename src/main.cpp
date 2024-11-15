@@ -16,6 +16,7 @@
 #include "sprite_manager.h"
 #include "project_sprites.h"
 #include "sprite_image.h"
+#include "generator.h"
 #include "keyboard_shortcuts.h"
 
 // Our state
@@ -25,9 +26,10 @@ bool show_demo_window = false;
 Project project;
 StatusBar statusbar;
 SpriteManager spriteManager(&project, &statusbar);
+Generator generator(&spriteManager, &project);
 ProjectSprites projectSprites(&spriteManager, &statusbar, &project);
 SpriteImage spriteImage(&spriteManager, &projectSprites, &statusbar);
-MenuBar menubar(&spriteManager, &projectSprites);
+MenuBar menubar(&spriteManager, &projectSprites, &project, &generator);
 KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites, &spriteManager);
 
 SDL_Renderer *renderer;
