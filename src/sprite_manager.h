@@ -202,7 +202,7 @@ struct SpriteManager {
 		{
             if(sp->multicolorMode) {
                 char *p = &sp->data[j * sp->pitch], c1 = p[widthInPixels - 1], c2= p[widthInPixels - 2];
-                for (int k = sp->heightInPixels - 2; k >= 2; k-=2) {
+                for (int k = widthInPixels - 2; k >= 2; k-=2) {
                     p[k+0] = p[k-2];
                     p[k+1] = p[k-1];
                 }
@@ -210,7 +210,7 @@ struct SpriteManager {
                 p[1] = rotate ? c1 : 0;
             } else {
                 char *p = &sp->data[j * sp->pitch], c = *(p + widthInPixels - 1);
-                for (int k = sp->heightInPixels - 1; k >= 0; --k) {
+                for (int k = widthInPixels - 1; k >= 0; --k) {
                     *(p + k) = *(p + k - 1);
                 }
                 *p = rotate ? c : 0;

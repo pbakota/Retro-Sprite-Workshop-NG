@@ -2,6 +2,9 @@
 #include "sprite_manager.h"
 #include "util.h"
 
+// Width of the byte array line in the source code
+#define MAX_BYTE_ARRAY_WIDTH 16
+
 struct Generator {
     SpriteManager *spriteManager;
     Project *project;
@@ -76,49 +79,158 @@ struct Generator {
         out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
         out << Constant(vformat("%s_INDEX",sprite->spriteID), vformat("%d",sprite->charIndex)) << std::endl;
         out << Constant(vformat("%s_CHAR_INDEX",sprite->spriteID), vformat("%d",sprite->charOffset<<3)) << std::endl;
-        out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",0)) << std::endl;
+        size_t nframes = 1;
+        if(sprite->prerenderSoftwareSprite) {
+            switch(sprite->renderingPrecision) {
+                case Sprite::PrerendingPrecision::High8Frames: nframes = 8; break;
+                case Sprite::PrerendingPrecision::Medium4Frames: nframes = 4; break;
+                case Sprite::PrerendingPrecision::Low2Frames: nframes = 2; break;
+            }
+        }
+        out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
 
         out << std::endl;
 
-        SingleFrame(out, 0, sprite);
+        MakeFrames(out, sprite);
     }
 
-    void SingleFrame(std::ostream &out, int nr, Sprite *sprite) {
-        out << Label(vformat("%s_frame%d", sprite->spriteID, nr)) << std::endl;
-        out << vformat("                            %s ", spriteManager->byteArrayType);
+    void MakeFrames(std::ostream &out, Sprite *sp) {
+        if(sp->prerenderSoftwareSprite) {
+            // copy sprite data into temporary shift buffer
+            char buffer[4096+64*8]; size_t bpitch = 64+8;
+            memset((void*)buffer, 0, sizeof(buffer));
+            size_t widthInPixels = sp->widthInBytes<<3;
+            for(size_t y=0;y<sp->heightInPixels;++y) {
+                for(size_t x=0;x<widthInPixels;++x) {
+                    buffer[y*bpitch+x] = sp->data[y*sp->pitch+x];
+                }
+            }
+            switch(sp->renderingPrecision) {
+                case Sprite::PrerendingPrecision::High8Frames:
+                for(size_t n=0;n<8;++n) {
+                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                }
+                break;
+                case Sprite::PrerendingPrecision::Medium4Frames:
+                for(size_t n=0;n<4;++n) {
+                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                }
+                break;
+                case Sprite::PrerendingPrecision::Low2Frames:
+                for(size_t n=0;n<2;++n) {
+                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                    ShiftBuffer(sp, buffer, bpitch);
+                }
+                break;
+            }
+        } else {
+            SingleFrame(out, sp, 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+        }
+    }
 
+    void SingleFrame(std::ostream &out, Sprite *sprite, int nr, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+        out << Label(vformat("%s_frame%d", sprite->spriteID, nr)) << std::endl;
+        std::vector<std::string> nibbles;
         switch(sprite->byteAligment) {
             case Sprite::ByteAligment::Horizontal_C64_Sprite:
-                out << HexSerializeData_Horizontal_C64_Sprite(sprite) << std::endl;
+                nibbles = HexSerializeData_Horizontal_C64_Sprite(data, widthInPixels, heightInPixels, pitch);
             break;
             case Sprite::ByteAligment::Vertical_Software_Sprite:
-                out << HexSerializeData_Vertical_Software_Sprite(sprite) << std::endl;
+                nibbles = HexSerializeData_Vertical_Software_Sprite(data, widthInPixels, heightInPixels, pitch);
             break;
             case Sprite::ByteAligment::Mixed_Character_Based:
-                out << HexSerializeData_Mixed_Character_Based(sprite) << std::endl;
+                nibbles = HexSerializeData_Mixed_Character_Based(data, widthInPixels, heightInPixels, pitch);
             break;
+        }
+
+        out << vformat("                            %s ", spriteManager->byteArrayType);
+
+        size_t n = 0;
+        for(auto &s : nibbles) {
+            out << s;
+            if((++n%MAX_BYTE_ARRAY_WIDTH)!=0 && n<nibbles.size()) {
+                out << ",";
+            } else  {
+                out << std::endl;
+                if(n<nibbles.size()) {
+                    out << vformat("                            %s ", spriteManager->byteArrayType);
+                }
+            }
         }
 
         out << std::endl;
     }
 
-    std::string HexSerializeData_Horizontal_C64_Sprite(Sprite *sprite) {
-        std::stringstream ss;
-        size_t widthInPixels = sprite->widthInBytes<<3;
-        for(size_t y=0; y<sprite->heightInPixels; ++y) {
+    std::vector<std::string> HexSerializeData_Horizontal_C64_Sprite(const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+        std::vector<std::string> ss;
+        for(size_t y=0; y<heightInPixels; ++y) {
             for(size_t x=0; x<widthInPixels; x+=8) {
                 size_t b = 0;
                 for(size_t p=0; p<8;++p) {
-                    b = (b << 1) | sprite->data[y*sprite->pitch+x+p];
+                    b = (b << 1) | data[y*pitch+x+p];
                 }
-                ss << vformat("$%02x, ", b);
+                ss.emplace_back(vformat("$%02x", b&0xff));
             }
         }
-        return ss.str();
+        return ss;
     }
 
-    std::string HexSerializeData_Vertical_Software_Sprite(Sprite *sprite) { }
-    std::string HexSerializeData_Mixed_Character_Based(Sprite *sprite) { }
+    std::vector<std::string> HexSerializeData_Vertical_Software_Sprite(const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+        std::vector<std::string> ss;
+        for(size_t x=0; x<widthInPixels; x+=8) {
+            for(size_t y=0; y<heightInPixels; ++y) {
+                size_t b = 0;
+                for(size_t p=0; p<8;++p) {
+                    b = (b << 1) | data[y*pitch+x+p];
+                }
+                ss.emplace_back(vformat("$%02x", b&0xff));
+            }
+        }
+        return ss;
+    }
+
+    std::vector<std::string> HexSerializeData_Mixed_Character_Based(const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+        std::vector<std::string> ss;
+        for(size_t y=0; y<heightInPixels; y+=8) {
+            for(size_t x=0; x<widthInPixels; x+=8) {
+                for(size_t l=0;l<8;++l) {
+                    size_t b = 0;
+                    for(size_t p=0; p<8;++p) {
+                        b = (b << 1) | data[(y+l)*pitch+x+p];
+                    }
+                    ss.emplace_back(vformat("$%02x", b&0xff));
+                }
+            }
+        }
+        return ss;
+    }
+
+    void ShiftBuffer(Sprite* sp, char *buffer, size_t pitch) {
+        size_t widthInPixels = (sp->widthInBytes+1)<<3;
+        for (size_t j = 0; j < sp->heightInPixels; ++j)
+		{
+            char *p = &buffer[j * pitch];
+            if(sp->multicolorMode) {
+                for (int k = widthInPixels - 2; k >= 2; k-=2) {
+                    p[k+0] = p[k-2];
+                    p[k+1] = p[k-1];
+                }
+                p[0] = 0;
+                p[1] = 0;
+            } else {
+                for (int k = widthInPixels - 1; k >= 0; --k) {
+                    *(p + k) = *(p + k - 1);
+                }
+                *p = 0;
+            }
+		}
+    }
 
     inline std::string Constant(const std::string &name, const std::string &value) {
         return replace_string(replace_string(spriteManager->constantDeclaration, "{{NAME}}", name), "{{VALUE}}", value);
