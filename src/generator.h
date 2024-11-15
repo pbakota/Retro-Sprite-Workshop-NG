@@ -87,7 +87,17 @@ struct Generator {
         out << Label(vformat("%s_frame%d", sprite->spriteID, nr)) << std::endl;
         out << vformat("                            %s ", spriteManager->byteArrayType);
 
-        out << HexSerializeData_Horizontal_C64_Sprite(sprite) << std::endl;
+        switch(sprite->byteAligment) {
+            case Sprite::ByteAligment::Horizontal_C64_Sprite:
+                out << HexSerializeData_Horizontal_C64_Sprite(sprite) << std::endl;
+            break;
+            case Sprite::ByteAligment::Vertical_Software_Sprite:
+                out << HexSerializeData_Vertical_Software_Sprite(sprite) << std::endl;
+            break;
+            case Sprite::ByteAligment::Mixed_Character_Based:
+                out << HexSerializeData_Mixed_Character_Based(sprite) << std::endl;
+            break;
+        }
 
         out << std::endl;
     }
@@ -106,6 +116,9 @@ struct Generator {
         }
         return ss.str();
     }
+
+    std::string HexSerializeData_Vertical_Software_Sprite(Sprite *sprite) { }
+    std::string HexSerializeData_Mixed_Character_Based(Sprite *sprite) { }
 
     inline std::string Constant(const std::string &name, const std::string &value) {
         return replace_string(replace_string(spriteManager->constantDeclaration, "{{NAME}}", name), "{{VALUE}}", value);
