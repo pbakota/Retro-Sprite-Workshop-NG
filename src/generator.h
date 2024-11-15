@@ -135,7 +135,7 @@ struct Generator {
     }
 
     void SingleFrame(std::ostream &out, Sprite *sprite, int nr, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
-        out << Label(vformat("%s_frame%d", sprite->spriteID, nr)) << std::endl;
+        out << Label(vformat("%s_frame%d", sprite->spriteID, nr+1)) << std::endl;
         std::vector<std::string> nibbles;
         switch(sprite->byteAligment) {
             case Sprite::ByteAligment::Horizontal_C64_Sprite:
