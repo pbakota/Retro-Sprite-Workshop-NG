@@ -307,8 +307,8 @@ struct SpriteManager {
                     sp->data[y*sp->pitch+x+2] = sp->data[y*sp->pitch+x+0];
                     sp->data[y*sp->pitch+x+3] = sp->data[y*sp->pitch+x+1];
                 }
-                sp->data[y*sp->pitch+col+0] = 0;
-                sp->data[y*sp->pitch+col+1] = 0;
+                sp->data[y*sp->pitch+col*2+0] = 0;
+                sp->data[y*sp->pitch+col*2+1] = 0;
             } else {
                 for(int x=widthInPixels-2;x>=(int)col;--x) {
                     sp->data[y*sp->pitch+x+1] = sp->data[y*sp->pitch+x];
@@ -323,10 +323,19 @@ struct SpriteManager {
         Sprite *sp = GetSprite(id);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
-            for(size_t x=col;x<widthInPixels-1;++x) {
-                sp->data[y*sp->pitch+x] = sp->data[y*sp->pitch+x+1];
+            if(sp->multicolorMode) {
+                for(size_t x=col*2;x<widthInPixels-2;x+=2) {
+                    sp->data[y*sp->pitch+x+0] = sp->data[y*sp->pitch+x+2];
+                    sp->data[y*sp->pitch+x+1] = sp->data[y*sp->pitch+x+3];
+                }
+                sp->data[y*sp->pitch+widthInPixels-2] = 0;
+                sp->data[y*sp->pitch+widthInPixels-1] = 0;
+            } else {
+                for(size_t x=col;x<widthInPixels-1;++x) {
+                    sp->data[y*sp->pitch+x] = sp->data[y*sp->pitch+x+1];
+                }
+                sp->data[y*sp->pitch+widthInPixels-1] = 0;
             }
-            sp->data[y*sp->pitch+widthInPixels-1] = 0;
         }
         sp->Invalidate();
     }
