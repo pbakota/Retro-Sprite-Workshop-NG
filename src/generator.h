@@ -35,43 +35,47 @@ struct Generator {
     }
 
     void Header(std::ostream &out) {
-        out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, spriteManager->project->projectFile) << std::endl;
-        out << vformat("%s Generated On:       %s", spriteManager->lineCommentSymbol, return_current_time_and_date().c_str()) << std::endl;
-        out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, spriteManager->project->projectName) << std::endl;
-        out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, spriteManager->project->projectComments) << std::endl;
-        out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, spriteManager->project->projectPlatform) << std::endl;
-        out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, spriteManager->project->createdOn) << std::endl;
-        out << std::endl;
+        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
+            out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, spriteManager->project->projectFile) << std::endl;
+            out << vformat("%s Generated On:       %s", spriteManager->lineCommentSymbol, return_current_time_and_date().c_str()) << std::endl;
+            out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, spriteManager->project->projectName) << std::endl;
+            out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, spriteManager->project->projectComments) << std::endl;
+            out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, spriteManager->project->projectPlatform) << std::endl;
+            out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, spriteManager->project->createdOn) << std::endl;
+            out << std::endl;
+        }
     }
 
     void Footer(std::ostream &out) {
-        out << vformat("%s ==================== Retro Sprite Workshop Project END ========================", spriteManager->lineCommentSymbol) << std::endl;
-        out << std::endl;
+        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
+            out << vformat("%s ==================== Retro Sprite Workshop Project END ========================", spriteManager->lineCommentSymbol) << std::endl;
+            out << std::endl;
+        }
     }
 
     void SingleSprite(std::ostream &out, int nr, Sprite *sprite) {
+        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
+            out << vformat("%s ==================== Sprite %d ========================", spriteManager->lineCommentSymbol, nr) << std::endl;
+            out << vformat("%s Sprite ID:       %s", spriteManager->lineCommentSymbol, sprite->spriteID) << std::endl;
 
-        out << vformat("%s ==================== Sprite %d ========================", spriteManager->lineCommentSymbol, nr) << std::endl;
-        out << vformat("%s Sprite ID:       %s", spriteManager->lineCommentSymbol, sprite->spriteID) << std::endl;
-
-
-        std::vector v = split_string(sprite->description, "\n");
-        bool firstLine = true;
-        for(auto it=v.begin(); it!=v.end(); ++it) {
-            if(firstLine) {
-                out << vformat("%s Sprite Comments: %s",spriteManager->lineCommentSymbol, (*it).c_str()) << std::endl;
-                firstLine = false;
-            } else {
-                out << vformat("%s                  %s",spriteManager->lineCommentSymbol, (*it).c_str()) << std::endl;
+            std::vector v = split_string(sprite->description, "\n");
+            bool firstLine = true;
+            for(auto it=v.begin(); it!=v.end(); ++it) {
+                if(firstLine) {
+                    out << vformat("%s Sprite Comments: %s",spriteManager->lineCommentSymbol, (*it).c_str()) << std::endl;
+                    firstLine = false;
+                } else {
+                    out << vformat("%s                  %s",spriteManager->lineCommentSymbol, (*it).c_str()) << std::endl;
+                }
             }
+
+            out << vformat("%s Dimensions:      %d x %d pixels", spriteManager->lineCommentSymbol, sprite->widthInBytes<<3, sprite->heightInPixels) << std::endl;
+            out << vformat("%s Color Mode:      %s",spriteManager->lineCommentSymbol, ColorMode(sprite)) << std::endl;
+            out << vformat("%s Byte Order:      %s",spriteManager->lineCommentSymbol, sprite->GetByteAlignment().c_str()) << std::endl;
+            out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, sprite->GetRenderingPrecision().c_str()) << std::endl;
+
+            out << std::endl;
         }
-
-        out << vformat("%s Dimensions:      %d x %d pixels", spriteManager->lineCommentSymbol, sprite->widthInBytes<<3, sprite->heightInPixels) << std::endl;
-        out << vformat("%s Color Mode:      %s",spriteManager->lineCommentSymbol, ColorMode(sprite)) << std::endl;
-        out << vformat("%s Byte Order:      %s",spriteManager->lineCommentSymbol, sprite->GetByteAlignment().c_str()) << std::endl;
-        out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, sprite->GetRenderingPrecision().c_str()) << std::endl;
-
-        out << std::endl;
 
         out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
         out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;

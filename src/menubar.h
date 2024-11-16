@@ -38,6 +38,16 @@ struct MenuBar
         .directoryPath = std::filesystem::current_path()
     };
     bool openOpenProjectDialog = false;
+
+    ImFileDialogInfo exportDialogInfo = {
+        .title = "Export Project To Source Code As ...",
+        .type = ImGuiFileDialogType_SaveFile,
+        .flags = 0, //ImGuiFileDialogFlags_FileMustExist,
+        .fileName = "",
+        .directoryPath = std::filesystem::current_path()
+    };
+    bool openExportDialogInfo = false;
+
     bool showAboutDialog = false;
     About about;
     bool confirmNew = false, confirmOpen = false;
@@ -92,7 +102,7 @@ struct MenuBar
         if(!spriteManager->projectFile.empty()) {
             spriteManager->SaveProject();
             if(spriteManager->project->autoExportSourceCode) {
-                Action_ExportToFile();
+                Action_ExportToFileTo();
             }
             return;
         }
@@ -102,9 +112,15 @@ struct MenuBar
     void Action_ExportToClipboard() {
     }
 
-    void Action_ExportToFile() {
+    void Action_ExportToFileTo() {
         if(generator->GenerateToFile(spriteManager->project->exportTo)) {
             //
+        }
+    }
+
+    void Action_ExportToFileAs() {
+        if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+            openExportDialogInfo = true;
         }
     }
 
@@ -149,11 +165,13 @@ struct MenuBar
                 if (ImGui::BeginMenu("Export as Source Code"))
                 {
                     if(ImGui::MenuItem("Export to File")) {
-                        Action_ExportToFile();
+                        Action_ExportToFileAs();
                     }
+                    ImGui::BeginDisabled(true);
                     if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
                         Action_ExportToClipboard();
                     }
+                    ImGui::EndDisabled();
                     if(ImGui::Checkbox("Export with Comments and Metadata", &spriteManager->exportWithComments)) {}
                     ImGui::EndMenu();
                 }
@@ -298,7 +316,7 @@ struct MenuBar
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
                 } else {
                     if(spriteManager->project->autoExportSourceCode) {
-                        Action_ExportToFile();
+                        Action_ExportToFileTo();
                     }
                 }
             }
@@ -308,6 +326,12 @@ struct MenuBar
                     std::cerr << "ERROR: Failed to load project!" << std::endl;
                 } else {
                     projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                }
+            }
+
+            if (ImGui::FileDialog(&openExportDialogInfo, &exportDialogInfo)) {
+                if(generator->GenerateToFile(exportDialogInfo.resultPath.c_str())) {
+                    //
                 }
             }
 
@@ -353,7 +377,7 @@ struct MenuBar
                     if(!spriteManager->projectFile.empty()) {
                         spriteManager->SaveProject();
                         if(spriteManager->project->autoExportSourceCode) {
-                            Action_ExportToFile();
+                            Action_ExportToFileTo();
                         }
                         return true;
                     }
