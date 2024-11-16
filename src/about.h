@@ -16,7 +16,7 @@ struct About {
         ImGui::SetNextWindowSize(ImVec2(320.0f,100.0f));
         ImGui::OpenPopup(title, ImGuiPopupFlags_None);
         if(ImGui::BeginPopupModal(title, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
-            ImGui::TextUnformatted("Retro Sprite Workshop Clone");
+            ImGui::TextUnformatted("Retro Sprite Workshop NG");
             ImGui::TextUnformatted("(c)2024");
             ImGui::Dummy(ImVec2(0, 20.0f));
             ImVec2 buttonSize(100,20);

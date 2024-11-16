@@ -65,14 +65,14 @@ struct SpriteManager {
         if(projectHash != newHash && !projectUnsaved) {
             projectHash = newHash;
             projectUnsaved = true;
-            SDL_SetWindowTitle(window, vformat("%s *", appTitle).c_str());
+            SDL_SetWindowTitle(window, vformat("%s - %s *", appTitle, std::filesystem::path(projectFile).filename().c_str()).c_str());
         }
     }
 
     void ClearChanges() {
         projectHash = CalculateProjectHash();
         projectUnsaved = false;
-        SDL_SetWindowTitle(window, appTitle);
+        SDL_SetWindowTitle(window, vformat("%s - %s", appTitle, std::filesystem::path(projectFile).filename().c_str()).c_str());
     }
 
     void ClearSpriteList() {
@@ -378,6 +378,7 @@ struct SpriteManager {
         // Always append one (default) sprite
         NewSprite();
         project->NewProject();
+        projectFile.clear();
         ClearChanges();
     }
 
