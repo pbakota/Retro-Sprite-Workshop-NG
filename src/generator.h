@@ -7,9 +7,8 @@
 
 struct Generator {
     SpriteManager *spriteManager;
-    Project *project;
 
-    Generator(SpriteManager *spriteManager, Project *project): spriteManager(spriteManager), project(project) {}
+    Generator(SpriteManager *spriteManager): spriteManager(spriteManager) {}
 
     bool GenerateToFile(const char *filename) {
         std::ofstream file(filename, std::ios::binary|std::ios::trunc);
@@ -36,12 +35,12 @@ struct Generator {
     }
 
     void Header(std::ostream &out) {
-        out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, project->projectFile) << std::endl;
+        out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, spriteManager->project->projectFile) << std::endl;
         out << vformat("%s Generated On:       %s", spriteManager->lineCommentSymbol, return_current_time_and_date().c_str()) << std::endl;
-        out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, project->projectName) << std::endl;
-        out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, project->projectComments) << std::endl;
-        out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, project->projectPlatform) << std::endl;
-        out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, project->createdOn) << std::endl;
+        out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, spriteManager->project->projectName) << std::endl;
+        out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, spriteManager->project->projectComments) << std::endl;
+        out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, spriteManager->project->projectPlatform) << std::endl;
+        out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, spriteManager->project->createdOn) << std::endl;
         out << std::endl;
     }
 

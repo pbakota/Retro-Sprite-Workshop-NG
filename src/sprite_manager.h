@@ -11,11 +11,17 @@
 #include "sprite_manager.h"
 #include "statusbar.h"
 
+extern SDL_Window *window;
 extern SDL_Renderer *renderer;
+
+const char *appTitle = "RetroSpriteWorkshop";
 
 struct SpriteManager {
     Project *project;
     StatusBar *statusbar;
+
+    size_t projectHash;
+    bool projectUnsaved = false;
 
     Sprite* currentSprite = nullptr;
     SDL_Texture *captureScreenshot = nullptr;
@@ -33,7 +39,7 @@ struct SpriteManager {
     int spriteListType = 0;
     const char *configPath;
     std::string configFile;
-    bool exporWithComments = false;
+    bool exportWithComments = false;
     bool shiftRollingAround = true;
 
     char lineCommentSymbol[8] = ";";
@@ -52,6 +58,21 @@ struct SpriteManager {
         if(captureSurface) {
             SDL_FreeSurface(captureSurface);
         }
+    }
+
+    void DetectChanges() {
+        size_t newHash = CalculateProjectHash();
+        if(projectHash != newHash && !projectUnsaved) {
+            projectHash = newHash;
+            projectUnsaved = true;
+            SDL_SetWindowTitle(window, vformat("%s *", appTitle).c_str());
+        }
+    }
+
+    void ClearChanges() {
+        projectHash = CalculateProjectHash();
+        projectUnsaved = false;
+        SDL_SetWindowTitle(window, appTitle);
     }
 
     void ClearSpriteList() {
@@ -348,6 +369,7 @@ struct SpriteManager {
         // Always append one (default) sprite
         NewSprite();
         project->NewProject();
+        ClearChanges();
     }
 
     int NewSprite() {
@@ -457,19 +479,25 @@ struct SpriteManager {
             sprites = temp;
             projectFile = filename;
             AddToProjectMRU(filename);
+            ClearChanges();
         }
 
         return result;
     }
 
     bool SaveProject() {
-        return project->Save(projectFile, sprites);
+        bool res = project->Save(projectFile, sprites);
+        if(res) {
+            ClearChanges();
+        }
+        return res;
     }
 
     bool SaveProjectAs(const std::string& filename) {
         if(project->Save(filename, sprites)) {
             projectFile = filename;
             AddToProjectMRU(filename);
+            ClearChanges();
             return true;
         }
         return false;
@@ -508,7 +536,7 @@ struct SpriteManager {
         std::ofstream cfg(configFile, std::ios::binary|std::ios::trunc);
         if(!cfg.is_open()) return;
 
-        cfg << "ExporWithComments=" << (exporWithComments ? "True":"False") << std::endl;
+        cfg << "ExporWithComments=" << (exportWithComments ? "True":"False") << std::endl;
         cfg << "ShiftRollingAround=" << (shiftRollingAround ? "True":"False") << std::endl;
 
         cfg << "LineCommentSymbol=" << lineCommentSymbol << std::endl;
@@ -548,7 +576,7 @@ struct SpriteManager {
             } else if(key.substr(0,11) == "CaptureMRU.") {
                 captureMRU.emplace_back(val);
             } else if(key == "ExporWithComments") {
-                exporWithComments = val == "True";
+                exportWithComments = val == "True";
             } else if(key == "ShiftRollingAround") {
                 shiftRollingAround = val == "True";
             } else if(key == "LineCommentSymbol") {
@@ -567,5 +595,19 @@ struct SpriteManager {
         }
 
         cfg.close();
+    }
+
+    size_t CalculateProjectHash() {
+        std::stringstream ss;
+        for(auto &sp : sprites) {
+            ss << sp->spriteID << sp->backgroundColor << sp->GetByteAlignment() << sp->characterColor << sp->description << sp->ID << sp->dataHash;
+            ss << sp->multi1Color << sp->multi2Color << sp->multicolorMode << sp->GetPaletteName() << sp->prerenderSoftwareSprite << sp->GetRenderingPrecision();
+            ss << sp->widthInBytes << sp->heightInPixels;
+        }
+
+        ss << project->autoExportSourceCode << project->createdOn << project->exportTo << project->includeMetadata << project->projectComments;
+        ss << project->projectName << project->projectPlatform;
+
+        return std::hash<std::string>{}(ss.str());
     }
 };

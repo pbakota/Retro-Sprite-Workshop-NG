@@ -8,19 +8,17 @@
 #include "generator.h"
 #include "about.h"
 
-extern bool done;
+extern bool exitApp;
+extern bool wantExit;
 
 #ifndef EXCLUDE_IMGUI_DEMO
 extern bool show_demo_window;
 #endif
 
-extern Generator generator;
-
 struct MenuBar
 {
     SpriteManager *spriteManager;
     ProjectSprites *projectSprites;
-    Project *project;
     Generator *generator;
 
     ImFileDialogInfo saveDialogInfo = {
@@ -42,27 +40,43 @@ struct MenuBar
     bool openOpenProjectDialog = false;
     bool showAboutDialog = false;
     About about;
+    bool confirmNew = false, confirmOpen = false;
+    std::string confirmOpenFilename;
 
-    MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites, Project *project, Generator *generator)
-        : spriteManager(spriteManager), projectSprites(projectSprites), project(project), generator(generator) {}
+    MenuBar(SpriteManager *spriteManager, ProjectSprites* projectSprites, Generator *generator)
+        : spriteManager(spriteManager), projectSprites(projectSprites), generator(generator) {}
 
     // File
     void Action_NewProject() {
-        spriteManager->NewProject();
-        projectSprites->selectedSpriteId = -1;
+        if(spriteManager->projectUnsaved) {
+            confirmNew = true;
+        } else {
+            spriteManager->NewProject();
+            projectSprites->selectedSpriteId = -1;
+        }
     }
 
     void Action_OpenProject() {
         if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
-            openOpenProjectDialog = true;
-            openDialogInfo.fileName = spriteManager->projectFile;
+            if(spriteManager->projectUnsaved) {
+                confirmOpen = true;
+                confirmOpenFilename.clear();
+            } else {
+                openOpenProjectDialog = true;
+                openDialogInfo.fileName = spriteManager->projectFile;
+            }
         }
     }
 
     void Action_OpenProjectAs(const char *filename) {
         if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
-            if(spriteManager->LoadProject(filename)) {
-                projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+            if(spriteManager->projectUnsaved) {
+                confirmOpen = true;
+                confirmOpenFilename = filename;
+            } else {
+                if(spriteManager->LoadProject(filename)) {
+                    projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                }
             }
         }
     }
@@ -77,6 +91,9 @@ struct MenuBar
     void Action_SaveProject() {
         if(!spriteManager->projectFile.empty()) {
             spriteManager->SaveProject();
+            if(spriteManager->project->autoExportSourceCode) {
+                Action_ExportToFile();
+            }
             return;
         }
         Action_SaveAsProject();
@@ -86,13 +103,17 @@ struct MenuBar
     }
 
     void Action_ExportToFile() {
-        if(generator->GenerateToFile(project->exportTo)) {
+        if(generator->GenerateToFile(spriteManager->project->exportTo)) {
             //
         }
     }
 
     void Action_ExitApp() {
-        done = true;
+        if(spriteManager->projectUnsaved) {
+            wantExit = true;
+        } else {
+            exitApp = true;
+        }
     }
 
     void Action_DeleteSprite() {
@@ -133,7 +154,7 @@ struct MenuBar
                     if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
                         Action_ExportToClipboard();
                     }
-                    if(ImGui::Checkbox("Export with Comments and Metadata", &spriteManager->exporWithComments)) {}
+                    if(ImGui::Checkbox("Export with Comments and Metadata", &spriteManager->exportWithComments)) {}
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
@@ -275,6 +296,10 @@ struct MenuBar
             {
                 if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath)) {
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
+                } else {
+                    if(spriteManager->project->autoExportSourceCode) {
+                        Action_ExportToFile();
+                    }
                 }
             }
 
@@ -289,6 +314,101 @@ struct MenuBar
             if(showAboutDialog) {
                about.show(&showAboutDialog);
             }
+
+            if(confirmNew) {
+                if(ProjectNotSaved(&confirmNew, false)) {
+                    spriteManager->NewProject();
+                    projectSprites->selectedSpriteId = -1;
+                }
+            }
+
+            if(confirmOpen) {
+                if (ProjectNotSaved(&confirmOpen, false)) {
+                    if (!confirmOpenFilename.empty()) {
+                        if (spriteManager->LoadProject(confirmOpenFilename)) {
+                            projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                        }
+                    } else {
+                        openOpenProjectDialog = true;
+                        openDialogInfo.fileName = spriteManager->projectFile;
+                    }
+                }
+            }
         }
+    }
+
+    enum class ExitAction {
+        Cancel,
+        Yes,
+        No
+    };
+
+    bool ProjectNotSaved(bool *open, bool exitFromApp) {
+        ExitAction action;
+        if(ProjectNotSavedDialog(open, exitFromApp, action)) {
+            switch(action) {
+                case ExitAction::Cancel: return false;
+                case ExitAction::No: return true;
+                case ExitAction::Yes:
+                    if(!spriteManager->projectFile.empty()) {
+                        spriteManager->SaveProject();
+                        if(spriteManager->project->autoExportSourceCode) {
+                            Action_ExportToFile();
+                        }
+                        return true;
+                    }
+                    openSaveProjectDialog = true;
+                    saveDialogInfo.fileName = spriteManager->projectFile;
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    bool ProjectNotSavedDialog(bool *open, bool exitFromApp, ExitAction &action) {
+        if(!open) return false;
+
+        bool completed = false;
+        action = ExitAction::Cancel;
+
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        const char *title = "Confirm Save";
+
+        ImGui::SetNextWindowSize(ImVec2(380.0f,100.0f));
+        ImGui::OpenPopup(title, ImGuiPopupFlags_None);
+        if(ImGui::BeginPopupModal(title, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
+            const char *message1 = "There are unsaved changes in the project. Do you want to save them before closing?";
+            const char *message2 = "There are unsaved changes in the project. Do you want to save them before opening another project?";
+            ImGui::TextWrapped("%s", (exitFromApp ? message1 : message2));
+            ImGui::Dummy(ImVec2(0, 20.0f));
+            ImVec2 buttonSize(100,20);
+            float widthNeeded = 3*buttonSize.x + 3*style.ItemSpacing.x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - widthNeeded);
+            ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 30.0f);
+            ImGui::PushID(0); if(ImGui::Button("Yes", buttonSize)) {
+                *open = false;
+                action = ExitAction::Yes;
+                completed = true;
+            } ImGui::PopID();
+            ImGui::SameLine(); ImGui::PushID(1); if(ImGui::Button("No", buttonSize)) {
+                *open = false;
+                action = ExitAction::No;
+                completed = true;
+            } ImGui::PopID();
+            ImGui::SameLine(); ImGui::PushID(2); if(ImGui::Button("Cancel", buttonSize)) {
+                *open = false;
+                action = ExitAction::Cancel;
+                completed = true;
+            } ImGui::PopID();
+            ImGui::EndPopup();
+        }
+
+        return completed;
     }
 };

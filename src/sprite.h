@@ -15,6 +15,7 @@ struct Sprite
 {
     int ID;
     SDL_Texture *original = nullptr, *scaled = nullptr;
+    size_t dataHash;
 
     enum class PaletteType {
         C64_Pal = 0,
@@ -132,6 +133,7 @@ struct Sprite
 
     void ClearData() {
         memset((void*)data, 0, sizeof(data));
+        dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
     }
 
     void SetPixel(size_t position_x, size_t position_y, size_t val) {
@@ -150,6 +152,7 @@ struct Sprite
 
     void Invalidate() {
         dirty = true;
+        dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
     }
 
     SDL_Texture *GetTexture(SDL_Renderer *renderer, float scale = 1.0f) {
@@ -182,7 +185,6 @@ struct Sprite
 
         return scaled;
     }
-
 
     SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
 

@@ -18,21 +18,24 @@
 #include "sprite_image.h"
 #include "generator.h"
 #include "keyboard_shortcuts.h"
+#include "generator.h"
 
-// Our state
-bool done = false;
+bool exitApp = false;
+bool wantExit = false;
 bool show_demo_window = false;
 
 Project project;
 StatusBar statusbar;
 SpriteManager spriteManager(&project, &statusbar);
-Generator generator(&spriteManager, &project);
+Generator generator(&spriteManager);
 ProjectSprites projectSprites(&spriteManager, &statusbar, &project);
 SpriteImage spriteImage(&spriteManager, &projectSprites, &statusbar);
-MenuBar menubar(&spriteManager, &projectSprites, &project, &generator);
+MenuBar menubar(&spriteManager, &projectSprites, &generator);
 KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites, &spriteManager);
 
+SDL_Window *window;
 SDL_Renderer *renderer;
+
 // Main code
 int main(int, char **)
 {
@@ -54,7 +57,7 @@ int main(int, char **)
 
     // Create window with SDL_Renderer graphics context
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window *window = SDL_CreateWindow("Retro sprite workshop", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    window = SDL_CreateWindow(appTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
     if (window == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -104,17 +107,19 @@ int main(int, char **)
     #endif
 
     // Main loop
-    while (!done)
+    while (!exitApp)
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
             ImGui_ImplSDL2_ProcessEvent(&event);
 
-            if (event.type == SDL_QUIT)
-                done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
-                done = true;
+            if (event.type == SDL_QUIT) {
+                if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+            }
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
+                if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+            }
         }
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
         {
@@ -139,7 +144,7 @@ int main(int, char **)
         window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
         #ifndef EXCLUDE_IMGUI_DEMO
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).        
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
         {
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -179,6 +184,12 @@ int main(int, char **)
         spriteImage.render();
         statusbar.render();
 
+        if(wantExit) {
+            if(menubar.ProjectNotSaved(&wantExit, true)) {
+                exitApp = true;
+            }
+        }
+
         // Rendering
         ImGui::Render();
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
@@ -186,6 +197,8 @@ int main(int, char **)
         SDL_RenderClear(renderer);
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
+
+        spriteManager.DetectChanges();
     }
 
     // Cleanup
@@ -201,4 +214,3 @@ int main(int, char **)
 
     return 0;
 }
-
