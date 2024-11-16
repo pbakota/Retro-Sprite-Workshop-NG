@@ -37,7 +37,7 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 
 // Main code
-int main(int, char **)
+int main(int ac, char **av)
 {
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -105,6 +105,11 @@ int main(int, char **)
         spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft_works_aircraft_%d", i).c_str()));
     }
     #endif
+
+    if(ac > 1) {
+        // Load project
+        menubar.Action_OpenProjectAs(av[1]);
+    }
 
     // Main loop
     while (!exitApp)
