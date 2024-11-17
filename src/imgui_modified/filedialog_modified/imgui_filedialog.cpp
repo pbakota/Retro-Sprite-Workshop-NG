@@ -302,12 +302,13 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 
 
 			ImGui::NextColumn();
-			ImGui::TextUnformatted(std::to_string(fileEntry.file_size()).c_str());
+			try { ImGui::TextUnformatted(std::to_string(fileEntry.file_size()).c_str()); } catch(...) {}
 			ImGui::NextColumn();
 			ImGui::TextUnformatted(filePath.extension().string().c_str());
 			ImGui::NextColumn();
 
-			auto lastWriteTime = fileEntry.last_write_time();
+			std::filesystem::file_time_type lastWriteTime;
+			try { lastWriteTime = fileEntry.last_write_time(); } catch(...) {}
 			auto st = std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastWriteTime - decltype(lastWriteTime)::clock::now() + std::chrono::system_clock::now());
 			std::time_t tt = std::chrono::system_clock::to_time_t(st);
 			std::tm mt;
