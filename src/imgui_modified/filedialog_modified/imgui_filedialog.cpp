@@ -272,7 +272,11 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 			auto st = std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastWriteTime - decltype(lastWriteTime)::clock::now() + std::chrono::system_clock::now());
 			std::time_t tt = std::chrono::system_clock::to_time_t(st);
 			std::tm mt;
+			#ifdef _WIN32
+			localtime_s(&mt, &tt);
+			#else
 			localtime_r(&tt, &mt);
+			#endif
 			std::stringstream ss;
 			ss << std::put_time(&mt, "%F %R");
 			ImGui::TextUnformatted(ss.str().c_str());
@@ -307,7 +311,11 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 			auto st = std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastWriteTime - decltype(lastWriteTime)::clock::now() + std::chrono::system_clock::now());
 			std::time_t tt = std::chrono::system_clock::to_time_t(st);
 			std::tm mt;
+			#ifdef _WIN32
+			localtime_s(&mt, &tt);
+			#else
 			localtime_r(&tt, &mt);
+			#endif
 			std::stringstream ss;
 			ss << std::put_time(&mt, "%F %R");
 			ImGui::TextUnformatted(ss.str().c_str());

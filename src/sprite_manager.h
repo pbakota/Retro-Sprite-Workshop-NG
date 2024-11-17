@@ -150,7 +150,7 @@ struct SpriteManager {
 
     void FlipImage_Vertical(int id) {
         Sprite *sp = GetSprite(id);
-        char tmp[sp->pitch];
+        char tmp[64];
         for (size_t y = 0; y < sp->heightInPixels / 2; ++y) {
             memcpy((void *)tmp, (void *)&sp->data[y * sp->pitch], sp->pitch);
             memcpy((void *)&sp->data[y * sp->pitch], (void *)&sp->data[((sp->heightInPixels - 1) - y) * sp->pitch], sp->pitch);
@@ -162,7 +162,7 @@ struct SpriteManager {
     void ShiftImage_Up(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
-        char tmp[sp->pitch];
+        char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
 		memcpy((void *)tmp, (void *)sp->data, widthInPixels);
 		for (size_t j = 1; j < sp->heightInPixels; ++j) {
@@ -179,7 +179,7 @@ struct SpriteManager {
     void ShiftImage_Down(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
-        char tmp[sp->pitch];
+        char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
 		memcpy((void *)tmp, (void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], widthInPixels);
 		for (int j = sp->heightInPixels - 2; j >= 0; --j) {
