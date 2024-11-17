@@ -193,7 +193,7 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Length");
-                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes ($%04x)", statusbar->totalBytes, (int)statusbar->totalBytes);
+                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes ($%04x)", (unsigned long)statusbar->totalBytes, (int)statusbar->totalBytes);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -237,7 +237,7 @@ struct ProjectSprites
         if (ImGui::FileDialog(&openExportToDialog, &fileDialogInfo))
         {
             // Result path in: fileDialogInfo.resultPath
-            strncpy(project->exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).c_str(), IM_ARRAYSIZE(project->exportTo));
+            strncpy(project->exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).string().c_str(), IM_ARRAYSIZE(project->exportTo));
         }
 
         if(captureVisible) {
@@ -313,7 +313,7 @@ struct ProjectSprites
                     ImGui::TextUnformatted(sprite->spriteID);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%d; Char: %lu", row, charOffset);
+                    ImGui::Text("%lu; Char: %lu", (unsigned long)row, (unsigned long)charOffset);
 
                     sprite->charOffset = charOffset;
                     sprite->charIndex = row;
@@ -321,7 +321,7 @@ struct ProjectSprites
                     charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s", sprite->widthInBytes<<3, sprite->heightInPixels,
+                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s", (unsigned long)sprite->widthInBytes<<3, (unsigned long)sprite->heightInPixels,
                         sprite->GetByteAlignment().c_str(), sprite->multicolorMode ? "Multicolor" : "2 colors");
 
                     ImGui::PopID();

@@ -312,7 +312,7 @@ struct MenuBar
 
             if (ImGui::FileDialog(&openSaveProjectDialog, &saveDialogInfo))
             {
-                if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath)) {
+                if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath.string().c_str())) {
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
                 } else {
                     if(spriteManager->project->autoExportSourceCode) {
@@ -322,7 +322,7 @@ struct MenuBar
             }
 
             if (ImGui::FileDialog(&openOpenProjectDialog, &openDialogInfo)) {
-                if(!spriteManager->LoadProject(openDialogInfo.resultPath)) {
+                if(!spriteManager->LoadProject(openDialogInfo.resultPath.string().c_str())) {
                     std::cerr << "ERROR: Failed to load project!" << std::endl;
                 } else {
                     projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
@@ -330,7 +330,7 @@ struct MenuBar
             }
 
             if (ImGui::FileDialog(&openExportDialogInfo, &exportDialogInfo)) {
-                if(generator->GenerateToFile(exportDialogInfo.resultPath.c_str())) {
+                if(generator->GenerateToFile(exportDialogInfo.resultPath.string().c_str())) {
                     //
                 }
             }
@@ -349,7 +349,7 @@ struct MenuBar
             if(confirmOpen) {
                 if (ProjectNotSaved(&confirmOpen, false)) {
                     if (!confirmOpenFilename.empty()) {
-                        if (spriteManager->LoadProject(confirmOpenFilename)) {
+                        if (spriteManager->LoadProject(confirmOpenFilename.c_str())) {
                             projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
                         }
                     } else {

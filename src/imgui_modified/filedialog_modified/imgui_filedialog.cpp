@@ -16,7 +16,7 @@
 #include <filesystem>
 #include <sstream>
 #include <cstring>
-#include <bits/stdc++.h>
+#include <algorithm>
 #include <time.h>
 
 #include <imgui.h>

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <algorithm>
 #include <memory>
@@ -480,7 +481,7 @@ struct SpriteManager {
         }
     }
 
-    bool LoadProject(const std::string& filename) {
+    bool LoadProject(const char *filename) {
         std::vector<Sprite*> temp;
         bool result = project->Load(filename, temp);
         if(result) {
@@ -496,14 +497,14 @@ struct SpriteManager {
     }
 
     bool SaveProject() {
-        bool res = project->Save(projectFile, sprites);
+        bool res = project->Save(projectFile.c_str(), sprites);
         if(res) {
             ClearChanges();
         }
         return res;
     }
 
-    bool SaveProjectAs(const std::string& filename) {
+    bool SaveProjectAs(const char *filename) {
         if(project->Save(filename, sprites)) {
             projectFile = filename;
             AddToProjectMRU(filename);

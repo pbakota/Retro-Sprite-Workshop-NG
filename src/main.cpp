@@ -47,7 +47,7 @@ int main(int ac, char **av)
     }
 
     spriteManager.configPath = SDL_GetPrefPath("RetroSpriteWorkshop", "Config");
-    spriteManager.configFile = std::filesystem::path(std::string(spriteManager.configPath) + "/settings.cfg").make_preferred();
+    spriteManager.configFile = std::filesystem::path(std::string(spriteManager.configPath) + "/settings.cfg").make_preferred().string();
     spriteManager.LoadConfig();
 
     // From 2.0.18: Enable native IME.

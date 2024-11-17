@@ -1,5 +1,7 @@
 #pragma once
-#include <bits/stdc++.h>
+
+#include <regex>
+#include <set>
 #include "imgui.h"
 #include "imgui_filedialog.h"
 #include "imgui_clamped_window.h"
@@ -222,7 +224,7 @@ struct Capture {
             }
 
             if (ImGui::FileDialog(&showCaptureImageDialog, &captureImageDialog)) {
-                LoadCapture(captureImageDialog.resultPath);
+                LoadCapture(captureImageDialog.resultPath.string());
             }
 
             Statusbar();
@@ -240,7 +242,8 @@ struct Capture {
 
     void LoadCapture(const std::string &filename) {
         if(spriteManager->LoadCaptureImage(filename)) {
-            strncpy(screenCaptureFile, std::filesystem::path(filename).filename().c_str(), sizeof(screenCaptureFile));
+            // NOTE: The weird thing you can see after filename() is to mitigate the broken  implementation of MingW64 std::filesystem
+            strncpy(screenCaptureFile, std::filesystem::path(filename).filename().string().c_str(), sizeof(screenCaptureFile));
             CaptureColors(spriteManager->captureSurface);
         }
     }

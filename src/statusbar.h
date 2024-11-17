@@ -30,12 +30,12 @@ struct StatusBar {
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
             {
                 ImGui::TableNextRow();
-                ImGui::TableNextColumn(); ImGui::AlignTextToFramePadding(); ImGui::Text("%lu images, %lu bytes", spriteCount, totalBytes);
+                ImGui::TableNextColumn(); ImGui::AlignTextToFramePadding(); ImGui::Text("%lu images, %lu bytes", (unsigned long)spriteCount, (unsigned long)totalBytes);
                 ImGui::TableNextColumn(); if(is_rowcol_visible) { ImGui::AlignTextToFramePadding();
                     if(charIndex != 64) {
-                        ImGui::Text("Col=%2lu, Row=%2lu, CharIndex=%2lu, ByteIndex=%2lu", col, row, charIndex, byteIndex);
+                        ImGui::Text("Col=%2lu, Row=%2lu, CharIndex=%2lu, ByteIndex=%2lu", (unsigned long)col, (unsigned long)row, (unsigned long)charIndex, (unsigned long)byteIndex);
                     } else {
-                        ImGui::Text("Col=%2lu, Row=%2lu, ByteIndex=%2lu", col, row, byteIndex);
+                        ImGui::Text("Col=%2lu, Row=%2lu, ByteIndex=%2lu", (unsigned long)col, (unsigned long)row, (unsigned long)byteIndex);
                     }
                 }
 

@@ -54,7 +54,7 @@ struct Project
     //     }
     // }
 
-    bool Load(const std::string &filename, std::vector<Sprite*> &sprites) {
+    bool Load(const char *filename, std::vector<Sprite*> &sprites) {
         sprites.clear();
 
         keyvalue_list values;
@@ -138,11 +138,11 @@ struct Project
             }
         }
 
-        strncpy(projectFile, filename.c_str(), sizeof(projectFile));
+        strncpy(projectFile, filename, sizeof(projectFile));
         return true;
     }
 
-    bool Save(const std::string &filename, std::vector<Sprite*> &sprites) {
+    bool Save(const char *filename, std::vector<Sprite*> &sprites) {
         std::ofstream fs(filename, std::ios::trunc | std::ios::binary);
         if(!fs.is_open()) {
             return false;
@@ -180,7 +180,7 @@ struct Project
         return true;
     }
 
-    bool ParseFile(const std::string& filename, keyvalue_list &graph) {
+    bool ParseFile(const char *filename, keyvalue_list &graph) {
         std::ifstream rd(filename, std::ios::binary);
         if(!rd.is_open()) {
             return false;

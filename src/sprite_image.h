@@ -140,7 +140,7 @@ struct SpriteImage
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Index");
                         // FIXME: Get somehow the real values for index and offset
-                        ImGui::TableNextColumn(); ImGui::Text("%lu; Char: %lu", spriteManager->currentSprite->charIndex, spriteManager->currentSprite->charOffset);
+                        ImGui::TableNextColumn(); ImGui::Text("%lu; Char: %lu", (unsigned long)spriteManager->currentSprite->charIndex, (unsigned long)spriteManager->currentSprite->charOffset);
 
                         ImGui::Dummy(ImVec2(0,10.0f));
                         ImGui::SeparatorText("Source Code Generator Settings");
@@ -176,7 +176,7 @@ struct SpriteImage
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Final Compiled Size");
-                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes", spriteManager->currentSprite->GetByteSize());
+                        ImGui::TableNextColumn(); ImGui::Text("%lu bytes", (unsigned long)spriteManager->currentSprite->GetByteSize());
                     }
                     ImGui::EndTable();
                 }

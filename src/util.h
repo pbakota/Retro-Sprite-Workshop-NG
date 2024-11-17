@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bits/stdc++.h>
+#include <regex>
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -184,3 +184,4 @@ std::vector<std::string> split_string(const std::string &str, const std::string 
     }
     return v;
 }
+
