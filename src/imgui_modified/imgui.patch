@@ -1,0 +1,44 @@
+diff --git a/imgui.h b/imgui.h
+index 719c8c22..a43a7fc1 100644
+--- a/imgui.h
++++ b/imgui.h
+@@ -1284,6 +1284,7 @@ enum ImGuiSelectableFlags_
+     ImGuiSelectableFlags_Disabled           = 1 << 3,   // Cannot be selected, display grayed out text
+     ImGuiSelectableFlags_AllowOverlap       = 1 << 4,   // (WIP) Hit testing to allow subsequent widgets to overlap this one
+     ImGuiSelectableFlags_Highlight          = 1 << 5,   // Make the item be displayed as if it is hovered
++    ImGuiSelectableFlags_NoHighlight        = 1 << 6,   // Make the item yo ignore the highlight effect
+ 
+ #ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+     ImGuiSelectableFlags_DontClosePopups    = ImGuiSelectableFlags_NoAutoClosePopups,   // Renamed in 1.91.0
+@@ -2326,7 +2327,7 @@ struct ImGuiIO
+ 
+     // Keyboard/Gamepad Navigation options
+     bool        ConfigNavSwapGamepadButtons;    // = false          // Swap Activate<>Cancel (A<>B) buttons, matching typical "Nintendo/Japanese style" gamepad layout.
+-    bool        ConfigNavMoveSetMousePos;       // = false          // Directional/tabbing navigation teleports the mouse cursor. May be useful on TV/console systems where moving a virtual mouse is difficult. Will update io.MousePos and set io.WantSetMousePos=true. 
++    bool        ConfigNavMoveSetMousePos;       // = false          // Directional/tabbing navigation teleports the mouse cursor. May be useful on TV/console systems where moving a virtual mouse is difficult. Will update io.MousePos and set io.WantSetMousePos=true.
+     bool        ConfigNavCaptureKeyboard;       // = true           // Sets io.WantCaptureKeyboard when io.NavActive is set.
+     bool        ConfigNavEscapeClearFocusItem;  // = true           // Pressing Escape can clear focused item + navigation id/highlight. Set to false if you want to always keep highlight on.
+     bool        ConfigNavEscapeClearFocusWindow;// = false          // Pressing Escape can clear focused window as well (super set of io.ConfigNavEscapeClearFocusItem).
+diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
+index e6442830..399b880e 100644
+--- a/imgui_widgets.cpp
++++ b/imgui_widgets.cpp
+@@ -7021,15 +7021,11 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
+     // Render
+     if (is_visible)
+     {
+-        const bool highlighted = hovered || (flags & ImGuiSelectableFlags_Highlight);
++        const bool highlighted = (flags & ImGuiSelectableFlags_NoHighlight ? 0 : hovered) || (flags & ImGuiSelectableFlags_Highlight);
+         if (highlighted || selected)
+         {
+-            // FIXME-MULTISELECT: Styling: Color for 'selected' elements? ImGuiCol_HeaderSelected
+-            ImU32 col;
+-            if (selected && !highlighted)
+-                col = GetColorU32(ImLerp(GetStyleColorVec4(ImGuiCol_Header), GetStyleColorVec4(ImGuiCol_HeaderHovered), 0.5f));
+-            else
+-                col = GetColorU32((held && highlighted) ? ImGuiCol_HeaderActive : highlighted ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
++            // Between 1.91.0 and 1.91.4 we made selected Selectable use an arbitrary lerp between _Header and _HeaderHovered. Removed that now. (#8106)
++            ImU32 col = GetColorU32((held && highlighted) ? ImGuiCol_HeaderActive : highlighted ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+             RenderFrame(bb.Min, bb.Max, col, false, 0.0f);
+         }
+         if (g.NavId == id)
