@@ -203,10 +203,13 @@ struct ProjectSprites
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
                             ImGui::TableNextColumn(); ImGui::PushID(4); if(ImGui::Checkbox("Include comments and metadata in", &project->includeMetadata)) {} ImGui::PopID();
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::TableNextColumn(); ImGui::PushID(5); if(ImGui::Checkbox("Only data (with no labels and constants)", &project->onlyData)) {} ImGui::PopID();
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn(); ImGui::TextUnformatted("Export to");
-                            ImGui::TableNextColumn(); ImGui::PushID(5); ImGui::InputText("", project->exportTo, IM_ARRAYSIZE(project->exportTo)); ImGui::SameLine(); if(ImGui::Button("...")) {
+                            ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::InputText("", project->exportTo, IM_ARRAYSIZE(project->exportTo)); ImGui::SameLine(); if(ImGui::Button("...")) {
                                 openExportToDialog = true;
                                 fileDialogInfo.fileName = std::string(project->exportTo);
                             } ImGui::PopID();
@@ -214,8 +217,8 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Char Index");
-                        ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
-                        ImGui::SameLine(); ImGui::PushID(7); if(ImGui::Button("Advanced ...") && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+                        ImGui::TableNextColumn(); ImGui::PushID(7); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
+                        ImGui::SameLine(); ImGui::PushID(8); if(ImGui::Button("Advanced ...") && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
                             showAdvancedSettings = true;
                         } ImGui::PopID();
                     }
