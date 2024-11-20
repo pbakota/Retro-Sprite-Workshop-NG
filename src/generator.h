@@ -77,11 +77,13 @@ struct Generator {
             out << std::endl;
         }
 
-        out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
-        out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;
-        out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
-        out << Constant(vformat("%s_INDEX",sprite->spriteID), vformat("%d",sprite->charIndex)) << std::endl;
-        out << Constant(vformat("%s_CHAR_INDEX",sprite->spriteID), vformat("%d",sprite->charOffset<<3)) << std::endl;
+        if(!spriteManager->project->onlyData) {
+            out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
+            out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;
+            out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
+            out << Constant(vformat("%s_INDEX",sprite->spriteID), vformat("%d",sprite->charIndex)) << std::endl;
+            out << Constant(vformat("%s_CHAR_INDEX",sprite->spriteID), vformat("%d",sprite->charOffset<<3)) << std::endl;
+        }
         size_t nframes = 1;
         if(sprite->prerenderSoftwareSprite) {
             switch(sprite->renderingPrecision) {
@@ -90,9 +92,10 @@ struct Generator {
                 case Sprite::PrerendingPrecision::Low2Frames: nframes = 2; break;
             }
         }
-        out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
-
-        out << std::endl;
+        if(!spriteManager->project->onlyData) {
+            out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
+            out << std::endl;
+        }
 
         MakeFrames(out, sprite);
     }
@@ -138,7 +141,9 @@ struct Generator {
     }
 
     void SingleFrame(std::ostream &out, Sprite *sprite, int nr, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
-        out << Label(vformat("%s_frame%d", sprite->spriteID, nr+1)) << std::endl;
+        if(!spriteManager->project->onlyData) {
+            out << Label(vformat("%s_frame%d", sprite->spriteID, nr+1)) << std::endl;
+        }
         std::vector<std::string> nibbles;
         switch(sprite->byteAligment) {
             case Sprite::ByteAligment::Horizontal_C64_Sprite:
@@ -167,7 +172,9 @@ struct Generator {
             }
         }
 
-        out << std::endl;
+        if(!spriteManager->project->onlyData) {
+            out << std::endl;
+        }
     }
 
     std::vector<std::string> HexSerializeData_Horizontal_C64_Sprite(const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {

@@ -37,7 +37,7 @@ struct AdvancedSettings
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        ImGui::SetNextWindowSize(ImVec2(640.0f,330.0f));
+        ImGui::SetNextWindowSize(ImVec2(640.0f,380.0f));
         ImGui::OpenPopup(TITLE, ImGuiPopupFlags_None);
         if(ImGui::BeginPopupModal(TITLE, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
             ImGui::SeparatorText("Assembly Language Compatibility");

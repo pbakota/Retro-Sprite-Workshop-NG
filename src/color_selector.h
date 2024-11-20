@@ -220,6 +220,7 @@ struct ColorSelector
             } ImGui::PopID();
 
             bool is_hover = false;
+			int color_index;
 			ColorDef* hovered_color;
             switch(*palette) {
                 case Sprite::PaletteType::C64_Pal:
@@ -236,6 +237,7 @@ struct ColorSelector
 						if(hovered) {
 							is_hover = true;
 							hovered_color = &c64pal[n];
+							color_index = n;
 						}
                     }
 					ImGui::PopStyleVar();
@@ -255,6 +257,7 @@ struct ColorSelector
 							if(hovered) {
 								is_hover = true;
 								hovered_color = &plus4pal[n];
+								color_index = y<<4|x;
 							}
                         }
                     }
@@ -267,7 +270,8 @@ struct ColorSelector
 
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 80.0f);
-                ImGui::Text("%s (RGB: %d,%d,%d #%06x)",
+                ImGui::Text("$%02X %s (RGB: %d,%d,%d #%06x)",
+					color_index,
 					hovered_color->name,
 					ABGR_RED(hovered_color->color),
 					ABGR_GREEN(hovered_color->color),
