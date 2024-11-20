@@ -19,6 +19,7 @@
 #include "generator.h"
 #include "keyboard_shortcuts.h"
 #include "generator.h"
+#include "ibm_vga_8x16.h"
 
 bool exitApp = false;
 bool wantExit = false;
@@ -47,7 +48,8 @@ int main(int ac, char **av)
     }
 
     spriteManager.configPath = SDL_GetPrefPath("RetroSpriteWorkshop", "Config");
-    spriteManager.configFile = std::filesystem::path(std::string(spriteManager.configPath) + "/settings.cfg").make_preferred().string();
+    spriteManager.configFile = std::filesystem::path(std::string(spriteManager.configPath) + "settings.cfg").make_preferred().string();
+    // std::cerr << "configFile path: " << spriteManager.configFile << std::endl;
     spriteManager.LoadConfig();
 
     // From 2.0.18: Enable native IME.
@@ -84,11 +86,24 @@ int main(int ac, char **av)
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     // io.WantCaptureKeyboard = true;
-    // io.IniFilename = nullptr;                             // prevent imgui from auto saving
+    io.IniFilename = strdup(std::filesystem::path(std::string(spriteManager.configPath) + "rswng.ini").make_preferred().string().c_str());
+    // std::cerr << "window ini: " << io.IniFilename << std::endl;
+
+    // Custom font
+    ImFontConfig fontConfig;
+    // fontConfig.OversampleH = 1;
+	// fontConfig.OversampleV = 1;
+	// fontConfig.PixelSnapH = 1;
+    io.Fonts->AddFontFromMemoryCompressedTTF((void*)ibm_vga_compressed_data, ibm_vga_compressed_size, 16.0f, &fontConfig);
+    io.Fonts->Build();
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     // ImGui::StyleColorsLight();
+
+    ImVec4* colors = ImGui::GetStyle().Colors;
+    colors[ImGuiCol_Text]     = ImVec4(0.64f, 0.64f, 0.64f, 1.00f);
+    colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);

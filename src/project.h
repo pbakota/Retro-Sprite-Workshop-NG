@@ -19,6 +19,7 @@ struct Project
     char exportTo[128] = {0};
     bool autoExportSourceCode = true;
     bool includeMetadata = true;
+    bool onlyData = false;
 
     std::vector<float> zoomValues = {
         0.25f,
@@ -46,6 +47,7 @@ struct Project
         strncpy(exportTo, "./export.inc", sizeof(exportTo));
         autoExportSourceCode = false;
         includeMetadata = true;
+        onlyData = false;
     }
 
     // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
@@ -91,6 +93,8 @@ struct Project
                strncpy(exportTo, kv.second.c_str(), sizeof(exportTo));
             } else if(kv.first == "AutomaticExportWithComments") {
                 includeMetadata = kv.second == "True";
+            } else if(kv.first == "OnlyData") {
+                onlyData = kv.second == "True";
             } else if(kv.first.substr(0,6) == "Sprite") {
                 std::size_t firstDot = kv.first.find('.');
                 if(firstDot==std::string::npos) continue; // skip invalid line
@@ -156,6 +160,7 @@ struct Project
         fs << "AutomaticExportOnSave=" << (autoExportSourceCode ? "True" : "False") << CR;
         fs << "SourceCodeExportPath=" << exportTo << CR;
         fs << "AutomaticExportWithComments=" << (includeMetadata ? "True" : "False") << CR;
+        fs << "OnlyData=" << (onlyData ? "True" : "False") << CR;
 
         int n = 1;
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {
