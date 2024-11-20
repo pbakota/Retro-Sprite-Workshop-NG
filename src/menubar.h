@@ -404,7 +404,7 @@ struct MenuBar
 
         const char *title = "Confirm Save";
 
-        ImGui::SetNextWindowSize(ImVec2(380.0f,100.0f));
+        ImGui::SetNextWindowSize(ImVec2(380.0f,120.0f));
         ImGui::OpenPopup(title, ImGuiPopupFlags_None);
         if(ImGui::BeginPopupModal(title, open, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
             const char *message1 = "There are unsaved changes in the project. Do you want to save them before closing?";

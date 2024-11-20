@@ -73,7 +73,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 	bool complete = false;
 
 	ImGui::PushID(dialogInfo);
-	ImGui::SetNextWindowSize(ImVec2(740.0f, 410.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(740.0f, 420.0f), ImGuiCond_FirstUseEver);
 
 	// Always center this window when appearing
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
