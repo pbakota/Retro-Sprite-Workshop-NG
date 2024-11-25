@@ -503,7 +503,6 @@ struct SpriteManager {
 
     void Deserialize(const char *text, Sprite *sp) {
         std::vector<std::string> tags = split_string(text, CEOL);
-        std::cerr << "st=" << tags[0] << std::endl;
         for(std::string & st : tags) {
             std::string v = trim(st);
             std::size_t firstEqual = v.find('=');

@@ -142,12 +142,16 @@ struct ProjectSprites
         captureVisible = true;
     }
 
-    bool IsActive() {
-        ImGuiContext* g = ImGui::GetCurrentContext();
-        if(g->CurrentWindow == g->NavWindow) {
-            std::cerr <<" Active" << std::endl;
+    void Action_Copy() {
+        if(selectedSpriteId != -1) {
+            spriteManager->CopySprite(selectedSpriteId);
         }
-        return false;
+    }
+
+    void Action_Paste() {
+        if(selectedSpriteId != -1) {
+            spriteManager->PasteSprite(selectedSpriteId);
+        }
     }
 
     void render(SDL_Renderer *renderer)
@@ -156,7 +160,11 @@ struct ProjectSprites
         if (ImGui::BeginTabBar("#spriteProjectTab", ImGuiTabBarFlags_None))
         {
             if (ImGui::BeginTabItem("Sprites"))
-            {
+             {
+                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_C, ImGuiInputFlags_None)) { Action_Copy(); }
+                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_V, ImGuiInputFlags_None)) { Action_Paste(); }
+                }
                 switch (spriteManager->spriteListType)
                 {
                 case 0:

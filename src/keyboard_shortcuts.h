@@ -28,8 +28,6 @@ struct KeyboardShortcuts {
             Shortcut(ImGuiKey_F4, ImGuiKey_ModAlt, [menubar]() { menubar->Action_ExitApp(); }),
 
             // Edit
-            Shortcut(ImGuiKey_C, ImGuiKey_ModCtrl,  [menubar]() { menubar->Action_Copy(); }),
-            Shortcut(ImGuiKey_V, ImGuiKey_ModCtrl,  [menubar]() { menubar->Action_Paste(); }),
             Shortcut(ImGuiKey_F9, ImGuiKey_NoMod,  [projectSprites]() { projectSprites->Action_MoveUp(); }),
             Shortcut(ImGuiKey_F10, ImGuiKey_NoMod, [projectSprites]() { projectSprites->Action_MoveDown(); }),
             Shortcut(ImGuiKey_D, ImGuiKey_ModCtrl, [menubar]() { menubar->Action_CloneSprite(); }),
