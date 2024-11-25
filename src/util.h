@@ -173,7 +173,11 @@ std::string shrink_string(const std::string &subject, size_t max_length) {
 }
 
 std::vector<std::string> split_string(const std::string &str, const std::string &delim) {
-    std::regex del(delim);
+    // matches any characters that need to be escaped in RegEx
+    const std::regex specialChars { R"([-[\]{}()*+?.,\^$|#\s])" };
+    const std::string sanitized_delim = std::regex_replace(delim, specialChars, R"(\$&)" );
+
+    std::regex del(sanitized_delim);
     std::sregex_token_iterator it(str.begin(), str.end(), del, -1);
     std::sregex_token_iterator end;
 

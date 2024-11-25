@@ -42,6 +42,7 @@ struct SpriteManager {
     std::string configFile;
     bool exportWithComments = false;
     bool shiftRollingAround = true;
+    std::string copyBuffer;
 
     char lineCommentSymbol[8] = ";";
     char byteArrayType[8] = "byt";
@@ -469,6 +470,72 @@ struct SpriteManager {
     void DetachSprite() {
         currentSprite = nullptr;
         statusbar->is_zoom_visible = false;
+    }
+
+    void CopySprite(int id) {
+        copyBuffer = Serialize(GetSprite(id)).c_str();
+    }
+
+    void PasteSprite(int id) {
+        if(copyBuffer.empty()) return;
+        Sprite *sp = GetSprite(id);
+        Deserialize(copyBuffer.c_str(), sp);
+        sp->Invalidate();
+   }
+
+    const char *CEOL = "|<*>|";
+    std::string Serialize(Sprite *sp) {
+        std::stringstream ss;
+        ss << "widthInBytes=" << sp->widthInBytes << CEOL;
+        ss << "heightInPixels=" << sp->heightInPixels << CEOL;
+        ss << "spriteID=" << sp->spriteID << CEOL;
+        ss << "description=" << sp->description << CEOL;
+        ss << "multicolorMode=" << sp->multicolorMode << CEOL;
+        ss << "byteAlignment=" << (int)sp->byteAligment << CEOL;
+        ss << "renderingPrecision=" << (int)sp->renderingPrecision << CEOL;
+        ss << "backgroundColor=" << sp->backgroundColor << CEOL;
+        ss << "multi1Color=" << sp->multi1Color << CEOL;
+        ss << "multi2Color=" << sp->multi2Color << CEOL;
+        ss << "characterColor=" << sp->characterColor << CEOL;
+        ss << "data=" << project->HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+        return ss.str();
+    }
+
+    void Deserialize(const char *text, Sprite *sp) {
+        std::vector<std::string> tags = split_string(text, CEOL);
+        std::cerr << "st=" << tags[0] << std::endl;
+        for(std::string & st : tags) {
+            std::string v = trim(st);
+            std::size_t firstEqual = v.find('=');
+            if(firstEqual==std::string::npos) continue; // skip invalid line
+            std::string key = v.substr(0,firstEqual);
+            std::string val = v.substr(firstEqual+1);
+            if(key == "widthInBytes") {
+                sp->widthInBytes = std::atoi(val.c_str());
+            } else if(key == "heightInPixels") {
+                sp->heightInPixels = std::atoi(val.c_str());
+            } else if(key == "spriteID") {
+                strncpy(sp->spriteID, val.c_str(), sizeof(sp->spriteID));
+            } else if(key == "description") {
+                strncpy(sp->description, val.c_str(), sizeof(sp->description));
+            } else if(key == "multicolorMode") {
+                sp->multicolorMode = std::atoi(val.c_str())!=0;
+            } else if(key == "byteAlignment") {
+                sp->byteAligment = (Sprite::ByteAligment)std::atoi(val.c_str());
+            } else if(key == "renderingPrecision") {
+                sp->renderingPrecision = (Sprite::PrerendingPrecision)std::atoi(val.c_str());
+            } else if(key == "backgroundColor") {
+                sp->backgroundColor = std::atoi(val.c_str());
+            } else if(key == "multi1Color") {
+                sp->multi1Color = std::atoi(val.c_str());
+            } else if(key == "multi2Color") {
+                sp->multi2Color = std::atoi(val.c_str());
+            } else if(key == "characterColor") {
+                sp->characterColor = std::atoi(val.c_str());
+            } else if(key == "data") {
+                project->HexDeserializeData(val, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+            }
+        }
     }
 
     void AddToProjectMRU(const std::string& filename) {

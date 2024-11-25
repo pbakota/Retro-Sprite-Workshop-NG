@@ -33,6 +33,7 @@ struct ProjectSprites
     AdvancedSettings advancedSettings;
     RearrangeColors rearrangeColors;
     Capture capture;
+    bool active = false;
 
     ProjectSprites(SpriteManager *spriteManager, StatusBar *statusbar, Project *project)
         : spriteManager(spriteManager), statusbar(statusbar), project(project) {}
@@ -141,12 +142,20 @@ struct ProjectSprites
         captureVisible = true;
     }
 
+    bool IsActive() {
+        ImGuiContext* g = ImGui::GetCurrentContext();
+        if(g->CurrentWindow == g->NavWindow) {
+            std::cerr <<" Active" << std::endl;
+        }
+        return false;
+    }
+
     void render(SDL_Renderer *renderer)
     {
-        ImGui::Begin("Project Sprites");
-        if (ImGui::BeginTabBar("#projectSprites", ImGuiTabBarFlags_None))
+        ImGui::Begin("Sprite Project");
+        if (ImGui::BeginTabBar("#spriteProjectTab", ImGuiTabBarFlags_None))
         {
-            if (ImGui::BeginTabItem("Project Sprites"))
+            if (ImGui::BeginTabItem("Sprites"))
             {
                 switch (spriteManager->spriteListType)
                 {

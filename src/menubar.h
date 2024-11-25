@@ -146,6 +146,18 @@ struct MenuBar
         }
     }
 
+    void Action_Copy() {
+        if(projectSprites->selectedSpriteId != -1 && projectSprites->IsActive()) {
+            spriteManager->CopySprite(projectSprites->selectedSpriteId);
+        }
+    }
+
+    void Action_Paste() {
+        if(projectSprites->selectedSpriteId != -1) {
+            spriteManager->PasteSprite(projectSprites->selectedSpriteId);
+        }
+    }
+
     void render() {
         if(ImGui::BeginMainMenuBar()) {
             if(ImGui::BeginMenu("File")) {
@@ -193,6 +205,13 @@ struct MenuBar
             }
 
             if(ImGui::BeginMenu("Edit")) {
+                if(ImGui::MenuItem("Copy", "Ctrl+c")) {
+                    Action_Copy();
+                }
+                if(ImGui::MenuItem("Paste", "Ctrl+v")) {
+                    Action_Paste();
+                }
+                ImGui::Separator();
                 if(ImGui::BeginMenu("Add New Sprite")) {
                     if(ImGui::MenuItem("Blank Sprite")) {
                         spriteManager->NewSprite();
@@ -202,9 +221,6 @@ struct MenuBar
                     }
                     ImGui::EndMenu();
                 }
-                #if 0
-                if(ImGui::MenuItem("Paste")) {}
-                #endif
                 if(ImGui::MenuItem("Clone Sprite", "Ctrl+D")) {
                     Action_CloneSprite();
                 }

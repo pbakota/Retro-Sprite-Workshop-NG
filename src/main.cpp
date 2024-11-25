@@ -190,9 +190,9 @@ int main(int ac, char **av)
             auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.5f, nullptr, &dockspace_id);
             // auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.15f, nullptr, &dockspace_id);
 
-            ImGui::DockBuilderDockWindow("Project Sprites", dock_id_left);
+            ImGui::DockBuilderDockWindow("Sprite Project", dock_id_left);
             ImGui::DockBuilderDockWindow("Sprite Image", dockspace_id);
-            ImGui::DockBuilderDockWindow("Status bar", dock_id_down);
+            ImGui::DockBuilderDockWindow("Status Bar", dock_id_down);
             ImGui::DockBuilderFinish(dockspace_id);
         }
 
