@@ -42,7 +42,10 @@ struct SpriteManager {
     std::string configFile;
     bool exportWithComments = false;
     bool shiftRollingAround = true;
+
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
     std::string copyBuffer;
+    #endif
 
     char lineCommentSymbol[8] = ";";
     char byteArrayType[8] = "byt";
@@ -473,19 +476,34 @@ struct SpriteManager {
     }
 
     void CopySprite(int id) {
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
         copyBuffer = Serialize(GetSprite(id)).c_str();
+    #else
+        SDL_SetClipboardText(Serialize(GetSprite(id)).c_str());
+    #endif
     }
 
     void PasteSprite(int id) {
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
         if(copyBuffer.empty()) return;
         Sprite *sp = GetSprite(id);
         Deserialize(copyBuffer.c_str(), sp);
         sp->Invalidate();
+    #else
+        if (!SDL_HasClipboardText()) return;
+        Sprite *sp = GetSprite(id);
+        const char *clipboard = SDL_GetClipboardText();
+        Deserialize(clipboard, sp);
+        sp->Invalidate();
+        SDL_free((void*)clipboard);
+    #endif
    }
 
     const char *CEOL = "|<*>|";
+    const char *CLIPBOARD_DATA_SIGNATURE = project->PROJECT_FILE_SIGNATURE;
     std::string Serialize(Sprite *sp) {
         std::stringstream ss;
+        ss << CLIPBOARD_DATA_SIGNATURE << CEOL;
         ss << "widthInBytes=" << sp->widthInBytes << CEOL;
         ss << "heightInPixels=" << sp->heightInPixels << CEOL;
         ss << "spriteID=" << sp->spriteID << CEOL;
@@ -502,7 +520,11 @@ struct SpriteManager {
     }
 
     void Deserialize(const char *text, Sprite *sp) {
+        // std::cerr << "Clipboard:\n" << text << std::endl;
         std::vector<std::string> tags = split_string(text, CEOL);
+        // Ignore data if did not match the signature
+        if(tags.front() != CLIPBOARD_DATA_SIGNATURE) return;
+        tags.erase(tags.begin()); // remove signature
         for(std::string & st : tags) {
             std::string v = trim(st);
             std::size_t firstEqual = v.find('=');
