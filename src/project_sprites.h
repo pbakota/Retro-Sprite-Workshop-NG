@@ -33,7 +33,6 @@ struct ProjectSprites
     AdvancedSettings advancedSettings;
     RearrangeColors rearrangeColors;
     Capture capture;
-    bool active = false;
 
     ProjectSprites(SpriteManager *spriteManager, StatusBar *statusbar, Project *project)
         : spriteManager(spriteManager), statusbar(statusbar), project(project) {}

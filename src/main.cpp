@@ -137,8 +137,15 @@ int main(int ac, char **av)
             if (event.type == SDL_QUIT) {
                 if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
             }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
-                if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+            if (event.type == SDL_WINDOWEVENT && event.window.windowID == SDL_GetWindowID(window)) {
+                switch(event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+                    break;
+                    case SDL_WINDOWEVENT_RESIZED:
+                        spriteManager.Invalidate();
+                    break;
+                }
             }
         }
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)

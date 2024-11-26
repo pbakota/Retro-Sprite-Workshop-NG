@@ -450,6 +450,12 @@ struct SpriteManager {
         sprites.insert(sprites.begin() + index, sprite);
     }
 
+    void Invalidate() {
+        for(Sprite * sp : sprites) {
+            sp->Invalidate();
+        };
+    }
+
     int NextSpriteID(int id) {
         auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         // if not found, exit
