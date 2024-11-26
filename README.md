@@ -43,6 +43,7 @@ Then you can use `rswng.zip` to transfer everything needed for application to ru
 
 Thanks to:
 
-https://plus4world.powweb.com/members/TCFS
-https://github.com/ocornut/imgui
-https://www.libsdl.org
+* https://plus4world.powweb.com/members/TCFS
+* https://github.com/ocornut/imgui
+* https://www.libsdl.org
+
