@@ -333,7 +333,7 @@ struct ProjectSprites
                     ImGui::TextUnformatted(sprite->spriteID);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%lu; Char: %lu", (unsigned long)row, (unsigned long)charOffset);
+                    ImGui::Text("%lu; Char: %lu ($%02X)", (unsigned long)row, (unsigned long)charOffset, (unsigned int)charOffset);
 
                     sprite->charOffset = charOffset;
                     sprite->charIndex = row;

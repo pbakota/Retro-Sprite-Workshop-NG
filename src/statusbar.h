@@ -26,7 +26,7 @@ struct StatusBar {
         ImGui::Begin("Status Bar", nullptr, ImGuiWindowFlags_NoScrollbar);
         if(ImGui::BeginTable("#statusBar",3, ImGuiTableFlags_NoBordersInBody)) {
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 350.0f);
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
             {
                 ImGui::TableNextRow();
