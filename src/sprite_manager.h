@@ -43,6 +43,10 @@ struct SpriteManager {
     bool exportWithComments = false;
     bool shiftRollingAround = true;
 
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+    std::string copyBuffer;
+    #endif
+
     char lineCommentSymbol[8] = ";";
     char byteArrayType[8] = "byt";
     char constantDeclaration[128] = "{{NAME}} = {{VALUE}}";
@@ -446,6 +450,12 @@ struct SpriteManager {
         sprites.insert(sprites.begin() + index, sprite);
     }
 
+    void Invalidate() {
+        for(Sprite * sp : sprites) {
+            sp->Invalidate();
+        };
+    }
+
     int NextSpriteID(int id) {
         auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         // if not found, exit
@@ -469,6 +479,90 @@ struct SpriteManager {
     void DetachSprite() {
         currentSprite = nullptr;
         statusbar->is_zoom_visible = false;
+    }
+
+    void CopySprite(int id) {
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+        copyBuffer = Serialize(GetSprite(id)).c_str();
+    #else
+        SDL_SetClipboardText(Serialize(GetSprite(id)).c_str());
+    #endif
+    }
+
+    void PasteSprite(int id) {
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+        if(copyBuffer.empty()) return;
+        Sprite *sp = GetSprite(id);
+        Deserialize(copyBuffer.c_str(), sp);
+        sp->Invalidate();
+    #else
+        if (!SDL_HasClipboardText()) return;
+        Sprite *sp = GetSprite(id);
+        const char *clipboard = SDL_GetClipboardText();
+        Deserialize(clipboard, sp);
+        sp->Invalidate();
+        SDL_free((void*)clipboard);
+    #endif
+   }
+
+    const char *CEOL = "|<*>|";
+    const char *CLIPBOARD_DATA_SIGNATURE = project->PROJECT_FILE_SIGNATURE;
+    std::string Serialize(Sprite *sp) {
+        std::stringstream ss;
+        ss << CLIPBOARD_DATA_SIGNATURE << CEOL;
+        ss << "widthInBytes=" << sp->widthInBytes << CEOL;
+        ss << "heightInPixels=" << sp->heightInPixels << CEOL;
+        ss << "spriteID=" << sp->spriteID << CEOL;
+        ss << "description=" << sp->description << CEOL;
+        ss << "multicolorMode=" << sp->multicolorMode << CEOL;
+        ss << "byteAlignment=" << (int)sp->byteAligment << CEOL;
+        ss << "renderingPrecision=" << (int)sp->renderingPrecision << CEOL;
+        ss << "backgroundColor=" << sp->backgroundColor << CEOL;
+        ss << "multi1Color=" << sp->multi1Color << CEOL;
+        ss << "multi2Color=" << sp->multi2Color << CEOL;
+        ss << "characterColor=" << sp->characterColor << CEOL;
+        ss << "data=" << project->HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+        return ss.str();
+    }
+
+    void Deserialize(const char *text, Sprite *sp) {
+        // std::cerr << "Clipboard:\n" << text << std::endl;
+        std::vector<std::string> tags = split_string(text, CEOL);
+        // Ignore data if did not match the signature
+        if(tags.front() != CLIPBOARD_DATA_SIGNATURE) return;
+        tags.erase(tags.begin()); // remove signature
+        for(std::string & st : tags) {
+            std::string v = trim(st);
+            std::size_t firstEqual = v.find('=');
+            if(firstEqual==std::string::npos) continue; // skip invalid line
+            std::string key = v.substr(0,firstEqual);
+            std::string val = v.substr(firstEqual+1);
+            if(key == "widthInBytes") {
+                sp->widthInBytes = std::atoi(val.c_str());
+            } else if(key == "heightInPixels") {
+                sp->heightInPixels = std::atoi(val.c_str());
+            } else if(key == "spriteID") {
+                strncpy(sp->spriteID, val.c_str(), sizeof(sp->spriteID));
+            } else if(key == "description") {
+                strncpy(sp->description, val.c_str(), sizeof(sp->description));
+            } else if(key == "multicolorMode") {
+                sp->multicolorMode = std::atoi(val.c_str())!=0;
+            } else if(key == "byteAlignment") {
+                sp->byteAligment = (Sprite::ByteAligment)std::atoi(val.c_str());
+            } else if(key == "renderingPrecision") {
+                sp->renderingPrecision = (Sprite::PrerendingPrecision)std::atoi(val.c_str());
+            } else if(key == "backgroundColor") {
+                sp->backgroundColor = std::atoi(val.c_str());
+            } else if(key == "multi1Color") {
+                sp->multi1Color = std::atoi(val.c_str());
+            } else if(key == "multi2Color") {
+                sp->multi2Color = std::atoi(val.c_str());
+            } else if(key == "characterColor") {
+                sp->characterColor = std::atoi(val.c_str());
+            } else if(key == "data") {
+                project->HexDeserializeData(val, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+            }
+        }
     }
 
     void AddToProjectMRU(const std::string& filename) {

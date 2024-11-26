@@ -137,8 +137,15 @@ int main(int ac, char **av)
             if (event.type == SDL_QUIT) {
                 if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
             }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
-                if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+            if (event.type == SDL_WINDOWEVENT && event.window.windowID == SDL_GetWindowID(window)) {
+                switch(event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
+                    break;
+                    case SDL_WINDOWEVENT_RESIZED:
+                        spriteManager.Invalidate();
+                    break;
+                }
             }
         }
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
@@ -190,9 +197,9 @@ int main(int ac, char **av)
             auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.5f, nullptr, &dockspace_id);
             // auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.15f, nullptr, &dockspace_id);
 
-            ImGui::DockBuilderDockWindow("Project Sprites", dock_id_left);
+            ImGui::DockBuilderDockWindow("Sprite Project", dock_id_left);
             ImGui::DockBuilderDockWindow("Sprite Image", dockspace_id);
-            ImGui::DockBuilderDockWindow("Status bar", dock_id_down);
+            ImGui::DockBuilderDockWindow("Status Bar", dock_id_down);
             ImGui::DockBuilderFinish(dockspace_id);
         }
 

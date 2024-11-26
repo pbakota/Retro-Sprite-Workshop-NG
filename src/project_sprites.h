@@ -141,13 +141,29 @@ struct ProjectSprites
         captureVisible = true;
     }
 
+    void Action_Copy() {
+        if(selectedSpriteId != -1) {
+            spriteManager->CopySprite(selectedSpriteId);
+        }
+    }
+
+    void Action_Paste() {
+        if(selectedSpriteId != -1) {
+            spriteManager->PasteSprite(selectedSpriteId);
+        }
+    }
+
     void render(SDL_Renderer *renderer)
     {
-        ImGui::Begin("Project Sprites");
-        if (ImGui::BeginTabBar("#projectSprites", ImGuiTabBarFlags_None))
+        ImGui::Begin("Sprite Project");
+        if (ImGui::BeginTabBar("#spriteProjectTab", ImGuiTabBarFlags_None))
         {
-            if (ImGui::BeginTabItem("Project Sprites"))
-            {
+            if (ImGui::BeginTabItem("Sprites"))
+             {
+                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_C, ImGuiInputFlags_None)) { Action_Copy(); }
+                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_V, ImGuiInputFlags_None)) { Action_Paste(); }
+                }
                 switch (spriteManager->spriteListType)
                 {
                 case 0:
@@ -316,7 +332,7 @@ struct ProjectSprites
                     ImGui::TextUnformatted(sprite->spriteID);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%lu; Char: %lu", (unsigned long)row, (unsigned long)charOffset);
+                    ImGui::Text("%lu; Char: %lu ($%02X)", (unsigned long)row, (unsigned long)charOffset, (unsigned int)charOffset);
 
                     sprite->charOffset = charOffset;
                     sprite->charIndex = row;

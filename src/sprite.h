@@ -328,7 +328,7 @@ struct Sprite
         }
         assert(true); // unreachable
         return nullptr;
-  }
+    }
 
     PaletteType GetPaletteName(const std::string &str) {
         if(str == "Commodore64") return PaletteType::C64_Pal;

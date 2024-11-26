@@ -110,6 +110,8 @@ struct MenuBar
     }
 
     void Action_ExportToClipboard() {
+        std::string exported = generator->GenerateToString();
+        SDL_SetClipboardText(exported.c_str());
     }
 
     void Action_ExportToFileTo() {
@@ -167,11 +169,9 @@ struct MenuBar
                     if(ImGui::MenuItem("Export to File")) {
                         Action_ExportToFileAs();
                     }
-                    ImGui::BeginDisabled(true);
                     if(ImGui::MenuItem("Export to Clipboard", "Ctrl+E")) {
                         Action_ExportToClipboard();
                     }
-                    ImGui::EndDisabled();
                     if(ImGui::Checkbox("Export with Comments and Metadata", &spriteManager->exportWithComments)) {}
                     ImGui::EndMenu();
                 }
@@ -193,6 +193,13 @@ struct MenuBar
             }
 
             if(ImGui::BeginMenu("Edit")) {
+                if(ImGui::MenuItem("Copy", "Ctrl+c")) {
+                    projectSprites->Action_Copy();
+                }
+                if(ImGui::MenuItem("Paste", "Ctrl+v")) {
+                    projectSprites->Action_Paste();
+                }
+                ImGui::Separator();
                 if(ImGui::BeginMenu("Add New Sprite")) {
                     if(ImGui::MenuItem("Blank Sprite")) {
                         spriteManager->NewSprite();
@@ -202,9 +209,6 @@ struct MenuBar
                     }
                     ImGui::EndMenu();
                 }
-                #if 0
-                if(ImGui::MenuItem("Paste")) {}
-                #endif
                 if(ImGui::MenuItem("Clone Sprite", "Ctrl+D")) {
                     Action_CloneSprite();
                 }

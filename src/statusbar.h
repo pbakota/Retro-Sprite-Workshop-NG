@@ -23,10 +23,10 @@ struct StatusBar {
     void render() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,3.0f));
         ImGui::SetNextWindowSize(ImVec2(-1, 50.0f));
-        ImGui::Begin("Status bar", nullptr, ImGuiWindowFlags_NoScrollbar);
+        ImGui::Begin("Status Bar", nullptr, ImGuiWindowFlags_NoScrollbar);
         if(ImGui::BeginTable("#statusBar",3, ImGuiTableFlags_NoBordersInBody)) {
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 350.0f);
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
             {
                 ImGui::TableNextRow();
