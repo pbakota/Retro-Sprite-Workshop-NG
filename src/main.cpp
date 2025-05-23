@@ -143,7 +143,7 @@ int main(int ac, char **av)
                         if(spriteManager.projectUnsaved) wantExit = true; else exitApp = true;
                     break;
                     case SDL_WINDOWEVENT_RESIZED:
-                        spriteManager.Invalidate();
+                        spriteManager.InvalidateSprites();
                     break;
                 }
             }

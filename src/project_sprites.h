@@ -325,7 +325,8 @@ struct ProjectSprites
 
                     ImGui::SetCursorPosY(oldCursorY);
 
-                    ImVec2 display_size = ImVec2(60.0f, 60.0f);
+                    // FIXME: Magic numbers :) Still does not solve a small render issue, but it makes it a bit less frequent.
+                    ImVec2 display_size = ImVec2(64.5f, 64.5f);
                     ImGui::Image((ImTextureID)sprite->GetTextureFixedSize(renderer, display_size), display_size);
 
                     ImGui::SameLine();
@@ -408,9 +409,10 @@ struct ProjectSprites
                     ImGui::SetCursorPosY(oldCursorY);
 
                     const auto column_width = ImGui::GetColumnWidth();
-                    ImVec2 display_size = ImVec2(60.0f, 60.0f);
+                    // FIXME: Magic numbers :) Still does not solve a small render issue, but it makes it a bit less frequent.
+                    ImVec2 display_size = ImVec2(64.5f, 64.5f);
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((column_width - display_size.x) * 0.5f));
-                    // ImGui::Image((ImTextureID)sprite->GetTexture(renderer, scale), size);
+                    // ImGui::Image((ImTextureID)sprite->GetTexture(renderer, 4.0f), ImVec2((sprite->widthInBytes<<3)*4.0f,sprite->heightInPixels*4.0f));
 
                     ImGui::Image((ImTextureID)sprite->GetTextureFixedSize(renderer, display_size), display_size);
                     ImGui::SetCursorPosX(oldCursorX);

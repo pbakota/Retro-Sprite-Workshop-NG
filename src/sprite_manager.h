@@ -450,7 +450,7 @@ struct SpriteManager {
         sprites.insert(sprites.begin() + index, sprite);
     }
 
-    void Invalidate() {
+    void InvalidateSprites() {
         for(Sprite * sp : sprites) {
             sp->Invalidate();
         };
@@ -582,6 +582,7 @@ struct SpriteManager {
             DetachSprite();
             ClearSpriteList();
             sprites = temp;
+            InvalidateSprites();
             projectFile = filename;
             AddToProjectMRU(filename);
             ClearChanges();
