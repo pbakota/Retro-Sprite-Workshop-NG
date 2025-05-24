@@ -18,6 +18,7 @@
 #include "sprite_image.h"
 #include "generator.h"
 #include "keyboard_shortcuts.h"
+#include "tiled_view.h"
 #include "generator.h"
 #include "ibm_vga_8x16.h"
 
@@ -33,6 +34,7 @@ ProjectSprites projectSprites(&spriteManager, &statusbar, &project);
 SpriteImage spriteImage(&spriteManager, &projectSprites, &statusbar);
 MenuBar menubar(&spriteManager, &projectSprites, &generator);
 KeyboardShortcuts keyboardShortcuts(&menubar, &projectSprites, &spriteManager);
+TiledView tiledView;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -210,6 +212,9 @@ int main(int ac, char **av)
         projectSprites.render(renderer);
         spriteImage.render();
         statusbar.render();
+        if(spriteManager.currentSprite && spriteManager.tiledWindowVisible) {
+            tiledView.render(renderer, spriteManager.currentSprite);
+        }
 
         if(wantExit) {
             if(menubar.ProjectNotSaved(&wantExit, true)) {

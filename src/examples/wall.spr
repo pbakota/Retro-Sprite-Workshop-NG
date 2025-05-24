@@ -1,0 +1,24 @@
+# --- RETRO SPRITE WORKSHOP --- 
+ProjectName=Blank Project
+Comments=
+Platform=
+CreatedOn=2025.05.24 19:36:44
+AutomaticExportOnSave=False
+SourceCodeExportPath=./export.inc
+AutomaticExportWithComments=True
+OnlyData=False
+Sprite1.ID=sprite
+Sprite1.Description=
+Sprite1.HeightInPixels=16
+Sprite1.WidthInBytes=2
+Sprite1.ByteAlignment=Mixed
+Sprite1.MulticolorMode=True
+Sprite1.BackgroundColor=#000000
+Sprite1.CharacterColor=#505050
+Sprite1.Multi1Color=#FFFFFF
+Sprite1.Multi2Color=#FF0000
+Sprite1.Palette=Commodore64
+Sprite1.Data=5FC5FFC5FFC7FFC7FFC7FFCFFFCF0000C55FC5FFC7FFC7FFC7FFCFFFCFFF0000
+Sprite1.PrerenderSoftwareSprite=False
+Sprite1.RenderingPrecision=Medium4Frames
+Sprite1.ZoomFactor=1

@@ -42,6 +42,7 @@ struct SpriteManager {
     std::string configFile;
     bool exportWithComments = false;
     bool shiftRollingAround = true;
+    bool tiledWindowVisible = false;
 
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
     std::string copyBuffer;

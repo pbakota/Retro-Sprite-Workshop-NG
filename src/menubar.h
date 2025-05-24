@@ -298,6 +298,7 @@ struct MenuBar
                     if(ImGui::RadioButton("Large Icons", &spriteManager->spriteListType, 1)) {}
                     ImGui::EndMenu();
                 }
+                if(ImGui::Checkbox("Show Tiled View", &spriteManager->tiledWindowVisible)) {}
                 ImGui::EndMenu();
             }
 
