@@ -35,6 +35,8 @@ struct Sprite
         Low2Frames = 2,
     };
 
+    std::map<size_t, SDL_Texture*> scaledCache;
+
     // Metdata
     size_t heightInPixels, widthInBytes;
     char description[256] = {0};
@@ -129,6 +131,9 @@ struct Sprite
             SDL_DestroyTexture(scaled);
             scaled = nullptr;
         }
+        if(!scaledCache.empty()) {
+            std::for_each(scaledCache.begin(), scaledCache.end(), [](const std::pair<size_t, SDL_Texture*>& p) { SDL_DestroyTexture(p.second); });
+        }
     }
 
     void ClearData() {
@@ -186,6 +191,13 @@ struct Sprite
         return scaled;
     }
 
+    size_t GetSizeHash(ImVec2 size) {
+        size_t hash = 7;
+        hash = (int)((float)hash * 31 + size.x);
+        hash = (int)((float)hash * 31 + size.y);
+        return hash;
+    }
+
     SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
 
         bool was_dirty = CreateOriginalSizeTextureCache(renderer);
@@ -193,22 +205,28 @@ struct Sprite
             return original;
         }
 
-        if(was_dirty || (scaled == nullptr)) {
+        size_t hash = GetSizeHash(size);
+        auto cache = scaledCache.find(hash);
+        SDL_Texture *resized = cache == scaledCache.end() ? nullptr : (*cache).second;
+
+        if(was_dirty || resized == nullptr) {
             // Generated scaled texture
             SDL_Rect s = {0,0,((int)(widthInBytes<<3)),(int)heightInPixels}, d = {0,0,(int)(size.x),(int)(size.y)};
 
-            if(scaled) {
-                SDL_DestroyTexture(scaled);
+            if(resized == nullptr) {
+                resized = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
+                assert(resized != nullptr);
+
+                scaledCache.insert({hash, resized});
+            } else {
+                resized = (*cache).second;
             }
 
-            scaled = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
-            assert(scaled != nullptr);
-
-            assert(SDL_SetRenderTarget(renderer, scaled)==0);
+            assert(SDL_SetRenderTarget(renderer, resized)==0);
             SDL_RenderCopy(renderer, original, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
-        return scaled;
+        return resized;
     }
 
     bool CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
