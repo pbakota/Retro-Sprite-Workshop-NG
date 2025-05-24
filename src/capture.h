@@ -206,7 +206,6 @@ struct Capture {
 
                 ImGui::SeparatorText("Preview Captured Sprite");
                 if(capturedSprite.widthInBytes != 0) {
-                    // ImGui::Image((ImTextureID)capturedSprite.GetTexture(renderer, 4.0f), ImVec2(4.0f*(capturedSprite.widthInBytes<<3), 4.0f*capturedSprite.heightInPixels));
                     ImGui::Image((ImTextureID)capturedSprite.GetTextureFixedSize(renderer, ImVec2(128.0f,128.0f)), ImVec2(128.0f, 128.0f));
                 }
 

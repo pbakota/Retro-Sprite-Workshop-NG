@@ -35,7 +35,12 @@ struct Sprite
         Low2Frames = 2,
     };
 
-    std::map<size_t, SDL_Texture*> scaledCache;
+    struct CacheData {
+        size_t hash;
+        SDL_Texture *tx;
+    };
+
+    std::map<size_t, CacheData> resizedCache;
 
     // Metdata
     size_t heightInPixels, widthInBytes;
@@ -131,8 +136,8 @@ struct Sprite
             SDL_DestroyTexture(scaled);
             scaled = nullptr;
         }
-        if(!scaledCache.empty()) {
-            std::for_each(scaledCache.begin(), scaledCache.end(), [](const std::pair<size_t, SDL_Texture*>& p) { SDL_DestroyTexture(p.second); });
+        if(!resizedCache.empty()) {
+            std::for_each(resizedCache.begin(), resizedCache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
         }
     }
 
@@ -160,37 +165,6 @@ struct Sprite
         dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
     }
 
-    SDL_Texture *GetTexture(SDL_Renderer *renderer, float scale = 1.0f) {
-
-        bool was_dirty = CreateOriginalSizeTextureCache(renderer);
-        if(scale == 1.0f) {
-            return original;
-        }
-
-        if(was_dirty || (scaled == nullptr)) {
-
-            assert(scale>=1.0);
-            assert(scale<=8.0);
-
-            // Generated scaled texture
-            int w=(int)(widthInBytes<<3), h=(int)(heightInPixels);
-            SDL_Rect d = {0,0,(int)(w*scale),(int)(h*scale)};
-
-            if(scaled) {
-                SDL_DestroyTexture(scaled);
-            }
-
-            scaled = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
-            assert(scaled != nullptr);
-
-            assert(SDL_SetRenderTarget(renderer, scaled)==0);
-            SDL_RenderCopy(renderer, original, nullptr, &d);
-            assert(SDL_SetRenderTarget(renderer, nullptr)==0);
-        }
-
-        return scaled;
-    }
-
     size_t GetSizeHash(ImVec2 size) {
         size_t hash = 7;
         hash = (int)((float)hash * 31 + size.x);
@@ -200,80 +174,78 @@ struct Sprite
 
     SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
 
-        bool was_dirty = CreateOriginalSizeTextureCache(renderer);
+        if(dirty) {
+            CreateOriginalSizeTextureCache(renderer);
+            dirty = false;
+        }
+
         if(size.x == (widthInBytes<<3) && size.y == heightInPixels) {
             return original;
         }
 
         size_t hash = GetSizeHash(size);
-        auto cache = scaledCache.find(hash);
-        SDL_Texture *resized = cache == scaledCache.end() ? nullptr : (*cache).second;
+        auto cache = resizedCache.find(hash);
+        CacheData* resized = cache == resizedCache.end() ? nullptr : &(*cache).second;
+        if(!resized) {
+            auto it = resizedCache.insert({hash, {dataHash, nullptr}});
+            resized = &it.first->second;
+        }
 
-        if(was_dirty || resized == nullptr) {
+        if(resized->hash != dataHash || (resized->tx == nullptr)) {
             // Generated scaled texture
             SDL_Rect s = {0,0,((int)(widthInBytes<<3)),(int)heightInPixels}, d = {0,0,(int)(size.x),(int)(size.y)};
 
-            if(resized == nullptr) {
-                resized = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
-                assert(resized != nullptr);
-
-                scaledCache.insert({hash, resized});
-            } else {
-                resized = (*cache).second;
+            if(resized->tx == nullptr) {
+                resized->tx = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
+                assert(resized->tx != nullptr);
             }
 
-            assert(SDL_SetRenderTarget(renderer, resized)==0);
+            assert(SDL_SetRenderTarget(renderer, resized->tx)==0);
             SDL_RenderCopy(renderer, original, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
-        return resized;
+        return resized->tx;
     }
 
-    bool CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
-        bool was_dirty = dirty;
-        if(dirty || (original == nullptr)) {
-            dirty = false;
-            was_dirty = true;
+    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
 
-            if(original == nullptr) {
-                original = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
-            }
+        if(original == nullptr) {
+            original = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
+        }
 
-            // Generated original size texture
-            assert(SDL_SetRenderTarget(renderer, original)==0);
+        // Generated original size texture
+        assert(SDL_SetRenderTarget(renderer, original)==0);
 
-            SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
-            SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
+        SDL_RenderClear(renderer);
 
-            size_t widthInPixels = (widthInBytes<<3);
-            for (size_t j = 0; j < heightInPixels; ++j) {
-                if (multicolorMode) {
-                    for (size_t i = 0; i < widthInPixels; i += 2) {
-                        char *p = (char*)data + i + j*pitch;
-                        size_t v = (p[0] << 1) | p[1];
-                        if(v == 0) continue; // skip background rendering (we already cleared the whole background with one call)
-                        switch (v) {
-                        case 1: SetDrawColor(renderer, multi1Color); break;
-                        case 2: SetDrawColor(renderer, multi2Color); break;
-                        case 3: SetDrawColor(renderer, characterColor); break;
-                        }
-                        SDL_Rect r = {(int)i, (int)j, 2, 1};
-                        SDL_RenderFillRect(renderer, &r);
+        size_t widthInPixels = (widthInBytes<<3);
+        for (size_t j = 0; j < heightInPixels; ++j) {
+            if (multicolorMode) {
+                for (size_t i = 0; i < widthInPixels; i += 2) {
+                    char *p = (char*)data + i + j*pitch;
+                    size_t v = (p[0] << 1) | p[1];
+                    if(v == 0) continue; // skip background rendering (we already cleared the whole background with one call)
+                    switch (v) {
+                    case 1: SetDrawColor(renderer, multi1Color); break;
+                    case 2: SetDrawColor(renderer, multi2Color); break;
+                    case 3: SetDrawColor(renderer, characterColor); break;
                     }
-                } else {
-                    for (size_t i = 0; i < widthInPixels; ++i) {
-                        char *p = (char*)data + i + j*pitch;
-                        if (*p) {
-                            SetDrawColor(renderer, characterColor);
-                            SDL_Rect r = {(int)i, (int)j, 1, 1};
-                            SDL_RenderFillRect(renderer, &r);
-                        }
+                    SDL_Rect r = {(int)i, (int)j, 2, 1};
+                    SDL_RenderFillRect(renderer, &r);
+                }
+            } else {
+                for (size_t i = 0; i < widthInPixels; ++i) {
+                    char *p = (char*)data + i + j*pitch;
+                    if (*p) {
+                        SetDrawColor(renderer, characterColor);
+                        SDL_Rect r = {(int)i, (int)j, 1, 1};
+                        SDL_RenderFillRect(renderer, &r);
                     }
                 }
             }
-            assert(SDL_SetRenderTarget(renderer, nullptr)==0);
         }
-        return was_dirty;
+        assert(SDL_SetRenderTarget(renderer, nullptr)==0);
     }
 
     size_t GetByteIndex(size_t row, size_t col) {
