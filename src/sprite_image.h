@@ -200,7 +200,7 @@ struct SpriteImage
             float bx = s.x, by = s.y;
             ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, spriteManager->currentSprite->heightInPixels*cs+by);
             statusbar->is_rowcol_visible = is_mouse_hovering = (ImGui::IsMouseHoveringRect(editor_pos, editor_size)) && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
-            if(is_mouse_hovering) {
+            if(is_mouse_hovering && ImGui::IsWindowFocused()) {
                 const ImVec2 m = ImGui::GetMousePos();
                 size_t position_x = (size_t)std::floor((m.x - s.x) / (cs * (spriteManager->currentSprite->multicolorMode ? 2 : 1)));
                 size_t position_y = std::floor((m.y - s.y) / cs);

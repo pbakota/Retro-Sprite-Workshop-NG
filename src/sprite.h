@@ -165,6 +165,17 @@ struct Sprite
         dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
     }
 
+    size_t GetHash() {
+        size_t hash = 7;
+        hash = hash * 31 + dataHash;
+        hash = hash * 31 + (multicolorMode ? 1 : 0);
+        hash = hash * 31 + backgroundColor;
+        hash = hash * 31 + characterColor;
+        hash = hash * 31 + multi1Color;
+        hash = hash * 31 + multi2Color;
+        return hash;
+    }
+
     size_t GetSizeHash(ImVec2 size) {
         size_t hash = 7;
         hash = (int)((float)hash * 31 + size.x);
@@ -183,15 +194,17 @@ struct Sprite
             return original;
         }
 
-        size_t hash = GetSizeHash(size);
-        auto cache = resizedCache.find(hash);
+        size_t sizeHash = GetSizeHash(size);
+        size_t spriteHash = GetHash();
+
+        auto cache = resizedCache.find(sizeHash);
         CacheData* resized = cache == resizedCache.end() ? nullptr : &(*cache).second;
         if(!resized) {
-            auto it = resizedCache.insert({hash, {dataHash, nullptr}});
+            auto it = resizedCache.insert({sizeHash, {dataHash, nullptr}});
             resized = &it.first->second;
         }
 
-        if(resized->hash != dataHash || (resized->tx == nullptr)) {
+        if(resized->hash != spriteHash || (resized->tx == nullptr)) {
             // Generated scaled texture
             SDL_Rect s = {0,0,((int)(widthInBytes<<3)),(int)heightInPixels}, d = {0,0,(int)(size.x),(int)(size.y)};
 
@@ -203,6 +216,8 @@ struct Sprite
             assert(SDL_SetRenderTarget(renderer, resized->tx)==0);
             SDL_RenderCopy(renderer, original, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
+
+            resized->hash = spriteHash;
         }
         return resized->tx;
     }
