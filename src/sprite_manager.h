@@ -237,7 +237,7 @@ struct SpriteManager {
                 p[1] = rotate ? c1 : 0;
             } else {
                 char *p = &sp->data[j * sp->pitch], c = *(p + widthInPixels - 1);
-                for (int k = widthInPixels - 1; k >= 0; --k) {
+                for (int k = widthInPixels - 1; k > 0; --k) {
                     *(p + k) = *(p + k - 1);
                 }
                 *p = rotate ? c : 0;
