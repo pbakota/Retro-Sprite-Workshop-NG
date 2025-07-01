@@ -24,6 +24,7 @@ struct SpriteManager {
     size_t projectHash;
     bool projectUnsaved = false;
 
+    int selectedSpriteId = 0;
     Sprite* currentSprite = nullptr;
     SDL_Texture *captureScreenshot = nullptr;
     SDL_Surface *captureSurface = nullptr;
@@ -578,11 +579,14 @@ struct SpriteManager {
 
     bool LoadProject(const char *filename) {
         std::vector<Sprite*> temp;
-        bool result = project->Load(filename, temp);
+        Project::ProjectHeader hdr;
+
+        bool result = project->Load(filename, hdr, temp);
         if(result) {
             DetachSprite();
             ClearSpriteList();
             sprites = temp;
+            std::memcpy((void*)&project->header, (void*)&hdr, sizeof(Project::ProjectHeader));
             InvalidateSprites();
             projectFile = filename;
             AddToProjectMRU(filename);
@@ -612,7 +616,20 @@ struct SpriteManager {
 
     bool ReadProject(const char *filename) {
     	std::vector<Sprite*> temp;
-    	if(project->Load(filename, temp)) {
+        // The header is ignored when "reading" the project file
+        Project::ProjectHeader hdr;
+
+        if(project->Load(filename, hdr, temp)) {
+            DetachSprite();
+            auto current = std::find_if(sprites.begin(), sprites.end(), [&](auto&&sp) { return (sp->ID == selectedSpriteId); });
+            if(current != sprites.end()) {
+                // Append sprites after selected sprite
+                sprites.insert(current + 1, temp.begin(), temp.end());
+            } else {
+                // If there is no current sprite, append to the end of list
+                sprites.insert(current, temp.begin(), temp.end());
+            }
+            InvalidateSprites();
     		return true;
     	}
     	return false;
@@ -720,8 +737,8 @@ struct SpriteManager {
             ss << sp->widthInBytes << sp->heightInPixels;
         }
 
-        ss << project->autoExportSourceCode << project->createdOn << project->exportTo << project->includeMetadata << project->projectComments;
-        ss << project->projectName << project->projectPlatform;
+        ss << project->header.autoExportSourceCode << project->header.createdOn << project->header.exportTo << project->header.includeMetadata << project->header.projectComments;
+        ss << project->header.projectName << project->header.projectPlatform;
 
         return std::hash<std::string>{}(ss.str());
     }

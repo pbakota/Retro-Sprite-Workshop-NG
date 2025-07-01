@@ -21,7 +21,7 @@ struct Project
 	    bool autoExportSourceCode = true;
 	    bool includeMetadata = true;
 	    bool onlyData = false;
-	} projectHeader;
+	} header;
 
     std::vector<float> zoomValues = {
         0.25f,
@@ -39,17 +39,17 @@ struct Project
     Project() {}
 
     void NewProject() {
-        memset((void*)projectHeader.projectName, 0, sizeof(projectHeader.projectName));
-        memset((void*)projectHeader.projectPlatform, 0, sizeof(projectHeader.projectPlatform));
-        memset((void*)projectHeader.projectComments, 0, sizeof(projectHeader.projectComments));
-        memset((void*)projectHeader.createdOn, 0, sizeof(projectHeader.createdOn));
-        memset((void*)projectHeader.exportTo, 0, sizeof(projectHeader.exportTo));
-        strncpy(projectHeader.projectName, "Blank Project", sizeof(projectHeader.projectName));
-        strncpy(projectHeader.createdOn, return_current_time_and_date().c_str(), sizeof(projectHeader.createdOn));
-        strncpy(projectHeader.exportTo, "./export.inc", sizeof(projectHeader.exportTo));
-        projectHeader.autoExportSourceCode = false;
-        projectHeader.includeMetadata = true;
-        projectHeader.onlyData = false;
+        memset((void*)header.projectName, 0, sizeof(header.projectName));
+        memset((void*)header.projectPlatform, 0, sizeof(header.projectPlatform));
+        memset((void*)header.projectComments, 0, sizeof(header.projectComments));
+        memset((void*)header.createdOn, 0, sizeof(header.createdOn));
+        memset((void*)header.exportTo, 0, sizeof(header.exportTo));
+        strncpy(header.projectName, "Blank Project", sizeof(header.projectName));
+        strncpy(header.createdOn, return_current_time_and_date().c_str(), sizeof(header.createdOn));
+        strncpy(header.exportTo, "./export.inc", sizeof(header.exportTo));
+        header.autoExportSourceCode = false;
+        header.includeMetadata = true;
+        header.onlyData = false;
     }
 
     // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
@@ -58,7 +58,7 @@ struct Project
     //     }
     // }
 
-    bool Load(const char *filename, std::vector<Sprite*> &sprites) {
+    bool Load(const char *filename, ProjectHeader &hdr, std::vector<Sprite*> &sprites) {
         sprites.clear();
 
         keyvalue_list values;
@@ -82,21 +82,21 @@ struct Project
             }
 
             if(kv.first == "ProjectName") {
-                strncpy(projectName, kv.second.c_str(), sizeof(projectName));
+                strncpy(hdr.projectName, kv.second.c_str(), sizeof(hdr.projectName));
             } else if(kv.first == "Comments") {
-                strncpy(projectComments, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(projectComments));
+                strncpy(hdr.projectComments, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(hdr.projectComments));
             } else if(kv.first == "Platform") {
-                strncpy(projectPlatform, kv.second.c_str(), sizeof(projectPlatform));
+                strncpy(hdr.projectPlatform, kv.second.c_str(), sizeof(hdr.projectPlatform));
             } else if(kv.first == "CreatedOn") {
-                strncpy(createdOn, kv.second.c_str(), sizeof(createdOn));
+                strncpy(hdr.createdOn, kv.second.c_str(), sizeof(hdr.createdOn));
             } else if(kv.first == "AutomaticExportOnSave") {
-                autoExportSourceCode = kv.second == "True";
+                hdr.autoExportSourceCode = kv.second == "True";
             } else if (kv.first == "SourceCodeExportPath") {
-               strncpy(exportTo, kv.second.c_str(), sizeof(exportTo));
+               strncpy(hdr.exportTo, kv.second.c_str(), sizeof(hdr.exportTo));
             } else if(kv.first == "AutomaticExportWithComments") {
-                includeMetadata = kv.second == "True";
+                hdr.includeMetadata = kv.second == "True";
             } else if(kv.first == "OnlyData") {
-                onlyData = kv.second == "True";
+                hdr.onlyData = kv.second == "True";
             } else if(kv.first.substr(0,6) == "Sprite") {
                 std::size_t firstDot = kv.first.find('.');
                 if(firstDot==std::string::npos) continue; // skip invalid line
@@ -144,7 +144,7 @@ struct Project
             }
         }
 
-        strncpy(projectFile, filename, sizeof(projectFile));
+        strncpy(hdr.projectFile, filename, sizeof(hdr.projectFile));
         return true;
     }
 
@@ -155,14 +155,14 @@ struct Project
         }
 
         fs << PROJECT_FILE_SIGNATURE << CR;
-        fs << "ProjectName=" << projectName << CR;
-        fs << "Comments=" << replace_string(std::string(projectComments), "\n", NEWLINE_PLACEHOLDER) << CR;
-        fs << "Platform=" << projectPlatform << CR;
-        fs << "CreatedOn=" << createdOn << CR;
-        fs << "AutomaticExportOnSave=" << (autoExportSourceCode ? "True" : "False") << CR;
-        fs << "SourceCodeExportPath=" << exportTo << CR;
-        fs << "AutomaticExportWithComments=" << (includeMetadata ? "True" : "False") << CR;
-        fs << "OnlyData=" << (onlyData ? "True" : "False") << CR;
+        fs << "ProjectName=" << header.projectName << CR;
+        fs << "Comments=" << replace_string(std::string(header.projectComments), "\n", NEWLINE_PLACEHOLDER) << CR;
+        fs << "Platform=" << header.projectPlatform << CR;
+        fs << "CreatedOn=" << header.createdOn << CR;
+        fs << "AutomaticExportOnSave=" << (header.autoExportSourceCode ? "True" : "False") << CR;
+        fs << "SourceCodeExportPath=" << header.exportTo << CR;
+        fs << "AutomaticExportWithComments=" << (header.includeMetadata ? "True" : "False") << CR;
+        fs << "OnlyData=" << (header.onlyData ? "True" : "False") << CR;
 
         int n = 1;
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {

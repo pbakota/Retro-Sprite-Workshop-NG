@@ -35,26 +35,26 @@ struct Generator {
     }
 
     void Header(std::ostream &out) {
-        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
-            out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, spriteManager->project->projectFile) << std::endl;
+        if(spriteManager->exportWithComments || (spriteManager->project->header.autoExportSourceCode && spriteManager->project->header.includeMetadata)) {
+            out << vformat("%s ==================== Retro Sprite Workshop Project (%s) ========================", spriteManager->lineCommentSymbol, spriteManager->project->header.projectFile) << std::endl;
             out << vformat("%s Generated On:       %s", spriteManager->lineCommentSymbol, return_current_time_and_date().c_str()) << std::endl;
-            out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, spriteManager->project->projectName) << std::endl;
-            out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, spriteManager->project->projectComments) << std::endl;
-            out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, spriteManager->project->projectPlatform) << std::endl;
-            out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, spriteManager->project->createdOn) << std::endl;
+            out << vformat("%s Project Name:       %s", spriteManager->lineCommentSymbol, spriteManager->project->header.projectName) << std::endl;
+            out << vformat("%s Project Comments:   %s", spriteManager->lineCommentSymbol, spriteManager->project->header.projectComments) << std::endl;
+            out << vformat("%s Target Platform:    %s", spriteManager->lineCommentSymbol, spriteManager->project->header.projectPlatform) << std::endl;
+            out << vformat("%s Project Created On: %s", spriteManager->lineCommentSymbol, spriteManager->project->header.createdOn) << std::endl;
             out << std::endl;
         }
     }
 
     void Footer(std::ostream &out) {
-        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
+        if(spriteManager->exportWithComments || (spriteManager->project->header.autoExportSourceCode && spriteManager->project->header.includeMetadata)) {
             out << vformat("%s ==================== Retro Sprite Workshop Project END ========================", spriteManager->lineCommentSymbol) << std::endl;
             out << std::endl;
         }
     }
 
     void SingleSprite(std::ostream &out, int nr, Sprite *sprite) {
-        if(spriteManager->exportWithComments || (spriteManager->project->autoExportSourceCode && spriteManager->project->includeMetadata)) {
+        if(spriteManager->exportWithComments || (spriteManager->project->header.autoExportSourceCode && spriteManager->project->header.includeMetadata)) {
             out << vformat("%s ==================== Sprite %d ========================", spriteManager->lineCommentSymbol, nr) << std::endl;
             out << vformat("%s Sprite ID:       %s", spriteManager->lineCommentSymbol, sprite->spriteID) << std::endl;
 
@@ -77,7 +77,7 @@ struct Generator {
             out << std::endl;
         }
 
-        if(!spriteManager->project->onlyData) {
+        if(!spriteManager->project->header.onlyData) {
             out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
             out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;
             out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
@@ -92,7 +92,7 @@ struct Generator {
                 case Sprite::PrerendingPrecision::Low2Frames: nframes = 2; break;
             }
         }
-        if(!spriteManager->project->onlyData) {
+        if(!spriteManager->project->header.onlyData) {
             out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
             out << std::endl;
         }
@@ -141,7 +141,7 @@ struct Generator {
     }
 
     void SingleFrame(std::ostream &out, Sprite *sprite, int nr, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
-        if(!spriteManager->project->onlyData) {
+        if(!spriteManager->project->header.onlyData) {
             out << Label(vformat("%s_frame%d", sprite->spriteID, nr+1)) << std::endl;
         }
         std::vector<std::string> nibbles;
@@ -172,7 +172,7 @@ struct Generator {
             }
         }
 
-        if(!spriteManager->project->onlyData) {
+        if(!spriteManager->project->header.onlyData) {
             out << std::endl;
         }
     }

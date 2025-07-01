@@ -71,7 +71,7 @@ struct MenuBar
             confirmNew = true;
         } else {
             spriteManager->NewProject();
-            projectSprites->selectedSpriteId = -1;
+            spriteManager->selectedSpriteId = -1;
         }
     }
 
@@ -94,7 +94,7 @@ struct MenuBar
                 confirmOpenFilename = filename;
             } else {
                 if(spriteManager->LoadProject(filename)) {
-                    projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                    projectSprites->lastSelectedSpriteId = spriteManager->selectedSpriteId = -1;
                 }
             }
         }
@@ -110,7 +110,7 @@ struct MenuBar
     void Action_SaveProject() {
         if(!spriteManager->projectFile.empty()) {
             spriteManager->SaveProject();
-            if(spriteManager->project->autoExportSourceCode) {
+            if(spriteManager->project->header.autoExportSourceCode) {
                 Action_ExportToFileTo();
             }
             return;
@@ -131,7 +131,7 @@ struct MenuBar
     }
 
     void Action_ExportToFileTo() {
-        if(generator->GenerateToFile(spriteManager->project->exportTo)) {
+        if(generator->GenerateToFile(spriteManager->project->header.exportTo)) {
             //
         }
     }
@@ -151,16 +151,16 @@ struct MenuBar
     }
 
     void Action_DeleteSprite() {
-        if(projectSprites->selectedSpriteId != -1) {
-            auto nextID = spriteManager->NextSpriteID(projectSprites->selectedSpriteId);
-            spriteManager->RemoveSprite(projectSprites->selectedSpriteId);
-            projectSprites->selectedSpriteId = nextID;
+        if(spriteManager->selectedSpriteId != -1) {
+            auto nextID = spriteManager->NextSpriteID(spriteManager->selectedSpriteId);
+            spriteManager->RemoveSprite(spriteManager->selectedSpriteId);
+            spriteManager->selectedSpriteId = nextID;
         }
     }
 
     void Action_CloneSprite() {
-        if(projectSprites->selectedSpriteId != -1) {
-            projectSprites->selectedSpriteId = spriteManager->CloneSprite(projectSprites->selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->CloneSprite(spriteManager->selectedSpriteId);
         }
     }
 
@@ -340,7 +340,7 @@ struct MenuBar
                 if(!spriteManager->SaveProjectAs(saveDialogInfo.resultPath.string().c_str())) {
                     std::cerr << "ERROR: Failed to save project!" << std::endl;
                 } else {
-                    if(spriteManager->project->autoExportSourceCode) {
+                    if(spriteManager->project->header.autoExportSourceCode) {
                         Action_ExportToFileTo();
                     }
                 }
@@ -350,7 +350,7 @@ struct MenuBar
                 if(!spriteManager->LoadProject(openDialogInfo.resultPath.string().c_str())) {
                     std::cerr << "ERROR: Failed to load project!" << std::endl;
                 } else {
-                    projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                    projectSprites->lastSelectedSpriteId = spriteManager->selectedSpriteId = -1;
                 }
             }
 
@@ -373,7 +373,7 @@ struct MenuBar
             if(confirmNew) {
                 if(ProjectNotSaved(&confirmNew, false)) {
                     spriteManager->NewProject();
-                    projectSprites->selectedSpriteId = -1;
+                    spriteManager->selectedSpriteId = -1;
                 }
             }
 
@@ -381,7 +381,7 @@ struct MenuBar
                 if (ProjectNotSaved(&confirmOpen, false)) {
                     if (!confirmOpenFilename.empty()) {
                         if (spriteManager->LoadProject(confirmOpenFilename.c_str())) {
-                            projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
+                            projectSprites->lastSelectedSpriteId = spriteManager->selectedSpriteId = -1;
                         }
                     } else {
                         openOpenProjectDialog = true;
@@ -407,7 +407,7 @@ struct MenuBar
                 case ExitAction::Yes:
                     if(!spriteManager->projectFile.empty()) {
                         spriteManager->SaveProject();
-                        if(spriteManager->project->autoExportSourceCode) {
+                        if(spriteManager->project->header.autoExportSourceCode) {
                             Action_ExportToFileTo();
                         }
                         return true;

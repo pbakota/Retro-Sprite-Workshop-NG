@@ -15,7 +15,6 @@ struct ProjectSprites
     StatusBar *statusbar;
     Project *project;
 
-    int selectedSpriteId = 0;
     int lastSelectedSpriteId = 0;
     bool openExportToDialog = false;
     ImFileDialogInfo fileDialogInfo = {
@@ -38,97 +37,97 @@ struct ProjectSprites
         : spriteManager(spriteManager), statusbar(statusbar), project(project) {}
 
     void Action_MoveUp() {
-        if(selectedSpriteId != -1) {
-            selectedSpriteId = spriteManager->MoveUp(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->MoveUp(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_MoveDown() {
-        if(selectedSpriteId != -1) {
-            selectedSpriteId = spriteManager->MoveDown(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->MoveDown(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_ClearSprite(size_t color) {
-        if(selectedSpriteId != -1) {
-            spriteManager->ClearSprite(selectedSpriteId, color);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->ClearSprite(spriteManager->selectedSpriteId, color);
         }
     }
 
     void Action_FlipImage_Horizontal() {
-        if(selectedSpriteId != -1) {
-            spriteManager->FlipImage_Horizontal(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->FlipImage_Horizontal(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_FlipImage_Vertical() {
-        if(selectedSpriteId != -1) {
-            spriteManager->FlipImage_Vertical(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->FlipImage_Vertical(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_ShiftImage_Up(bool rotate) {
-        if(selectedSpriteId != -1) {
-            spriteManager->ShiftImage_Up(selectedSpriteId, rotate);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Up(spriteManager->selectedSpriteId, rotate);
         }
     }
 
     void Action_ShiftImage_Down(bool rotate) {
-        if(selectedSpriteId != -1) {
-            spriteManager->ShiftImage_Down(selectedSpriteId, rotate);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Down(spriteManager->selectedSpriteId, rotate);
         }
     }
 
     void Action_ShiftImage_Left(bool rotate) {
-        if(selectedSpriteId != -1) {
-            spriteManager->ShiftImage_Left(selectedSpriteId, rotate);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Left(spriteManager->selectedSpriteId, rotate);
         }
     }
 
     void Action_ShiftImage_Right(bool rotate) {
-        if(selectedSpriteId != -1) {
-            spriteManager->ShiftImage_Right(selectedSpriteId, rotate);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->ShiftImage_Right(spriteManager->selectedSpriteId, rotate);
         }
     }
 
     void Action_RotateImage_Clockwise() {
-        if(selectedSpriteId != -1) {
-            spriteManager->RotateImage_Clockwise(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->RotateImage_Clockwise(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_RotateImage_CounterClockwise() {
-        if(selectedSpriteId != -1) {
-            spriteManager->RotateImage_CounterClockwise(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->RotateImage_CounterClockwise(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_InsertRow(size_t row) {
-        if(selectedSpriteId != -1) {
-            spriteManager->InsertRow(selectedSpriteId, row);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->InsertRow(spriteManager->selectedSpriteId, row);
         }
     }
 
     void Action_RemoveRow(size_t row) {
-        if(selectedSpriteId != -1) {
-            spriteManager->RemoveRow(selectedSpriteId, row);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->RemoveRow(spriteManager->selectedSpriteId, row);
         }
     }
 
     void Action_InsertColumn(size_t col) {
-        if(selectedSpriteId != -1) {
-            spriteManager->InsertColumn(selectedSpriteId, col);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->InsertColumn(spriteManager->selectedSpriteId, col);
         }
     }
 
     void Action_RemoveColumn(size_t col) {
-        if(selectedSpriteId != -1) {
-            spriteManager->RemoveColumn(selectedSpriteId, col);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->RemoveColumn(spriteManager->selectedSpriteId, col);
         }
     }
 
     void Action_RearrangeColors() {
-        if(selectedSpriteId != -1) {
+        if(spriteManager->selectedSpriteId != -1) {
             showRearrangeColors = true;
             selectedColors[0] = 0;
             selectedColors[1] = 1;
@@ -142,14 +141,14 @@ struct ProjectSprites
     }
 
     void Action_Copy() {
-        if(selectedSpriteId != -1) {
-            spriteManager->CopySprite(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->CopySprite(spriteManager->selectedSpriteId);
         }
     }
 
     void Action_Paste() {
-        if(selectedSpriteId != -1) {
-            spriteManager->PasteSprite(selectedSpriteId);
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->PasteSprite(spriteManager->selectedSpriteId);
         }
     }
 
@@ -193,19 +192,19 @@ struct ProjectSprites
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Project Name");
-                        ImGui::TableNextColumn(); ImGui::PushID(0); ImGui::InputText("", project->projectName, IM_ARRAYSIZE(project->projectName)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(0); ImGui::InputText("", project->header.projectName, IM_ARRAYSIZE(project->header.projectName)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Comments");
-                        ImGui::TableNextColumn(); ImGui::PushID(1); ImGui::SetNextItemWidth(-1); ImGui::InputTextMultiline("", project->projectComments, IM_ARRAYSIZE(project->projectComments)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(1); ImGui::SetNextItemWidth(-1); ImGui::InputTextMultiline("", project->header.projectComments, IM_ARRAYSIZE(project->header.projectComments)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Platform");
-                        ImGui::TableNextColumn(); ImGui::PushID(2); ImGui::InputText("", project->projectPlatform, IM_ARRAYSIZE(project->projectPlatform)); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(2); ImGui::InputText("", project->header.projectPlatform, IM_ARRAYSIZE(project->header.projectPlatform)); ImGui::PopID();
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Created On");
-                        ImGui::TableNextColumn(); ImGui::TextUnformatted(project->createdOn);
+                        ImGui::TableNextColumn(); ImGui::TextUnformatted(project->header.createdOn);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Length");
@@ -213,21 +212,21 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Automatically export source code on save", &project->autoExportSourceCode)) {} ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Automatically export source code on save", &project->header.autoExportSourceCode)) {} ImGui::PopID();
 
-                        ImGui::BeginDisabled(!project->autoExportSourceCode);
+                        ImGui::BeginDisabled(!project->header.autoExportSourceCode);
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
-                            ImGui::TableNextColumn(); ImGui::PushID(4); if(ImGui::Checkbox("Include comments and metadata in", &project->includeMetadata)) {} ImGui::PopID();
+                            ImGui::TableNextColumn(); ImGui::PushID(4); if(ImGui::Checkbox("Include comments and metadata in", &project->header.includeMetadata)) {} ImGui::PopID();
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
-                            ImGui::TableNextColumn(); ImGui::PushID(5); if(ImGui::Checkbox("Only data (with no labels and constants)", &project->onlyData)) {} ImGui::PopID();
+                            ImGui::TableNextColumn(); ImGui::PushID(5); if(ImGui::Checkbox("Only data (with no labels and constants)", &project->header.onlyData)) {} ImGui::PopID();
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn(); ImGui::TextUnformatted("Export to");
-                            ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::InputText("", project->exportTo, IM_ARRAYSIZE(project->exportTo)); ImGui::SameLine(); if(ImGui::Button("...")) {
+                            ImGui::TableNextColumn(); ImGui::PushID(6); ImGui::InputText("", project->header.exportTo, IM_ARRAYSIZE(project->header.exportTo)); ImGui::SameLine(); if(ImGui::Button("...")) {
                                 openExportToDialog = true;
-                                fileDialogInfo.fileName = std::string(project->exportTo);
+                                fileDialogInfo.fileName = std::string(project->header.exportTo);
                             } ImGui::PopID();
                         ImGui::EndDisabled();
 
@@ -249,14 +248,14 @@ struct ProjectSprites
             //
         }
 
-        if(selectedSpriteId != -1 && rearrangeColors.show(spriteManager->GetSprite(selectedSpriteId)->multicolorMode, selectedColors, &showRearrangeColors)) {
-            spriteManager->RearrangeColors(selectedSpriteId, selectedColors);
+        if(spriteManager->selectedSpriteId != -1 && rearrangeColors.show(spriteManager->GetSprite(spriteManager->selectedSpriteId)->multicolorMode, selectedColors, &showRearrangeColors)) {
+            spriteManager->RearrangeColors(spriteManager->selectedSpriteId, selectedColors);
         }
 
         if (ImGui::FileDialog(&openExportToDialog, &fileDialogInfo))
         {
             // Result path in: fileDialogInfo.resultPath
-            strncpy(project->exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).string().c_str(), IM_ARRAYSIZE(project->exportTo));
+            strncpy(project->header.exportTo, std::filesystem::relative(fileDialogInfo.resultPath, std::filesystem::current_path()).string().c_str(), IM_ARRAYSIZE(project->header.exportTo));
         }
 
         if(captureVisible) {
@@ -302,12 +301,12 @@ struct ProjectSprites
                     ImGui::TableSetColumnIndex(0);
 
                     auto oldCursorY = ImGui::GetCursorPosY();
-                    bool isSelected = selectedSpriteId == sprite->ID;
+                    bool isSelected = spriteManager->selectedSpriteId == sprite->ID;
 
                     // NOTE: ImGuiSelectableFlags_NoHighlight is not an official imGui flag!
                     auto flags = ImGuiSelectableFlags_NoHighlight | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick;
                     if (ImGui::Selectable("", isSelected, flags, ImVec2(0, 64.0f))) {
-                        selectedSpriteId = sprite->ID;
+                        spriteManager->selectedSpriteId = sprite->ID;
                     }
 
                     if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
@@ -316,9 +315,9 @@ struct ProjectSprites
                             spriteManager->AttachSprite(sprite);
                         } else {
                             // Detach sprite from the editor if we selected different sprite
-                            if(selectedSpriteId != lastSelectedSpriteId) {
+                            if(spriteManager->selectedSpriteId != lastSelectedSpriteId) {
                                 spriteManager->DetachSprite();
-                                lastSelectedSpriteId = selectedSpriteId;
+                                lastSelectedSpriteId = spriteManager->selectedSpriteId;
                             }
                         }
                     }
@@ -372,7 +371,7 @@ struct ProjectSprites
 
                 auto sprite = spriteManager->sprites[i];
 
-                bool isSelected = selectedSpriteId == sprite->ID;
+                bool isSelected = spriteManager->selectedSpriteId == sprite->ID;
                 const char *sprite_id_label = sprite->spriteID;
                 // FIXME: See below
                 // ImVec2 label_size = ImGui::CalcTextSize(sprite_id_label);
@@ -390,7 +389,7 @@ struct ProjectSprites
                     auto flags = ImGuiSelectableFlags_NoHighlight | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_AllowDoubleClick;
                     if (ImGui::Selectable("", isSelected, flags, ImVec2(0, 64.0f + text_height)))
                     {
-                        selectedSpriteId = sprite->ID;
+                        spriteManager->selectedSpriteId = sprite->ID;
                     }
 
                     // Attach sprite to the editor if we double clicked on sprite
@@ -400,9 +399,9 @@ struct ProjectSprites
                         statusbar->zoomIndex = sprite->zoomIndex;
                     } else {
                         // Detach sprite from the editor if we selected different sprite
-                        if(selectedSpriteId != lastSelectedSpriteId) {
+                        if(spriteManager->selectedSpriteId != lastSelectedSpriteId) {
                             spriteManager->currentSprite = nullptr;
-                            lastSelectedSpriteId = selectedSpriteId;
+                            lastSelectedSpriteId = spriteManager->selectedSpriteId;
                         }
                     }
 
