@@ -22,7 +22,7 @@ struct MenuBar
     Generator *generator;
 
     ImFileDialogInfo saveDialogInfo = {
-        .title = "Save Project As ...",
+        .title = "Save Project As",
         .type = ImGuiFileDialogType_SaveFile,
         .flags = 0, //ImGuiFileDialogFlags_FileMustExist,
         .fileName = "",
@@ -31,13 +31,22 @@ struct MenuBar
     bool openSaveProjectDialog = false;
 
     ImFileDialogInfo openDialogInfo = {
-        .title = "Open Project ...",
+        .title = "Open Project",
         .type = ImGuiFileDialogType_OpenFile,
         .flags = ImGuiFileDialogFlags_FileMustExist,
         .fileName = "",
         .directoryPath = std::filesystem::current_path()
     };
     bool openOpenProjectDialog = false;
+
+    ImFileDialogInfo readDialogInfo = {
+        .title = "Read Project",
+        .type = ImGuiFileDialogType_OpenFile,
+        .flags = ImGuiFileDialogFlags_FileMustExist,
+        .fileName = "",
+        .directoryPath = std::filesystem::current_path()
+    };
+    bool openReadProjectDialog = false;
 
     ImFileDialogInfo exportDialogInfo = {
         .title = "Export Project To Source Code As ...",
@@ -109,6 +118,13 @@ struct MenuBar
         Action_SaveAsProject();
     }
 
+	void Action_ReadProject() {
+        if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
+           openReadProjectDialog = true;
+           readDialogInfo.fileName = "";
+        }		
+	}
+
     void Action_ExportToClipboard() {
         std::string exported = generator->GenerateToString();
         SDL_SetClipboardText(exported.c_str());
@@ -163,6 +179,10 @@ struct MenuBar
                 if(ImGui::MenuItem("Save Project As...")) {
                     Action_SaveAsProject();
                 }
+                ImGui::Separator();
+                if(ImGui::MenuItem("Read Project...")) {
+                    Action_ReadProject();
+                }                
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Export as Source Code"))
                 {
@@ -332,6 +352,12 @@ struct MenuBar
                 } else {
                     projectSprites->lastSelectedSpriteId = projectSprites->selectedSpriteId = -1;
                 }
+            }
+
+            if (ImGui::FileDialog(&openReadProjectDialog, &readDialogInfo)) {
+            	if(!spriteManager->ReadProject(readDialogInfo.resultPath.string().c_str())) {
+            		std::cerr << "ERROR: Failed to read project!" << std::endl;
+            	}
             }
 
             if (ImGui::FileDialog(&openExportDialogInfo, &exportDialogInfo)) {

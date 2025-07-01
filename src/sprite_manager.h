@@ -610,6 +610,14 @@ struct SpriteManager {
         return false;
     }
 
+    bool ReadProject(const char *filename) {
+    	std::vector<Sprite*> temp;
+    	if(project->Load(filename, temp)) {
+    		return true;
+    	}
+    	return false;
+    }
+
     void AddToCaptureMRU(const std::string& filename) {
         // TODO: Implement a better MRU. e.g. If the item is already on the list, then it should be moved to the bottom (top?) of the list.
         if(std::find_if(captureMRU.begin(), captureMRU.end(), [filename](auto&&e) { return e == filename; }) == captureMRU.end()) {

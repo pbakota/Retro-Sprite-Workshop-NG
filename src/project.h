@@ -11,15 +11,17 @@ struct Project
     const char* PROJECT_FILE_SIGNATURE = "# --- RETRO SPRITE WORKSHOP --- ";
     const char* NEWLINE_PLACEHOLDER = "[{{NEWLINE}}]";
 
-    char projectFile[512] = {0};
-    char projectName[128] = {0};
-    char projectPlatform[128] = {0};
-    char projectComments[256] = {0};
-    char createdOn[128] = {0};
-    char exportTo[128] = {0};
-    bool autoExportSourceCode = true;
-    bool includeMetadata = true;
-    bool onlyData = false;
+	struct ProjectHeader {
+	    char projectFile[512] = {0};
+	    char projectName[128] = {0};
+	    char projectPlatform[128] = {0};
+	    char projectComments[256] = {0};
+	    char createdOn[128] = {0};
+	    char exportTo[128] = {0};
+	    bool autoExportSourceCode = true;
+	    bool includeMetadata = true;
+	    bool onlyData = false;
+	} projectHeader;
 
     std::vector<float> zoomValues = {
         0.25f,
@@ -37,17 +39,17 @@ struct Project
     Project() {}
 
     void NewProject() {
-        memset((void*)projectName, 0, sizeof(projectName));
-        memset((void*)projectPlatform, 0, sizeof(projectPlatform));
-        memset((void*)projectComments, 0, sizeof(projectComments));
-        memset((void*)createdOn, 0, sizeof(createdOn));
-        memset((void*)exportTo, 0, sizeof(exportTo));
-        strncpy(projectName, "Blank Project", sizeof(projectName));
-        strncpy(createdOn, return_current_time_and_date().c_str(), sizeof(createdOn));
-        strncpy(exportTo, "./export.inc", sizeof(exportTo));
-        autoExportSourceCode = false;
-        includeMetadata = true;
-        onlyData = false;
+        memset((void*)projectHeader.projectName, 0, sizeof(projectHeader.projectName));
+        memset((void*)projectHeader.projectPlatform, 0, sizeof(projectHeader.projectPlatform));
+        memset((void*)projectHeader.projectComments, 0, sizeof(projectHeader.projectComments));
+        memset((void*)projectHeader.createdOn, 0, sizeof(projectHeader.createdOn));
+        memset((void*)projectHeader.exportTo, 0, sizeof(projectHeader.exportTo));
+        strncpy(projectHeader.projectName, "Blank Project", sizeof(projectHeader.projectName));
+        strncpy(projectHeader.createdOn, return_current_time_and_date().c_str(), sizeof(projectHeader.createdOn));
+        strncpy(projectHeader.exportTo, "./export.inc", sizeof(projectHeader.exportTo));
+        projectHeader.autoExportSourceCode = false;
+        projectHeader.includeMetadata = true;
+        projectHeader.onlyData = false;
     }
 
     // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
