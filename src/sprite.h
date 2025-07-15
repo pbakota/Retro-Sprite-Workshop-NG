@@ -148,6 +148,9 @@ struct Sprite
         if(!resizedCache.empty()) {
             std::for_each(resizedCache.begin(), resizedCache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
         }
+        std::for_each(animationFrames.begin(), animationFrames.end(), [](auto& f) {
+            SDL_DestroyTexture(f.cache);
+        });
     }
 
     void ClearData() {
@@ -232,22 +235,26 @@ struct Sprite
     }
 
     void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
+        CreateOriginalSizeTextureCache(renderer, &original, widthInBytes, heightInPixels, data);
+    }
 
-        if(original == nullptr) {
-            original = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
+    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer, SDL_Texture **texture, size_t w, size_t h, const char *d) {
+
+        if(*texture == nullptr) {
+            *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
         }
 
         // Generated original size texture
-        assert(SDL_SetRenderTarget(renderer, original)==0);
+        assert(SDL_SetRenderTarget(renderer, *texture)==0);
 
         SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
 
-        size_t widthInPixels = (widthInBytes<<3);
-        for (size_t j = 0; j < heightInPixels; ++j) {
+        size_t widthInPixels = (w<<3);
+        for (size_t j = 0; j < h; ++j) {
             if (multicolorMode) {
                 for (size_t i = 0; i < widthInPixels; i += 2) {
-                    char *p = (char*)data + i + j*pitch;
+                    char *p = (char*)d + i + j*pitch;
                     size_t v = (p[0] << 1) | p[1];
                     if(v == 0) continue; // skip background rendering (we already cleared the whole background with one call)
                     switch (v) {
@@ -260,7 +267,7 @@ struct Sprite
                 }
             } else {
                 for (size_t i = 0; i < widthInPixels; ++i) {
-                    char *p = (char*)data + i + j*pitch;
+                    char *p = (char*)d + i + j*pitch;
                     if (*p) {
                         SetDrawColor(renderer, characterColor);
                         SDL_Rect r = {(int)i, (int)j, 1, 1};

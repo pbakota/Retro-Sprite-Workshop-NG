@@ -111,7 +111,10 @@ struct SpriteImage
                             spriteManager->currentSprite->Invalidate();
                         } ImGui::PopID();
                         ImGui::PushID(4); if(ImGui::Checkbox("Animation attached", &spriteManager->currentSprite->animationAttached)) {
-                            //
+                            if(spriteManager->currentSprite->animationAttached) {
+                                // Init animation
+                                animation.Init(spriteManager->currentSprite);
+                            }
                         } ImGui::PopID();
                     }
                     ImGui::EndTable();

@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "sprite.h"
 
+extern SDL_Renderer *renderer;
 
 struct Animation {
 
@@ -11,6 +12,14 @@ struct Animation {
     const float scale = 0.8f; // Scale down the display area slightly
 
     Animation() {}
+
+    void Init(Sprite *sp) {
+        if(sp->animationFrames.empty()) {
+            auto& frame = sp->animationFrames.emplace_back();
+            std::memcpy((void*)&frame.data, sp->data, sizeof(sp->data));
+            sp->CreateOriginalSizeTextureCache(renderer, &frame.cache, sp->widthInBytes, sp->heightInPixels, frame.data);
+        }
+    }
 
     void render(SDL_Renderer *render, Sprite *sp) {
         ImGui::SetNextWindowSize(ImVec2(320.0f, 240.0f), ImGuiCond_FirstUseEver);
@@ -23,17 +32,16 @@ struct Animation {
 
                 if (ImGui::BeginTable("#spriteMetadata", 2, ImGuiTableFlags_NoBordersInBody)) {
                     ImGui::TableSetupColumn("Frames", ImGuiTableColumnFlags_WidthStretch);
-                    ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthFixed, display_size.x);
+                    ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthFixed, display_size.x*scale);
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     DrawFrames(sp, display_size);
-                    DrawCursor(sp, display_size);
                     ImGui::TableSetColumnIndex(1);
                     DrawPreview(sp, display_size);
                     ImGui::EndTable();
-                }                
+                }
                 ImGui::EndTabItem();
-            }            
+            }
             ImGui::EndTabBar();
         }
         ImGui::End();
@@ -42,14 +50,60 @@ struct Animation {
     void DrawFrames(Sprite *sp, const ImVec2 &display_size) {
         if(ImGui::BeginChild("Frames", ImVec2(0,0), 0, ImGuiWindowFlags_HorizontalScrollbar)) {
 
+            const int button_flags = ImGuiButtonFlags_PressedOnClick;
+            const int noFrames = sp->animationFrames.size();
+
+            ImVec2 region = ImGui::GetContentRegionAvail();
             ImVec2 s = ImGui::GetCursorScreenPos();
             ImVec2 p = ImGui::GetCursorPos();
+            ImVec2 o = ImVec2(s.x, s.y + (region.y-display_size.y*scale)*0.5f);
 
-            for(int i=0; i<14; ++i) {
-                DrawFrame(sp, s, i+1, display_size);
-                s.x += display_size.x + 5.0f; // Add some spacing between frames
+            float totalWidth = 0;
+            for(int i=0; i<noFrames; ++i) {
+                DrawFrame(sp, o, i+1, display_size);
+                if(i == currentFrameIndex) {
+                    DrawCursor(sp, o, display_size);
+                }
+                bool hovered, held;
+                ImVec2 min = o;
+                ImVec2 max = ImVec2(min.x + display_size.x*scale, min.y + display_size.y*scale);
+                ImGui::PushID(i+1); if(ImGui::ButtonBehavior(ImRect(min,max), ImGui::GetID("##frame"), &hovered, &held, button_flags)) {
+                    currentFrameIndex = i;
+                } ImGui::PopID();
+                if(hovered) {
+
+                }
+                o.x += display_size.x*scale+2.0f; // Add some spacing between frames
+                totalWidth += display_size.x*scale+2.0f;
             }
-            ImGui::SetCursorPosX(p.x + (display_size.x + 5.0f)*14);
+            ImGui::SetCursorPosX(p.x + totalWidth);
+
+            // const ImVec2 buttonSize = ImVec2(50,25);
+            // ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f);
+            // ImGui::SetCursorPosY(p.y + (region.y-buttonSize.y)*0.5f);
+            // ImGui::PushID(99); if(ImGui::Button("Add", buttonSize)) {
+
+            if (ImGui::BeginPopupContextWindow("##animationPopup")) {
+                if(ImGui::MenuItem("Add Frame")) {
+
+                }
+                if(ImGui::MenuItem("Duplicate Current Frame")) {
+
+                }
+                if(ImGui::MenuItem("Move Current Frame Left")) {
+
+                }
+                if(ImGui::MenuItem("Move Current Frame Right")) {
+
+                }
+                ImGui::Separator();
+                if(ImGui::MenuItem("Delete Current Frame")) {
+
+                }
+                ImGui::EndPopup();
+            }
+
+            // } ImGui::PopID();
             ImGui::EndChild();
         }
     }
@@ -80,18 +134,16 @@ struct Animation {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         // TODO: Replace with actual sprite rendering
         // For now, just draw a rectangle to represent the frame
-        dl->AddRectFilled(pos, ImVec2(pos.x + display_size.x, pos.y + display_size.y), sp->backgroundColor);
+        dl->AddRectFilled(pos, ImVec2(pos.x + display_size.x*scale, pos.y + display_size.y*scale), sp->backgroundColor);
         dl->AddText(ImVec2(pos.x+2.0f, pos.y+2.0f), IM_COL32(255, 255, 255, 255), std::to_string(index).c_str());
     }
-    
-    void DrawCursor(Sprite *sp, const ImVec2 &display_size) {        
-        auto style = &ImGui::GetStyle();
-        ImVec2 s = ImGui::GetCursorScreenPos();
-        ImVec2 min = ImVec2(s.x + style->CellPadding.x, s.y + style->CellPadding.y*2);
-        ImVec2 max = ImVec2(min.x + display_size.x, min.y + display_size.y);
-        
+
+    void DrawCursor(Sprite *sp, ImVec2 pos, const ImVec2 &display_size) {
+        ImVec2 min = ImVec2(pos.x, pos.y);
+        ImVec2 max = ImVec2(min.x + display_size.x*scale -1.0f, min.y + display_size.y*scale-1.0f);
+
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        dl->AddRect(min, max,  ImGui::GetColorU32(ImGuiCol_Border), 0, 0, 2.0f);
+        dl->AddRect(min, max,  ImGui::GetColorU32(ImGuiCol_Text), 0, 0, 3.0f);
     }
 
     void DrawOverlay(Sprite *sp, const ImVec2 &display_size) {
@@ -104,7 +156,7 @@ struct Animation {
         const int heightInPixels = sp->heightInPixels;
 
         // Scale down the display area slightly
-        const float scale = 0.95f; 
+        const float scale = 0.95f;
         // Ensure the display size is proportional to the sprite's dimensions
         display_size = ImVec2(region.y * widthInPixels/heightInPixels * scale, region.y * scale);
     }
