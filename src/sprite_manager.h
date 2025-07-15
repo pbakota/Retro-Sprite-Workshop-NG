@@ -734,7 +734,7 @@ struct SpriteManager {
         for(auto &sp : sprites) {
             ss << sp->spriteID << sp->backgroundColor << sp->GetByteAlignment() << sp->characterColor << sp->description << sp->ID << sp->dataHash;
             ss << sp->multi1Color << sp->multi2Color << sp->multicolorMode << sp->GetPaletteName() << sp->prerenderSoftwareSprite << sp->GetRenderingPrecision();
-            ss << sp->widthInBytes << sp->heightInPixels;
+            ss << sp->widthInBytes << sp->heightInPixels << sp->animationAttached;
         }
 
         ss << project->header.autoExportSourceCode << project->header.createdOn << project->header.exportTo << project->header.includeMetadata << project->header.projectComments;

@@ -269,7 +269,7 @@ struct ColorSelector
 				selectedColor = hovered_color->color; // ABGR_BLUE(hovered_color->color)<<16|ABGR_GREEN(hovered_color->color)<<8|ABGR_RED(hovered_color->color);
 
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 80.0f);
+                ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 70.0f);
                 ImGui::Text("$%02X %s (RGB: %d,%d,%d #%06x)",
 					color_index,
 					hovered_color->name,

@@ -59,6 +59,15 @@ struct Sprite
     bool dirty = true;
     size_t charOffset, charIndex;
 
+    struct Frame {
+        SDL_Texture *cache;
+        char data[4096]; // 64x64 the maximum size
+    };
+
+    bool animationAttached = false;
+    int animationFPS = 4;
+    std::vector<Frame> animationFrames;
+
     const size_t pitch = 64;
     char data[4096]; // 64x64 the maximum size
 

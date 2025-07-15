@@ -4,6 +4,7 @@
 #include "sprite_manager.h"
 #include "statusbar.h"
 #include "color_selector.h"
+#include "animation.h"
 
 extern StatusBar statusbar;
 struct SpriteImage
@@ -11,6 +12,8 @@ struct SpriteImage
     SpriteManager *spriteManager;
     ProjectSprites *projectSprites;
     StatusBar *statusbar;
+
+    Animation animation;
 
     bool is_mouse_hovering = false;
     const char* prerendingPrecisionValues[3] = {
@@ -59,7 +62,7 @@ struct SpriteImage
             {
                 if (ImGui::BeginTable("#spriteProps", 2, ImGuiTableFlags_NoBordersInBody | ImGuiTableFlags_SizingStretchProp))
                 {
-                    ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 400.0f);
+                    ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 300.0f);
                     ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
                     {
                         ImGui::TableNextRow();
@@ -106,6 +109,9 @@ struct SpriteImage
                         ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Multicolor (2 bits per pixel)", &spriteManager->currentSprite->multicolorMode)) {
                             selectedColor = 0; // Reset drawing color to background
                             spriteManager->currentSprite->Invalidate();
+                        } ImGui::PopID();
+                        ImGui::PushID(4); if(ImGui::Checkbox("Animation attached", &spriteManager->currentSprite->animationAttached)) {
+                            //
                         } ImGui::PopID();
                     }
                     ImGui::EndTable();
@@ -186,6 +192,10 @@ struct SpriteImage
             ImGui::EndTabBar();
         }
         ImGui::End();
+
+        if(spriteManager->currentSprite->animationAttached) {
+            animation.render(renderer, spriteManager->currentSprite);
+        }
     }
 
     void ImageEditor() {
