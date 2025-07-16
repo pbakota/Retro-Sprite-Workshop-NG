@@ -61,8 +61,7 @@ struct Sprite
 
     struct Frame {
         bool dirty;
-        SDL_Texture *org;
-        std::map<size_t, CacheData> cache;
+        SDL_Texture *image;
         char data[4096]; // 64x64 the maximum size
     };
 
@@ -151,10 +150,7 @@ struct Sprite
             std::for_each(resizedCache.begin(), resizedCache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
         }
         std::for_each(animationFrames.begin(), animationFrames.end(), [](Frame& f) {
-            SDL_DestroyTexture(f.org);
-            if(!f.cache.empty()) {
-                std::for_each(f.cache.begin(), f.cache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
-            }
+            SDL_DestroyTexture(f.image);
         });
     }
 
@@ -204,29 +200,25 @@ struct Sprite
         return hash;
     }
 
-    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, const ImVec2 size) {
-        return GetTextureFixedSize(renderer, size, &original, resizedCache, data, &dirty);
-    }
+    // Get a texture for the sprite at a fixed size
+    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
 
-    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, const ImVec2 size, SDL_Texture **texture, std::map<size_t, CacheData>& rescache, const char *d, bool* pDirty) {
-
-        if(*pDirty) {
-            CreateOriginalSizeTextureCache(renderer, texture, d);
-            *pDirty = false;
+        if(dirty) {
+            CreateOriginalSizeTextureCache(renderer);
+            dirty = false;
         }
 
         if(size.x == (widthInBytes<<3) && size.y == heightInPixels) {
-            return *texture;
+            return original;
         }
 
         size_t sizeHash = GetSizeHash(size);
-        size_t h = std::hash<std::string_view>()(std::string_view(d, sizeof(*d)));
-        size_t spriteHash = GetHash(h);
+        size_t spriteHash = GetHash();
 
-        auto cache = rescache.find(sizeHash);
-        CacheData* resized = cache == rescache.end() ? nullptr : &(*cache).second;
+        auto cache = resizedCache.find(sizeHash);
+        CacheData* resized = cache == resizedCache.end() ? nullptr : &(*cache).second;
         if(!resized) {
-            auto it = rescache.insert({sizeHash, {h, nullptr}});
+            auto it = resizedCache.insert({sizeHash, {dataHash, nullptr}});
             resized = &it.first->second;
         }
 
@@ -240,7 +232,7 @@ struct Sprite
             }
 
             assert(SDL_SetRenderTarget(renderer, resized->tx)==0);
-            SDL_RenderCopy(renderer, *texture, &s, &d);
+            SDL_RenderCopy(renderer, original, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
 
             resized->hash = spriteHash;
@@ -248,18 +240,21 @@ struct Sprite
         return resized->tx;
     }
 
-    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
-        CreateOriginalSizeTextureCache(renderer, &original, data);
+    inline SDL_Texture *CreateSpriteImageTexture(SDL_Renderer *renderer) {
+        return SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
     }
 
-    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer, SDL_Texture **texture, const char *d) {
+    // Create a texture from sprite data at the original size
+    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
+        if(original == nullptr) original = CreateSpriteImageTexture(renderer);
+        UpdateTextureFromSpriteData(renderer, original, data);
+    }
 
-        if(*texture == nullptr) {
-            *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
-        }
+    // Update the texture with the sprite data
+    void UpdateTextureFromSpriteData(SDL_Renderer *renderer, SDL_Texture *texture, const char *d) {
 
-        // Generated original size texture
-        assert(SDL_SetRenderTarget(renderer, *texture)==0);
+        // Set the render target to the texture
+        assert(SDL_SetRenderTarget(renderer, texture)==0);
 
         SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
@@ -290,6 +285,8 @@ struct Sprite
                 }
             }
         }
+
+        // Reset the render target to the default
         assert(SDL_SetRenderTarget(renderer, nullptr)==0);
     }
 

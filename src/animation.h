@@ -17,8 +17,8 @@ struct Animation {
 
     void Init(Sprite *sp) {
         if(sp->animationFrames.empty()) {
-            auto& frame = sp->animationFrames.emplace_back();
-            std::memcpy((void*)&frame.data, sp->data, sizeof(sp->data));
+            currentFrameIndex = 0;
+            AddEmptyFrame(sp, true);
         }
     }
 
@@ -48,6 +48,26 @@ struct Animation {
         ImGui::End();
     }
 
+    void AddEmptyFrame(Sprite *sp, bool copyFromSprite = true) {
+        auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + currentFrameIndex);
+        frame.image = sp->CreateSpriteImageTexture(renderer);
+        frame.dirty = false; // Mark as not dirty since we just copied the data
+        if(copyFromSprite) {
+            std::memcpy((void*)frame.data, (void*)sp->data, sizeof(sp->data));
+            sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+        } else {
+            std::memset((void*)frame.data, 0, sizeof(frame.data));
+        }
+    }
+
+    void CopyPrevFrame(Sprite *sp) {
+        auto& prev = *(sp->animationFrames.begin() + currentFrameIndex);
+        auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + currentFrameIndex);
+        frame.dirty = false; // Mark as not dirty since we just copied the data
+        std::memcpy((void*)frame.data, (void*)&prev.data, sizeof(prev.data));
+        sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+    }
+
     void DrawFrames(Sprite *sp, const ImVec2 &display_size) {
         if(ImGui::BeginChild("Frames", ImVec2(0,0), 0, ImGuiWindowFlags_HorizontalScrollbar)) {
 
@@ -74,22 +94,20 @@ struct Animation {
                 if(hovered) {
 
                 }
-                o.x += display_size.x*scale+2.0f; // Add some spacing between frames
-                totalWidth += display_size.x*scale+2.0f;
+                o.x += display_size.x*scale+4.0f; // Add some spacing between frames
+                totalWidth += display_size.x*scale+4.0f;
             }
             ImGui::SetCursorPosX(p.x + totalWidth);
 
-            // const ImVec2 buttonSize = ImVec2(50,25);
-            // ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f);
-            // ImGui::SetCursorPosY(p.y + (region.y-buttonSize.y)*0.5f);
-            // ImGui::PushID(99); if(ImGui::Button("Add", buttonSize)) {
-
             if (ImGui::BeginPopupContextWindow("##animationPopup")) {
                 if(ImGui::MenuItem("Add Frame")) {
-
+                    AddEmptyFrame(sp);
+                    currentFrameIndex += 1; // Move to the newly added frame
                 }
                 if(ImGui::MenuItem("Duplicate Current Frame")) {
-
+                    // FIXME: This should copy the current frame
+                    // CopyPrevFrame(sp);
+                    // currentFrameIndex += 1; // Move to the newly added frame
                 }
                 if(ImGui::MenuItem("Move Current Frame Left")) {
 
@@ -115,42 +133,34 @@ struct Animation {
                 sp->animationFPS = 1; // Ensure FPS is at least 1
             }
             if(sp->animationFPS > 50) {
-                sp->animationFPS = 50; // Cap FPS at 60
+                sp->animationFPS = 50; // Cap FPS at 50
             }
         } ImGui::PopID();
         ImGui::SameLine(); ImGui::Text("FPS");
 
         // Display the current frame
         Sprite::Frame &frame = sp->animationFrames[previewFrameIndex];
-        ImVec2 s = ImVec2(display_size.x*scale, display_size.y*scale);
-        ImGui::Image((ImTextureID)sp->GetTextureFixedSize(renderer, s, &frame.org, frame.cache, frame.data, &frame.dirty), s);
+        ImVec2 size = ImVec2(display_size.x*scale, display_size.y*scale);
+        ImGui::Image((ImTextureID)frame.image, size, ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
 
         previewTimer ++;
         if((int)(1.0/previewTimer) == sp->animationFPS) {
             previewTimer = 0;
             previewFrameIndex += 1;
+            if(previewFrameIndex >= (int)sp->animationFrames.size()) {
+                previewFrameIndex = 0; // Loop back to the first frame
+            }
         }
-
-        #if 0
-        ImVec2 s = ImGui::GetCursorScreenPos();
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-
-        ImVec2 rect = ImVec2(s.x + display_size.x*scale, s.y + display_size.y*scale);
-        dl->AddRectFilled(s, rect, sp->backgroundColor);
-        #endif
     }
 
     void DrawFrame(Sprite *sp, const ImVec2 &pos, int index, const ImVec2 &display_size) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        // TODO: Replace with actual sprite rendering
-        // For now, just draw a rectangle to represent the frame
-        // dl->AddRectFilled(pos, ImVec2(pos.x + display_size.x*scale, pos.y + display_size.y*scale), sp->backgroundColor);
         Sprite::Frame &frame = sp->animationFrames[currentFrameIndex];
-        ImVec2 windowPos = ImGui::GetWindowPos();
-        ImVec2 s = ImVec2(pos.x - windowPos.x, pos.y - windowPos.y);
-        ImGui::Image((ImTextureID)sp->GetTextureFixedSize(renderer, s, &frame.org, frame.cache, frame.data, &frame.dirty), s);
-        // dl->AddImage((ImTextureID)sp->GetTextureFixedSize(renderer, display_size, &frame.org, frame.cache, frame.data, &frame.dirty), display_size);
-        dl->AddText(ImVec2(pos.x+2.0f, pos.y+2.0f), IM_COL32(255, 255, 255, 255), std::to_string(index).c_str());
+        ImVec2 size = ImVec2(display_size.x*scale, display_size.y*scale);
+        dl->AddImage((ImTextureID)frame.image, pos, ImVec2(pos.x+size.x, pos.y+size.y), ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
+        ImVec2 w = ImGui::CalcTextSize(std::to_string(index).c_str());
+        dl->AddRectFilled(pos, ImVec2(pos.x + w.x + 2.0f, pos.y + 14.0f + 2.0f), ImGui::GetColorU32(ImGuiCol_WindowBg));
+        dl->AddText(ImVec2(pos.x+2.0f, pos.y+2.0f), ImGui::GetColorU32(ImGuiCol_Text), std::to_string(index).c_str());
     }
 
     void DrawCursor(Sprite *sp, ImVec2 pos, const ImVec2 &display_size) {
@@ -171,8 +181,8 @@ struct Animation {
         const int heightInPixels = sp->heightInPixels;
 
         // Scale down the display area slightly
-        const float scale = 0.95f;
+        const float adjust = 1.0f;
         // Ensure the display size is proportional to the sprite's dimensions
-        display_size = ImVec2(region.y * widthInPixels/heightInPixels * scale, region.y * scale);
+        display_size = ImVec2(region.y * widthInPixels/heightInPixels * adjust, region.y * adjust);
     }
 };
