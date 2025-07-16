@@ -114,8 +114,6 @@ int main(int ac, char **av)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
-    bool firstFrame = true;
-
     spriteManager.NewProject();
     #ifdef USE_TEST_SPRITE
     for (auto i = 0; i < 63;++i) {
@@ -166,9 +164,6 @@ int main(int ac, char **av)
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
         ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
         window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
@@ -180,31 +175,39 @@ int main(int ac, char **av)
         }
         #endif
 
+        static ImGuiID dockspace_id = 0;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("P4Tools Main", nullptr, window_flags);
         ImGui::PopStyleVar(3);
 
-        ImGuiID dockspace_id = ImGui::GetID("#dockspace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0, 0), /*ImGuiDockNodeFlags_HiddenTabBar |*/ ImGuiDockNodeFlags_AutoHideTabBar);
-
-        if (firstFrame)
+        if (dockspace_id == 0)
         {
-            firstFrame = false;
+            dockspace_id = ImGui::GetID("dockspace");
 
             ImGui::DockBuilderRemoveNode(dockspace_id); // clear any previous layout
             ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
 
-            // auto dock_id_top = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Up, 0.2f, nullptr, &dockspace_id);
+            auto dock_id_top = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Up, 0.2f, nullptr, &dockspace_id);
             auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.03f, nullptr, &dockspace_id);
             auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.5f, nullptr, &dockspace_id);
             // auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.15f, nullptr, &dockspace_id);
 
+            // auto sp_dockspace_id = ImGui::GetID("spriteDockspace");
+            // auto sp_dock_id_up = ImGui::DockBuilderSplitNode(sp_dockspace_id, ImGuiDir_Up, 0.5f, nullptr, &sp_dockspace_id);
+            // auto sp_dock_id_down = ImGui::DockBuilderSplitNode(sp_dockspace_id, ImGuiDir_Down, 0.03f, nullptr, &sp_dockspace_id);
+
             ImGui::DockBuilderDockWindow("Sprite Project", dock_id_left);
             ImGui::DockBuilderDockWindow("Sprite Image", dockspace_id);
+            ImGui::DockBuilderDockWindow("Animation View", dock_id_top);
             ImGui::DockBuilderDockWindow("Status Bar", dock_id_down);
             ImGui::DockBuilderFinish(dockspace_id);
         }
 
+        ImGui::DockSpace(ImGui::GetID("dockspace"), ImVec2(0, 0), /*ImGuiDockNodeFlags_HiddenTabBar |*/ ImGuiDockNodeFlags_AutoHideTabBar);
         ImGui::End();
 
         keyboardShortcuts.Handle();
