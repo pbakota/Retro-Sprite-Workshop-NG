@@ -60,7 +60,9 @@ struct Sprite
     size_t charOffset, charIndex;
 
     struct Frame {
-        SDL_Texture *cache;
+        bool dirty;
+        SDL_Texture *org;
+        std::map<size_t, CacheData> cache;
         char data[4096]; // 64x64 the maximum size
     };
 
@@ -148,8 +150,11 @@ struct Sprite
         if(!resizedCache.empty()) {
             std::for_each(resizedCache.begin(), resizedCache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
         }
-        std::for_each(animationFrames.begin(), animationFrames.end(), [](auto& f) {
-            SDL_DestroyTexture(f.cache);
+        std::for_each(animationFrames.begin(), animationFrames.end(), [](Frame& f) {
+            SDL_DestroyTexture(f.org);
+            if(!f.cache.empty()) {
+                std::for_each(f.cache.begin(), f.cache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
+            }
         });
     }
 
@@ -178,8 +183,12 @@ struct Sprite
     }
 
     size_t GetHash() {
+        return GetHash(dataHash);
+    }
+
+    size_t GetHash(size_t dHash) {
         size_t hash = 7;
-        hash = hash * 31 + dataHash;
+        hash = hash * 31 + dHash;
         hash = hash * 31 + (multicolorMode ? 1 : 0);
         hash = hash * 31 + backgroundColor;
         hash = hash * 31 + characterColor;
@@ -195,24 +204,29 @@ struct Sprite
         return hash;
     }
 
-    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, ImVec2 size) {
+    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, const ImVec2 size) {
+        return GetTextureFixedSize(renderer, size, &original, resizedCache, data, &dirty);
+    }
 
-        if(dirty) {
-            CreateOriginalSizeTextureCache(renderer);
-            dirty = false;
+    SDL_Texture *GetTextureFixedSize(SDL_Renderer *renderer, const ImVec2 size, SDL_Texture **texture, std::map<size_t, CacheData>& rescache, const char *d, bool* pDirty) {
+
+        if(*pDirty) {
+            CreateOriginalSizeTextureCache(renderer, texture, d);
+            *pDirty = false;
         }
 
         if(size.x == (widthInBytes<<3) && size.y == heightInPixels) {
-            return original;
+            return *texture;
         }
 
         size_t sizeHash = GetSizeHash(size);
-        size_t spriteHash = GetHash();
+        size_t h = std::hash<std::string_view>()(std::string_view(d, sizeof(*d)));
+        size_t spriteHash = GetHash(h);
 
-        auto cache = resizedCache.find(sizeHash);
-        CacheData* resized = cache == resizedCache.end() ? nullptr : &(*cache).second;
+        auto cache = rescache.find(sizeHash);
+        CacheData* resized = cache == rescache.end() ? nullptr : &(*cache).second;
         if(!resized) {
-            auto it = resizedCache.insert({sizeHash, {dataHash, nullptr}});
+            auto it = rescache.insert({sizeHash, {h, nullptr}});
             resized = &it.first->second;
         }
 
@@ -226,7 +240,7 @@ struct Sprite
             }
 
             assert(SDL_SetRenderTarget(renderer, resized->tx)==0);
-            SDL_RenderCopy(renderer, original, &s, &d);
+            SDL_RenderCopy(renderer, *texture, &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
 
             resized->hash = spriteHash;
@@ -235,10 +249,10 @@ struct Sprite
     }
 
     void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
-        CreateOriginalSizeTextureCache(renderer, &original, widthInBytes, heightInPixels, data);
+        CreateOriginalSizeTextureCache(renderer, &original, data);
     }
 
-    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer, SDL_Texture **texture, size_t w, size_t h, const char *d) {
+    void CreateOriginalSizeTextureCache(SDL_Renderer *renderer, SDL_Texture **texture, const char *d) {
 
         if(*texture == nullptr) {
             *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
@@ -250,8 +264,8 @@ struct Sprite
         SDL_SetRenderDrawColor(renderer, ABGR_RED(backgroundColor), ABGR_GREEN(backgroundColor), ABGR_BLUE(backgroundColor), SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
 
-        size_t widthInPixels = (w<<3);
-        for (size_t j = 0; j < h; ++j) {
+        size_t widthInPixels = (widthInBytes<<3);
+        for (size_t j = 0; j < heightInPixels; ++j) {
             if (multicolorMode) {
                 for (size_t i = 0; i < widthInPixels; i += 2) {
                     char *p = (char*)d + i + j*pitch;

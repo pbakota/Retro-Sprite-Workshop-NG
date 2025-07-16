@@ -10,6 +10,8 @@ struct Animation {
     int currentFrameIndex = 0;
     const int one = 1; // Used for input scalar step
     const float scale = 0.8f; // Scale down the display area slightly
+    int previewFrameIndex = 0;
+    int previewTimer = 0;
 
     Animation() {}
 
@@ -17,7 +19,6 @@ struct Animation {
         if(sp->animationFrames.empty()) {
             auto& frame = sp->animationFrames.emplace_back();
             std::memcpy((void*)&frame.data, sp->data, sizeof(sp->data));
-            sp->CreateOriginalSizeTextureCache(renderer, &frame.cache, sp->widthInBytes, sp->heightInPixels, frame.data);
         }
     }
 
@@ -120,21 +121,35 @@ struct Animation {
         ImGui::SameLine(); ImGui::Text("FPS");
 
         // Display the current frame
-        // Sprite::Frame &currentFrame = sp->animationFrames[currentFrameIndex];
-        //ImGui::Image((ImTextureID)currentFrame.cache, display_size);
+        Sprite::Frame &frame = sp->animationFrames[previewFrameIndex];
+        ImVec2 s = ImVec2(display_size.x*scale, display_size.y*scale);
+        ImGui::Image((ImTextureID)sp->GetTextureFixedSize(renderer, s, &frame.org, frame.cache, frame.data, &frame.dirty), s);
 
+        previewTimer ++;
+        if((int)(1.0/previewTimer) == sp->animationFPS) {
+            previewTimer = 0;
+            previewFrameIndex += 1;
+        }
+
+        #if 0
         ImVec2 s = ImGui::GetCursorScreenPos();
         ImDrawList* dl = ImGui::GetWindowDrawList();
 
         ImVec2 rect = ImVec2(s.x + display_size.x*scale, s.y + display_size.y*scale);
         dl->AddRectFilled(s, rect, sp->backgroundColor);
+        #endif
     }
 
     void DrawFrame(Sprite *sp, const ImVec2 &pos, int index, const ImVec2 &display_size) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         // TODO: Replace with actual sprite rendering
         // For now, just draw a rectangle to represent the frame
-        dl->AddRectFilled(pos, ImVec2(pos.x + display_size.x*scale, pos.y + display_size.y*scale), sp->backgroundColor);
+        // dl->AddRectFilled(pos, ImVec2(pos.x + display_size.x*scale, pos.y + display_size.y*scale), sp->backgroundColor);
+        Sprite::Frame &frame = sp->animationFrames[currentFrameIndex];
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 s = ImVec2(pos.x - windowPos.x, pos.y - windowPos.y);
+        ImGui::Image((ImTextureID)sp->GetTextureFixedSize(renderer, s, &frame.org, frame.cache, frame.data, &frame.dirty), s);
+        // dl->AddImage((ImTextureID)sp->GetTextureFixedSize(renderer, display_size, &frame.org, frame.cache, frame.data, &frame.dirty), display_size);
         dl->AddText(ImVec2(pos.x+2.0f, pos.y+2.0f), IM_COL32(255, 255, 255, 255), std::to_string(index).c_str());
     }
 
