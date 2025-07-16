@@ -7,13 +7,13 @@
 #include "animation.h"
 
 extern StatusBar statusbar;
+extern Animation animation;
+
 struct SpriteImage
 {
     SpriteManager *spriteManager;
     ProjectSprites *projectSprites;
     StatusBar *statusbar;
-
-    Animation animation;
 
     bool is_mouse_hovering = false;
     const char* prerendingPrecisionValues[3] = {
@@ -227,74 +227,108 @@ struct SpriteImage
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     if(spriteManager->currentSprite->multicolorMode) {
                         switch(selectedColor) {
-                            case 0: spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate(); break;
-                            case 1: spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate(); break;
-                            case 2: spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate(); break;
-                            case 3: spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate(); break;
+                            case 0: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
+                            case 1: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
+                            case 2: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
+                            case 3: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
                         }
                     } else {
                         switch(selectedColor) {
-                            case 0: spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate(); break;
-                            case 3: spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate(); break;
+                            case 0: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
+                            case 3: {
+                                spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
+                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                            } break;
                         }
                     }
                 }
 
                 // Right mouse button always erase pixel
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsKeyDown(ImGuiKey_ModShift)) {
-                    if(spriteManager->currentSprite->multicolorMode) {
-                        spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
-                    } else {
-                        spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
-                    }
+                    spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                    animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                 }
             }
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
-            for(size_t y = 0; y < spriteManager->currentSprite->heightInPixels; ++y) {
-                if(spriteManager->currentSprite->multicolorMode) {
+            Sprite *sp = spriteManager->currentSprite;
+            for(size_t y = 0; y < sp->heightInPixels; ++y) {
+                if(sp->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
                         ImU32 pixelColor;
-                        size_t c = (((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x + 0] << 1) | ((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x + 1];
-                        // std::cerr << std::hex << c << std::endl;
+                        size_t c = (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
                         switch(c) {
-                            case 0: pixelColor = spriteManager->currentSprite->backgroundColor; break;
-                            case 1: pixelColor = spriteManager->currentSprite->multi1Color; break;
-                            case 2: pixelColor = spriteManager->currentSprite->multi2Color; break;
-                            case 3: pixelColor = spriteManager->currentSprite->characterColor; break;
+                            case 0: pixelColor = sp->backgroundColor; break;
+                            case 1: pixelColor = sp->multi1Color; break;
+                            case 2: pixelColor = sp->multi2Color; break;
+                            case 3: pixelColor = sp->characterColor; break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
-                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), pixelColor);
+                        bool drawPixel = true;
+                        if(c == 0 && animation.selectedFrameIndex && animation.IsAnimationAttached(sp)) {
+                            auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
+                            c = frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
+                            if(c != 0) {
+                                switch(c) {
+                                    // case 0: pixelColor = sp->backgroundColor; break;
+                                    case 1: pixelColor = sp->multi1Color; break;
+                                    case 2: pixelColor = sp->multi2Color; break;
+                                    case 3: pixelColor = sp->characterColor; break;
+                                }
+                                // Dim the pixel color if it's not the background color
+                                auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), dimmedColor);
+                                drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
+                            }
+                        }
+                        if(drawPixel) {
+                            drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), pixelColor);
+                        }
                     }
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
                         float xx = s.x + x * cs, yy = s.y + y * cs;
-                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), ((char*)spriteManager->currentSprite->data)[y*spriteManager->currentSprite->pitch + x]
-                            ? spriteManager->currentSprite->characterColor : spriteManager->currentSprite->backgroundColor);
+                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), ((char*)sp->data)[y*sp->pitch + x]
+                            ? sp->characterColor : spriteManager->currentSprite->backgroundColor);
                     }
                 }
             }
             if(1 /* TODO: make grid visibility configurable */) {
-                if(spriteManager->currentSprite->multicolorMode) {
+                if(sp->multicolorMode) {
                     for(size_t x = 0; x <= widthInPixels; x+=2) {
-                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
+                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + sp->heightInPixels*cs);
                         drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                     }
                 } else {
                     for(size_t x = 0; x <= widthInPixels; ++x) {
-                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
+                        ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + sp->heightInPixels*cs);
                         drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                     }
                 }
-                for(size_t y = 0; y < spriteManager->currentSprite->heightInPixels; ++y) {
+                for(size_t y = 0; y < sp->heightInPixels; ++y) {
                     ImVec2 p0 = ImVec2(s.x, s.y + y*cs), p1 = ImVec2(s.x + widthInPixels*cs, s.y + y*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), 1.0f);
                 }
                 for(size_t x = 0; x <= widthInPixels; x+=8) {
-                    ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + spriteManager->currentSprite->heightInPixels*cs);
+                    ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + sp->heightInPixels*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }
-                for(size_t y = 0; y <= spriteManager->currentSprite->heightInPixels; y+=8) {
+                for(size_t y = 0; y <= sp->heightInPixels; y+=8) {
                     ImVec2 p0 = ImVec2(s.x, s.y + y*cs), p1 = ImVec2(s.x + widthInPixels*cs, s.y + y*cs);
                     drawList->AddLine(p0, p1, ImGui::GetColorU32(ImGuiCol_PlotLines), 1.0f);
                 }

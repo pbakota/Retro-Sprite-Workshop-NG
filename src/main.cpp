@@ -13,6 +13,7 @@
 #include "util.h"
 #include "menubar.h"
 #include "statusbar.h"
+#include "animation.h"
 #include "sprite_manager.h"
 #include "project_sprites.h"
 #include "sprite_image.h"
@@ -28,6 +29,7 @@ bool show_demo_window = false;
 
 Project project;
 StatusBar statusbar;
+Animation animation;
 SpriteManager spriteManager(&project, &statusbar);
 Generator generator(&spriteManager);
 ProjectSprites projectSprites(&spriteManager, &statusbar, &project);

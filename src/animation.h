@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "sprite.h"
+#include "sprite_manager.h"
 
 extern SDL_Renderer *renderer;
 
@@ -13,6 +14,10 @@ struct Animation {
     int previewFrameIndex = 0;
     float previewTimer = 0;
 
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+    std::string copyBuffer;
+    #endif
+
     Animation() {}
 
     void Init(Sprite *sp) {
@@ -21,6 +26,61 @@ struct Animation {
             AddEmptyFrame(sp, true);
         }
     }
+
+    void ResetAnimation(Sprite *sp) {
+        selectedFrameIndex = 0;
+        previewFrameIndex = 0;
+        previewTimer = 0;
+    }
+
+    bool IsAnimationAttached(Sprite *sp) {
+        return sp->animationAttached && !sp->animationFrames.empty();
+    }
+
+    void UpdateFrameIfAnimated(Sprite *sp) {
+        if(sp->animationAttached) {
+            UpdateFrame(sp);
+        }
+    }
+
+    void UpdateFrame(Sprite *sp) {
+        if(selectedFrameIndex < 0 || selectedFrameIndex >= (int)sp->animationFrames.size()) {
+            return; // Invalid index
+        }
+        std::memcpy((void*)sp->animationFrames[selectedFrameIndex].data, (void*)sp->data, sizeof(sp->data));
+        sp->UpdateTextureFromSpriteData(renderer, sp->animationFrames[selectedFrameIndex].image, sp->animationFrames[selectedFrameIndex].data);
+    }
+
+    char *GetData(Sprite *sp) {
+        if(selectedFrameIndex < 0 || selectedFrameIndex >= (int)sp->animationFrames.size()) {
+            return nullptr; // Invalid index
+        }
+        return sp->animationFrames[selectedFrameIndex].data;
+    }
+
+    void CopyFrame(Sprite *sp) {
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+        copyBuffer = Serializator::Serialize(sp).c_str();
+    #else
+        SDL_SetClipboardText(Serializator::Serialize(sp).c_str());
+    #endif
+    }
+
+    void PasteFrame(Sprite *sp) {
+        Sprite newSprite;
+    #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
+        if(copyBuffer.empty()) return;
+        Serializator::Deserialize(copyBuffer.c_str(), &newSprite);
+    #else
+        if (!SDL_HasClipboardText()) return;
+        const char *clipboard = SDL_GetClipboardText();
+        Serializator::Deserialize(clipboard, &newSprite);
+        SDL_free((void*)clipboard);
+    #endif
+        if(newSprite.widthInBytes != sp->widthInBytes || newSprite.heightInPixels != sp->heightInPixels) return; // Size mismatch, cannot paste
+        std::memcpy((void*)sp->data, (void*)newSprite.data, sizeof(sp->data));
+        sp->Invalidate();
+   }
 
     void render(SDL_Renderer *render, Sprite *sp) {
         ImGui::SetNextWindowSize(ImVec2(320.0f, 240.0f), ImGuiCond_FirstUseEver);
@@ -66,7 +126,7 @@ struct Animation {
         auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
         frame.dirty = false; // Mark as not dirty since we just copied the data
-        std::memcpy((void*)frame.data, (void*)&curr.data, sizeof(curr.data));
+        std::memcpy((void*)frame.data, (void*)curr.data, sizeof(frame.data));
         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
     }
 
@@ -111,10 +171,10 @@ struct Animation {
                 ImVec2 max = ImVec2(min.x + display_size.x*scale, min.y + display_size.y*scale);
                 ImGui::PushID(i+1); if(ImGui::ButtonBehavior(ImRect(min,max), ImGui::GetID("##frame"), &hovered, &held, button_flags)) {
                     selectedFrameIndex = i;
+                    auto &frame = sp->animationFrames[i];
+                    std::memcpy((void*)sp->data, (void*)frame.data, sizeof(sp->data));
+                    sp->Invalidate();
                 } ImGui::PopID();
-                if(hovered) {
-
-                }
                 o.x += display_size.x*scale+4.0f; // Add some spacing between frames
                 totalWidth += display_size.x*scale+4.0f;
             }
@@ -136,6 +196,14 @@ struct Animation {
                     MoveFrame(sp, 1);
                 }
                 ImGui::Separator();
+                if(ImGui::MenuItem("Copy")) {
+                    CopyFrame(sp);
+                }
+                if(ImGui::MenuItem("Paste")) {
+                    PasteFrame(sp);
+                    UpdateFrame(sp);
+                }
+                ImGui::Separator();
                 if(ImGui::MenuItem("Delete Current Frame")) {
                     DeleteFrame(sp);
                     if(selectedFrameIndex >= (int)sp->animationFrames.size()) {
@@ -144,8 +212,6 @@ struct Animation {
                 }
                 ImGui::EndPopup();
             }
-
-            // } ImGui::PopID();
             ImGui::EndChild();
         }
     }
@@ -166,7 +232,11 @@ struct Animation {
         ImVec2 size = ImVec2(display_size.x*scale, display_size.y*scale);
         ImGui::Image((ImTextureID)frame.image, size, ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
 
-        previewTimer += ImGui::GetIO().DeltaTime;
+        auto dt = ImGui::GetIO().DeltaTime;
+        if(dt>1.0f) {
+            return;
+        }
+        previewTimer += dt; // Increment the timer by the delta time
         if(previewTimer >= 1.0f/sp->animationFPS) { // Check if enough time has passed for the next frame
             // Reset the timer and move to the next frame
             previewTimer = previewTimer - 1.0f/sp->animationFPS; // Keep any overflow for the next frame

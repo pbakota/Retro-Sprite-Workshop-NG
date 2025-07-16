@@ -96,6 +96,15 @@ ImVec4 rgb_to_lab(const ImVec4 color) {
     return ImVec4(L,a,b,0);
 }
 
+// Dim a color by a factor, e.g. 0.5f will dim the color to half of its original brightness
+ImU32 dim_color(ImU32 color, float factor) {
+    float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
+    int dimR = static_cast<int>(r * factor)&0xff;
+    int dimG = static_cast<int>(g * factor)&0xff;
+    int dimB = static_cast<int>(b * factor)&0xff;
+    return 0xff << 24 | (dimB << 16) | (dimG << 8) | dimR;
+}
+
 std::string trucate_text(const std::string& p_text, float p_truncated_width) {
 	std::string truncated_text = p_text;
 
@@ -188,4 +197,3 @@ std::vector<std::string> split_string(const std::string &str, const std::string 
     }
     return v;
 }
-

@@ -11,9 +11,11 @@
 #include "project.h"
 #include "sprite_manager.h"
 #include "statusbar.h"
+#include "animation.h"
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
+extern Animation animation;
 
 const char *appTitle = "RetroSpriteWorkshop";
 
@@ -130,6 +132,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void FlipImage_Horizontal(int id) {
@@ -153,6 +156,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void FlipImage_Vertical(int id) {
@@ -164,6 +168,7 @@ struct SpriteManager {
             memcpy((void *)&sp->data[((sp->heightInPixels - 1) - y) * sp->pitch], (void *)tmp, sp->pitch);
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void ShiftImage_Up(int id, bool rotate) {
@@ -181,6 +186,7 @@ struct SpriteManager {
             memset((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], 0, widthInPixels);
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void ShiftImage_Down(int id, bool rotate) {
@@ -198,6 +204,7 @@ struct SpriteManager {
             memset((void *)sp->data, 0, widthInPixels);
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void ShiftImage_Left(int id, bool rotate) {
@@ -221,6 +228,7 @@ struct SpriteManager {
             }
 		}
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void ShiftImage_Right(int id, bool rotate) {
@@ -245,6 +253,7 @@ struct SpriteManager {
             }
 		}
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void RotateImage_Clockwise(int id) {
@@ -262,6 +271,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void RotateImage_CounterClockwise(int id) {
@@ -279,6 +289,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void InsertRow(int id, size_t row) {
@@ -291,6 +302,7 @@ struct SpriteManager {
         }
         memset(&sp->data[row*sp->pitch], 0, widthInPixels);
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void RemoveRow(int id, size_t row) {
@@ -303,6 +315,7 @@ struct SpriteManager {
         }
         memset(&sp->data[(sp->heightInPixels-1)*sp->pitch], 0, widthInPixels);
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void InsertColumn(int id, size_t col) {
@@ -324,6 +337,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void RemoveColumn(int id, size_t col) {
@@ -345,6 +359,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void RearrangeColors(int id, size_t selected[]) {
@@ -356,6 +371,7 @@ struct SpriteManager {
             }
         }
         sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void SwapColorPixels(Sprite *sp, char *original, char from, char to) {
@@ -476,6 +492,7 @@ struct SpriteManager {
         currentSprite = sprite;
         statusbar->is_zoom_visible = true;
         statusbar->zoomIndex = sprite->zoomIndex;
+        animation.ResetAnimation(sprite);
     }
 
     void DetachSprite() {
@@ -483,88 +500,30 @@ struct SpriteManager {
         statusbar->is_zoom_visible = false;
     }
 
+    // #define USE_CLIPBOARD_FOR_COPY_AND_PASTE
+
     void CopySprite(int id) {
+        Sprite *sp = GetSprite(id);
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
-        copyBuffer = Serialize(GetSprite(id)).c_str();
+        copyBuffer = Serializator::Serialize(sp).c_str();
     #else
-        SDL_SetClipboardText(Serialize(GetSprite(id)).c_str());
+        SDL_SetClipboardText(Serializator::Serialize(sp).c_str());
     #endif
     }
 
     void PasteSprite(int id) {
+        Sprite *sp = GetSprite(id);
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
         if(copyBuffer.empty()) return;
-        Sprite *sp = GetSprite(id);
-        Deserialize(copyBuffer.c_str(), sp);
+        Serializator::Deserialize(copyBuffer.c_str(), sp);
         sp->Invalidate();
     #else
         if (!SDL_HasClipboardText()) return;
-        Sprite *sp = GetSprite(id);
         const char *clipboard = SDL_GetClipboardText();
-        Deserialize(clipboard, sp);
+        Serializator::Deserialize(clipboard, sp);
         sp->Invalidate();
         SDL_free((void*)clipboard);
     #endif
-   }
-
-    const char *CEOL = "|<*>|";
-    const char *CLIPBOARD_DATA_SIGNATURE = project->PROJECT_FILE_SIGNATURE;
-    std::string Serialize(Sprite *sp) {
-        std::stringstream ss;
-        ss << CLIPBOARD_DATA_SIGNATURE << CEOL;
-        ss << "widthInBytes=" << sp->widthInBytes << CEOL;
-        ss << "heightInPixels=" << sp->heightInPixels << CEOL;
-        ss << "spriteID=" << sp->spriteID << CEOL;
-        ss << "description=" << sp->description << CEOL;
-        ss << "multicolorMode=" << sp->multicolorMode << CEOL;
-        ss << "byteAlignment=" << (int)sp->byteAligment << CEOL;
-        ss << "renderingPrecision=" << (int)sp->renderingPrecision << CEOL;
-        ss << "backgroundColor=" << sp->backgroundColor << CEOL;
-        ss << "multi1Color=" << sp->multi1Color << CEOL;
-        ss << "multi2Color=" << sp->multi2Color << CEOL;
-        ss << "characterColor=" << sp->characterColor << CEOL;
-        ss << "data=" << project->HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch);
-        return ss.str();
-    }
-
-    void Deserialize(const char *text, Sprite *sp) {
-        // std::cerr << "Clipboard:\n" << text << std::endl;
-        std::vector<std::string> tags = split_string(text, CEOL);
-        // Ignore data if did not match the signature
-        if(tags.front() != CLIPBOARD_DATA_SIGNATURE) return;
-        tags.erase(tags.begin()); // remove signature
-        for(std::string & st : tags) {
-            std::string v = trim(st);
-            std::size_t firstEqual = v.find('=');
-            if(firstEqual==std::string::npos) continue; // skip invalid line
-            std::string key = v.substr(0,firstEqual);
-            std::string val = v.substr(firstEqual+1);
-            if(key == "widthInBytes") {
-                sp->widthInBytes = std::atoi(val.c_str());
-            } else if(key == "heightInPixels") {
-                sp->heightInPixels = std::atoi(val.c_str());
-            } else if(key == "spriteID") {
-                strncpy(sp->spriteID, val.c_str(), sizeof(sp->spriteID));
-            } else if(key == "description") {
-                strncpy(sp->description, val.c_str(), sizeof(sp->description));
-            } else if(key == "multicolorMode") {
-                sp->multicolorMode = std::atoi(val.c_str())!=0;
-            } else if(key == "byteAlignment") {
-                sp->byteAligment = (Sprite::ByteAligment)std::atoi(val.c_str());
-            } else if(key == "renderingPrecision") {
-                sp->renderingPrecision = (Sprite::PrerendingPrecision)std::atoi(val.c_str());
-            } else if(key == "backgroundColor") {
-                sp->backgroundColor = std::atoi(val.c_str());
-            } else if(key == "multi1Color") {
-                sp->multi1Color = std::atoi(val.c_str());
-            } else if(key == "multi2Color") {
-                sp->multi2Color = std::atoi(val.c_str());
-            } else if(key == "characterColor") {
-                sp->characterColor = std::atoi(val.c_str());
-            } else if(key == "data") {
-                project->HexDeserializeData(val, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
-            }
-        }
     }
 
     void AddToProjectMRU(const std::string& filename) {
