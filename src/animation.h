@@ -33,13 +33,19 @@ struct Animation {
         previewTimer = 0;
     }
 
-    bool IsAnimationAttached(Sprite *sp) {
+    inline bool IsAnimationAttached(Sprite *sp) {
         return sp->animationAttached && !sp->animationFrames.empty();
     }
 
-    void UpdateFrameIfAnimated(Sprite *sp) {
-        if(sp->animationAttached) {
-            UpdateFrame(sp);
+    inline void UpdateFrameIfAnimated(Sprite *sp) {
+        if(sp->animationAttached) UpdateFrame(sp);
+    }
+
+    void UpdateAllFramesIfAnimated(Sprite *sp) {
+        if(!sp->animationAttached) return;
+        for(size_t i=0; i<sp->animationFrames.size(); ++i) {
+            auto &frame = sp->animationFrames[i];
+            sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
         }
     }
 
@@ -112,7 +118,6 @@ struct Animation {
     void AddEmptyFrame(Sprite *sp, bool copyFromSprite = false) {
         auto& frame = sp->animationFrames.empty() ? sp->animationFrames.emplace_back() : *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
-        frame.dirty = false; // Mark as not dirty since we just copied the data
         if(copyFromSprite) {
             std::memcpy((void*)frame.data, (void*)sp->data, sizeof(sp->data));
         } else {
@@ -125,7 +130,6 @@ struct Animation {
         auto& curr = *(sp->animationFrames.begin() + selectedFrameIndex);
         auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
-        frame.dirty = false; // Mark as not dirty since we just copied the data
         std::memcpy((void*)frame.data, (void*)curr.data, sizeof(frame.data));
         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
     }
@@ -263,9 +267,6 @@ struct Animation {
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
         dl->AddRect(min, max,  ImGui::GetColorU32(ImGuiCol_Text), 0, 0, 3.0f);
-    }
-
-    void DrawOverlay(Sprite *sp, const ImVec2 &display_size) {
     }
 
     // Calculate the size of the display area based on the sprite's width and height

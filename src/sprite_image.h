@@ -73,6 +73,7 @@ struct SpriteImage
                                 if (ImGui::Selectable(spriteWidthValues[n], is_selected)) {
                                     spriteManager->currentSprite->widthInBytes = n+1;
                                     spriteManager->currentSprite->Invalidate();
+                                    animation.UpdateAllFramesIfAnimated(spriteManager->currentSprite);
                                 }
                                 if (is_selected) {
                                     ImGui::SetItemDefaultFocus();
@@ -105,10 +106,12 @@ struct SpriteImage
                             if(spriteManager->currentSprite->heightInPixels > 64) spriteManager->currentSprite->heightInPixels = 64;
 
                             spriteManager->currentSprite->Invalidate();
+                            animation.UpdateAllFramesIfAnimated(spriteManager->currentSprite);
                         } ImGui::PopID();
                         ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Multicolor (2 bits per pixel)", &spriteManager->currentSprite->multicolorMode)) {
                             selectedColor = 0; // Reset drawing color to background
                             spriteManager->currentSprite->Invalidate();
+                            animation.UpdateAllFramesIfAnimated(spriteManager->currentSprite);
                         } ImGui::PopID();
                         ImGui::PushID(4); if(ImGui::Checkbox("Animation attached", &spriteManager->currentSprite->animationAttached)) {
                             if(spriteManager->currentSprite->animationAttached) {
@@ -482,6 +485,7 @@ struct SpriteImage
             if(colorSelector.show(&colorSelectorOpen, *color, &spriteManager->currentSprite->palette)) {
                 *color = colorSelector.selectedColor;
                 spriteManager->currentSprite->Invalidate();
+                animation.UpdateAllFramesIfAnimated(spriteManager->currentSprite);
             }
         }
     }

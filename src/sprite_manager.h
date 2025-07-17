@@ -471,6 +471,7 @@ struct SpriteManager {
     void InvalidateSprites() {
         for(Sprite * sp : sprites) {
             sp->Invalidate();
+            animation.UpdateFrameIfAnimated(sp);
         };
     }
 

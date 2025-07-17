@@ -60,7 +60,6 @@ struct Sprite
     size_t charOffset, charIndex;
 
     struct Frame {
-        bool dirty;
         SDL_Texture *image;
         char data[4096]; // 64x64 the maximum size
     };
@@ -240,7 +239,7 @@ struct Sprite
         return resized->tx;
     }
 
-    inline SDL_Texture *CreateSpriteImageTexture(SDL_Renderer *renderer) {
+    static inline SDL_Texture *CreateSpriteImageTexture(SDL_Renderer *renderer) {
         return SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
     }
 

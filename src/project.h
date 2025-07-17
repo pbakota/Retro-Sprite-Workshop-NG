@@ -9,6 +9,8 @@
 const char* PROJECT_FILE_SIGNATURE = "# --- RETRO SPRITE WORKSHOP --- ";
 const char* NEWLINE_PLACEHOLDER = "[{{NEWLINE}}]";
 
+extern SDL_Renderer *renderer;
+
 struct Project
 {
 	struct ProjectHeader {
@@ -68,6 +70,7 @@ struct Project
 
         Sprite *sp;
         bool firstLine = true;
+
         for(auto it = values.begin(); it!=values.end(); ++it) {
             const auto kv = *it;
 
@@ -140,6 +143,17 @@ struct Project
                     } else {
                         sp->zoomIndex = it - zoomValues.begin();
                     }
+                } else if(key == "AnimationAttached") {
+                    sp->animationAttached = kv.second == "True";
+                } else if(key == "AnimationFPS") {
+                    sp->animationFPS = std::atoi(kv.second.c_str());
+                } else if(key.substr(0,5) == "Frame") {
+                    if(sp->animationAttached) {
+                        auto &frame = sp->animationFrames.emplace_back();
+                        frame.image = Sprite::CreateSpriteImageTexture(renderer);
+                        Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                        sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+                    }
                 }
             }
         }
@@ -179,6 +193,16 @@ struct Project
             fs << "Sprite" << n << ".Multi2Color=" << WriteRGBColor(sp->multi2Color) << CEOL;
             fs << "Sprite" << n << ".Palette=" << sp->GetPaletteName() << CEOL;
             fs << "Sprite" << n << ".Data=" << Serializator::HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+            fs << "Sprite" << n << ".AnimationAttached=" << (sp->animationAttached ? "True" : "False") << CEOL;
+            fs << "Sprite" << n << ".AnimationFPS=" << sp->animationFPS << CEOL;
+            if(sp->animationAttached) {
+                fs << "Sprite" << n << ".AnimationCount=" << sp->animationFrames.size() << CEOL;
+                int a = 0;
+                for(auto ai = sp->animationFrames.begin(); ai != sp->animationFrames.end(); ++ai, a++) {
+                    auto &an = *ai;
+                    fs << "Sprite" << n << ".Frame." << a << "=" << Serializator::HexSerializeData(an.data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+                }
+            }
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CEOL;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CEOL;
             fs << "Sprite" << n << ".ZoomFactor=" << zoomValues[sp->zoomIndex] << CEOL;
