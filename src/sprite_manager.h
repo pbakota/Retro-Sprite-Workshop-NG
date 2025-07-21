@@ -493,10 +493,10 @@ struct SpriteManager {
         currentSprite = sprite;
         statusbar->is_zoom_visible = true;
         statusbar->zoomIndex = sprite->zoomIndex;
-        animation.ResetAnimation(sprite);
     }
 
     void DetachSprite() {
+        if(currentSprite) animation.ResetAnimation(currentSprite);
         currentSprite = nullptr;
         statusbar->is_zoom_visible = false;
     }

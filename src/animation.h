@@ -28,9 +28,12 @@ struct Animation {
     }
 
     void ResetAnimation(Sprite *sp) {
+        if(!sp->animationAttached) return;
         selectedFrameIndex = 0;
         previewFrameIndex = 0;
         previewTimer = 0;
+        std::memcpy((void*)sp->data, (void*)sp->animationFrames[0].data, sizeof(sp->data));
+        sp->Invalidate();
     }
 
     inline bool IsAnimationAttached(Sprite *sp) {
@@ -233,7 +236,10 @@ struct Animation {
 
         // Display the current frame
         Sprite::Frame &frame = sp->animationFrames[previewFrameIndex];
-        ImVec2 size = ImVec2(display_size.x*scale, display_size.y*scale);
+        ImVec2 size = ImVec2(display_size.x*scale*0.8, display_size.y*scale*0.8);
+        ImVec2 region = ImGui::GetContentRegionAvail();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (region.x - size.x)*0.5);
+        // ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (region.y - size.y)*0.5);
         ImGui::Image((ImTextureID)frame.image, size, ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
 
         auto dt = ImGui::GetIO().DeltaTime;

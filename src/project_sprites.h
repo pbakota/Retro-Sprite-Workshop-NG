@@ -340,7 +340,7 @@ struct ProjectSprites
                     charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s\nAnimated:%s", (unsigned long)sprite->widthInBytes<<3, (unsigned long)sprite->heightInPixels,
+                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s\nAnimated: %s", (unsigned long)sprite->widthInBytes<<3, (unsigned long)sprite->heightInPixels,
                         sprite->GetByteAlignment().c_str(), (sprite->multicolorMode ? "Multicolor" : "2 colors"), (sprite->animationAttached ? "Yes" : "No"));
 
                     ImGui::PopID();
