@@ -73,6 +73,7 @@ struct Generator {
             out << vformat("%s Color Mode:      %s",spriteManager->lineCommentSymbol, ColorMode(sprite)) << std::endl;
             out << vformat("%s Byte Order:      %s",spriteManager->lineCommentSymbol, sprite->GetByteAlignment().c_str()) << std::endl;
             out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, sprite->GetRenderingPrecision().c_str()) << std::endl;
+            out << vformat("%s Animated:        %s",spriteManager->lineCommentSymbol, sprite->animationAttached ? "Yes" : "No") << std::endl;
 
             out << std::endl;
         }
@@ -93,6 +94,10 @@ struct Generator {
             }
         }
         if(!spriteManager->project->header.onlyData) {
+            if(sprite->animationAttached) {
+                out << Constant(vformat("%s_ANIM_FRAMES",sprite->spriteID), vformat("%d",sprite->animationFrames.size()*nframes)) << std::endl;
+                out << Constant(vformat("%s_ANIM_FPS",sprite->spriteID), vformat("%d",sprite->animationFPS)) << std::endl;
+            }
             out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
             out << std::endl;
         }
@@ -100,49 +105,68 @@ struct Generator {
         MakeFrames(out, sprite);
     }
 
+    void ShiftSpriteFrame(std::ostream &out,  size_t anim, Sprite *sp,char *data) {
+        // copy sprite data into temporary shift buffer
+        char buffer[4096+64*8]; size_t bpitch = 64+8;
+        memset((void*)buffer, 0, sizeof(buffer));
+        size_t widthInPixels = sp->widthInBytes<<3;
+        for(size_t y=0;y<sp->heightInPixels;++y) {
+            for(size_t x=0;x<widthInPixels;++x) {
+                buffer[y*bpitch+x] = data[y*sp->pitch+x];
+            }
+        }
+        switch(sp->renderingPrecision) {
+            case Sprite::PrerendingPrecision::High8Frames:
+            for(size_t n=0;n<8;++n) {
+                SingleFrame(out, sp, anim, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+            }
+            break;
+            case Sprite::PrerendingPrecision::Medium4Frames:
+            for(size_t n=0;n<4;++n) {
+                SingleFrame(out, sp, anim, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+            }
+            break;
+            case Sprite::PrerendingPrecision::Low2Frames:
+            for(size_t n=0;n<2;++n) {
+                SingleFrame(out, sp, anim, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+                ShiftBuffer(sp, buffer, bpitch);
+            }
+            break;
+        }
+    }
     void MakeFrames(std::ostream &out, Sprite *sp) {
         if(sp->prerenderSoftwareSprite) {
-            // copy sprite data into temporary shift buffer
-            char buffer[4096+64*8]; size_t bpitch = 64+8;
-            memset((void*)buffer, 0, sizeof(buffer));
-            size_t widthInPixels = sp->widthInBytes<<3;
-            for(size_t y=0;y<sp->heightInPixels;++y) {
-                for(size_t x=0;x<widthInPixels;++x) {
-                    buffer[y*bpitch+x] = sp->data[y*sp->pitch+x];
+            if(sp->animationAttached) {
+                for(size_t i=0;i<sp->animationFrames.size();++i) {
+                    ShiftSpriteFrame(out, i, sp, sp->animationFrames[i].data);
                 }
-            }
-            switch(sp->renderingPrecision) {
-                case Sprite::PrerendingPrecision::High8Frames:
-                for(size_t n=0;n<8;++n) {
-                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                }
-                break;
-                case Sprite::PrerendingPrecision::Medium4Frames:
-                for(size_t n=0;n<4;++n) {
-                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                }
-                break;
-                case Sprite::PrerendingPrecision::Low2Frames:
-                for(size_t n=0;n<2;++n) {
-                    SingleFrame(out, sp, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                    ShiftBuffer(sp, buffer, bpitch);
-                }
-                break;
+            } else {
+                ShiftSpriteFrame(out, 0, sp, sp->data);
             }
         } else {
-            SingleFrame(out, sp, 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+            if(sp->animationAttached) {
+                for(size_t i=0;i<sp->animationFrames.size();++i) {
+                    SingleFrame(out, sp, i, 0, sp->animationFrames[i].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+                }
+            } else {
+                SingleFrame(out, sp, 0, 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+            }
         }
     }
 
-    void SingleFrame(std::ostream &out, Sprite *sprite, int nr, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+    void SingleFrame(std::ostream &out, Sprite *sprite, int anim, int shift, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
         if(!spriteManager->project->header.onlyData) {
-            out << Label(vformat("%s_frame%d", sprite->spriteID, nr+1)) << std::endl;
+            if(sprite->animationAttached) {
+                out << Label(vformat("%s_anim%d_image%d", sprite->spriteID, anim+1, shift)) << std::endl;
+            } else {
+                out << Label(vformat("%s_image%d", sprite->spriteID, shift)) << std::endl;
+            }
         }
         std::vector<std::string> nibbles;
         switch(sprite->byteAligment) {

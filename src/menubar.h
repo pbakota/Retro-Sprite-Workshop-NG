@@ -122,7 +122,7 @@ struct MenuBar
         if(!ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
            openReadProjectDialog = true;
            readDialogInfo.fileName = "";
-        }		
+        }
 	}
 
     void Action_ExportToClipboard() {
@@ -182,7 +182,7 @@ struct MenuBar
                 ImGui::Separator();
                 if(ImGui::MenuItem("Read Project...")) {
                     Action_ReadProject();
-                }                
+                }
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Export as Source Code"))
                 {
