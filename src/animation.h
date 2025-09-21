@@ -130,7 +130,7 @@ struct Animation {
     }
 
     void DuplicateFrame(Sprite *sp) {
-        auto& curr = *(sp->animationFrames.begin() + selectedFrameIndex);
+        auto curr = sp->animationFrames[selectedFrameIndex];
         auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
         std::memcpy((void*)frame.data, (void*)curr.data, sizeof(frame.data));

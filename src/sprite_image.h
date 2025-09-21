@@ -283,7 +283,7 @@ struct SpriteImage
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
-                        if(c == 0 && animation.selectedFrameIndex && animation.IsAnimationAttached(sp)) {
+                        if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
                             c = frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
                             if(c != 0) {
@@ -305,9 +305,31 @@ struct SpriteImage
                     }
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
+                        ImU32 pixelColor;
+                        size_t c = ((char*)sp->data)[y*sp->pitch + x];
+                        switch(c) {
+                            case 0: pixelColor = sp->backgroundColor; break;
+                            case 1: pixelColor = sp->characterColor; break;
+                        }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
-                        drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), ((char*)sp->data)[y*sp->pitch + x]
-                            ? sp->characterColor : spriteManager->currentSprite->backgroundColor);
+                        bool drawPixel = true;
+                        if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
+                            auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
+                            c = frame.data[y*sp->pitch + x + 0];
+                            if(c!=0) {
+                                switch(c) {
+                                    case 0: pixelColor = sp->backgroundColor; break;
+                                    case 1: pixelColor = sp->characterColor; break;
+                                }
+                                // Dim the pixel color if it's not the background color
+                                auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), dimmedColor);
+                                drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
+                            }
+                        }
+                        if(drawPixel) {
+                            drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), pixelColor);
+                        }
                     }
                 }
             }
