@@ -399,27 +399,40 @@ struct SpriteManager {
         DetachSprite();
         ClearSpriteList();
         // Always append one (default) sprite
-        NewSprite();
+        AddNewSprite();
         project->NewProject();
         projectFile.clear();
         ClearChanges();
     }
 
-    int NewSprite() {
+    Sprite *NewSpriteTemplate() {
         Sprite* sprite = new Sprite(1,8, "sprite");
         sprite->byteAligment = Sprite::ByteAligment::Mixed_Character_Based;
         sprite->multicolorMode = false;
         sprite->prerenderSoftwareSprite = false;
         sprite->renderingPrecision = Sprite::PrerendingPrecision::Medium4Frames;
         // TODO: Copy last used colors into the new sprite
+        return sprite;
+    }
 
-        AppendSprite(sprite);
-        return sprite->ID;
+    int AddNewSprite() {
+        Sprite* sprite = NewSpriteTemplate();
+        return AppendSprite(sprite);
+    }
+
+    int InsertNewSprite(const int id) {
+        auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
+        // if not found, exit
+        if(current == sprites.end()) return -1;
+
+        Sprite *sprite = NewSpriteTemplate();
+        return InsertSprite(current - sprites.begin() + 1, sprite);
     }
 
     // Append new sprite at the end of the list
-    void AppendSprite(Sprite *sprite) {
-        sprites.push_back(sprite);
+    int AppendSprite(Sprite *sprite) {
+        auto& it = sprites.emplace_back(sprite);
+        return (*it).ID;
     }
 
     int CloneSprite(int id) {
@@ -427,11 +440,11 @@ struct SpriteManager {
         // if not found, exit
         if(current == sprites.end()) return -1;
         Sprite *fromSp = *current;
-        return CloneSprite(fromSp);
+        int newId = InsertNewSprite(id);
+        return CloneSprite(fromSp, newId);
     }
 
-    int CloneSprite(const Sprite* fromSp) {
-        int newId = NewSprite();
+    int CloneSprite(const Sprite* fromSp, int newId) {
         auto it = std::find_if(sprites.begin(), sprites.end(), [newId](auto&&sp) { return (sp->ID == newId); });
         Sprite *toSp = *it;
 
@@ -450,22 +463,35 @@ struct SpriteManager {
         toSp->zoomIndex = fromSp->zoomIndex;
         memcpy(toSp->description, fromSp->description, sizeof(toSp->description));
         memcpy(toSp->data, fromSp->data, sizeof(toSp->data));
+
+        toSp->animationAttached = fromSp->animationAttached;
+        if(fromSp->animationAttached) {
+            toSp->animationFPS = fromSp->animationFPS;
+            toSp->animationFrames = fromSp->animationFrames;
+        }
         toSp->Invalidate();
         return toSp->ID;
     }
 
     // Remove sprite at index
-    void RemoveSprite(int id) {
-        sprites.erase(std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { bool c = (sp->ID == id); if(c) { delete sp; } return c; }));
+    int RemoveSprite(int id) {
+        auto current = sprites.erase(std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { bool c = (sp->ID == id); if(c) { delete sp; } return c; }));
         if(sprites.size() == 0) {
             // Must have at least one sprite
-            NewSprite();
+            return AddNewSprite();
+        } else {
+            if(current == sprites.end()) {
+                // If we removed the last sprite, return the previous one
+                current = sprites.end() - 1;
+            }
+            return (*current)->ID; // return next sprite ID
         }
     }
 
     // Insert sprite after index
-    void InsertSprite(const std::size_t index, Sprite *sprite) {
-        sprites.insert(sprites.begin() + index, sprite);
+    int InsertSprite(const std::size_t index, Sprite *sprite) {
+        auto it = sprites.emplace(sprites.begin() + index, sprite);
+        return (*it)->ID;
     }
 
     void InvalidateSprites() {

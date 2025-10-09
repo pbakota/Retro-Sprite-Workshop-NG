@@ -151,17 +151,11 @@ struct MenuBar
     }
 
     void Action_DeleteSprite() {
-        if(spriteManager->selectedSpriteId != -1) {
-            auto nextID = spriteManager->NextSpriteID(spriteManager->selectedSpriteId);
-            spriteManager->RemoveSprite(spriteManager->selectedSpriteId);
-            spriteManager->selectedSpriteId = nextID;
-        }
+        projectSprites->Action_DeleteSprite();
     }
 
     void Action_CloneSprite() {
-        if(spriteManager->selectedSpriteId != -1) {
-            spriteManager->selectedSpriteId = spriteManager->CloneSprite(spriteManager->selectedSpriteId);
-        }
+        projectSprites->Action_CloneSprite();
     }
 
     void render() {
@@ -222,14 +216,14 @@ struct MenuBar
                 ImGui::Separator();
                 if(ImGui::BeginMenu("Add New Sprite")) {
                     if(ImGui::MenuItem("Blank Sprite")) {
-                        spriteManager->NewSprite();
+                        spriteManager->AddNewSprite();
                     }
                     if(ImGui::MenuItem("Capture Sprite from Screenshot...", "F6")) {
                         projectSprites->Action_Capture();
                     }
                     ImGui::EndMenu();
                 }
-                if(ImGui::MenuItem("Clone Sprite", "Ctrl+D")) {
+                if(ImGui::MenuItem("Clone Sprite", "Ctrl+d")) {
                     Action_CloneSprite();
                 }
                 if(ImGui::BeginMenu("Reorder Sprite")) {

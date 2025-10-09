@@ -72,7 +72,11 @@ struct Generator {
             out << vformat("%s Dimensions:      %d x %d pixels", spriteManager->lineCommentSymbol, sprite->widthInBytes<<3, sprite->heightInPixels) << std::endl;
             out << vformat("%s Color Mode:      %s",spriteManager->lineCommentSymbol, ColorMode(sprite)) << std::endl;
             out << vformat("%s Byte Order:      %s",spriteManager->lineCommentSymbol, sprite->GetByteAlignment().c_str()) << std::endl;
-            out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, sprite->GetRenderingPrecision().c_str()) << std::endl;
+            if(sprite->prerenderSoftwareSprite) {
+              out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, sprite->GetRenderingPrecision().c_str()) << std::endl;
+            } else {
+              out << vformat("%s Pre-rendering:   %s",spriteManager->lineCommentSymbol, "No") << std::endl;
+            }
             out << vformat("%s Animated:        %s",spriteManager->lineCommentSymbol, sprite->animationAttached ? "Yes" : "No") << std::endl;
 
             out << std::endl;
@@ -248,7 +252,7 @@ struct Generator {
     void ShiftBuffer(Sprite* sp, char *buffer, size_t pitch) {
         size_t widthInPixels = (sp->widthInBytes+1)<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j)
-		{
+        {
             char *p = &buffer[j * pitch];
             if(sp->multicolorMode) {
                 for (int k = widthInPixels - 2; k >= 2; k-=2) {
@@ -263,7 +267,7 @@ struct Generator {
                 }
                 *p = 0;
             }
-		}
+        }
     }
 
     inline std::string Constant(const std::string &name, const std::string &value) {

@@ -152,6 +152,24 @@ struct ProjectSprites
         }
     }
 
+    void Action_InsertSprite() {
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->InsertNewSprite(spriteManager->selectedSpriteId);
+        }
+    }
+
+    void Action_DeleteSprite() {
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->RemoveSprite(spriteManager->selectedSpriteId);
+        }
+    }
+
+    void Action_CloneSprite() {
+        if(spriteManager->selectedSpriteId != -1) {
+            spriteManager->selectedSpriteId = spriteManager->CloneSprite(spriteManager->selectedSpriteId);
+        }
+    }
+
     void render(SDL_Renderer *renderer)
     {
         ImGui::Begin("Sprite Project");
@@ -174,7 +192,7 @@ struct ProjectSprites
                 }
 
                 if (ImGui::Button("Add New Sprite", ImVec2(150,25))) {
-                    spriteManager->NewSprite();
+                    spriteManager->AddNewSprite();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Capture from Screenshot", ImVec2(200,25))) {
@@ -260,7 +278,7 @@ struct ProjectSprites
 
         if(captureVisible) {
             if(capture.show(spriteManager, &captureVisible)) {
-                int spId = spriteManager->CloneSprite(&capture.capturedSprite);
+                int spId = spriteManager->CloneSprite(&capture.capturedSprite, spriteManager->AddNewSprite());
                 Sprite *sp = spriteManager->GetSprite(spId);
                 strncpy(sp->description, vformat("Captured from Screenshot (%s)\nPosX=%d; PosY=%d", capture.screenCaptureFile,
                     (int)capture.cutter_x, (int)capture.cutter_y).c_str(), sizeof(sp->description));
@@ -348,7 +366,25 @@ struct ProjectSprites
             }
             statusbar->totalBytes = GetTotalBytes();
             statusbar->spriteCount = spriteManager->sprites.size();
+
+            PopupMenu();
             ImGui::EndTable();
+        }
+    }
+
+    void PopupMenu() {
+        if (ImGui::BeginPopupContextWindow("##spriteProjectPopup")) {
+            if(ImGui::MenuItem("Insert Sprite")) {
+                Action_InsertSprite();
+            }
+            if(ImGui::MenuItem("Clone Sprite", "Ctrl+d")) {
+                Action_CloneSprite();
+            }
+            ImGui::Separator();
+            if(ImGui::MenuItem("Delete sprite ...", "Ctrl+Delete")) {
+                Action_DeleteSprite();
+            }
+            ImGui::EndPopup();
         }
     }
 
@@ -423,6 +459,7 @@ struct ProjectSprites
 
                 ImGui::PopID();
             }
+            PopupMenu();
             ImGui::EndTable();
         }
     }
