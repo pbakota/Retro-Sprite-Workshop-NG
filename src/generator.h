@@ -255,17 +255,19 @@ struct Generator {
         {
             char *p = &buffer[j * pitch];
             if(sp->multicolorMode) {
+                char c1 = p[widthInPixels - 1], c2= p[widthInPixels - 2];
                 for (int k = widthInPixels - 2; k >= 2; k-=2) {
                     p[k+0] = p[k-2];
                     p[k+1] = p[k-1];
                 }
-                p[0] = 0;
-                p[1] = 0;
+                p[0] = c2;
+                p[1] = c1;
             } else {
+                char c = *(p + widthInPixels - 1);
                 for (int k = widthInPixels - 1; k >= 0; --k) {
                     *(p + k) = *(p + k - 1);
                 }
-                *p = 0;
+                *p = c;
             }
         }
     }
