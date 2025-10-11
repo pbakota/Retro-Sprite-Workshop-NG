@@ -24,6 +24,10 @@
 #include "imgui_filedialog.h"
 #include "imgui_clamped_window.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 using namespace std::chrono_literals;
 
 typedef int ImGuiFileDialogSortOrder;
@@ -35,6 +39,13 @@ enum ImGuiFileDialogSortOrder_
 	ImGuiFileDialogSortOrder_None,
 };
 
+// Helper function to convert a string to lowercase
+std::string to_lower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return s;
+}
+
 void RefreshInfo(ImFileDialogInfo *dialogInfo)
 {
 	dialogInfo->refreshInfo = false;
@@ -44,6 +55,17 @@ void RefreshInfo(ImFileDialogInfo *dialogInfo)
 
 	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(dialogInfo->directoryPath))
 	{
+    if ((dialogInfo->flags & ImGuiFileDialogFlags_ShowHidden)==0) {
+      // skip hidden stuffs
+      #ifdef WIN32
+      DWORD attrs = GetFileAttributesW(entry.path().c_str());
+      if (attrs != INVALID_FILE_ATTRIBUTES) && (attrs & FILE_ATTRIBUTE_HIDDEN) continue;
+      #else
+      std::string filename = entry.path().filename().string();
+      if (filename.empty() || filename[0] == '.') continue;
+      #endif
+    }
+
 		if (entry.is_directory())
 		{
 			dialogInfo->currentDirectories.push_back(entry);
@@ -63,10 +85,11 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 	static float initialSpacingColumn0 = 230.0f;
 	static float initialSpacingColumn1 = 80.0f;
 	static float initialSpacingColumn2 = 90.0f;
-	static ImGuiFileDialogSortOrder fileNameSortOrder = ImGuiFileDialogSortOrder_None;
+	static ImGuiFileDialogSortOrder fileNameSortOrder = ImGuiFileDialogSortOrder_Up; //ImGuiFileDialogSortOrder_None;
 	static ImGuiFileDialogSortOrder sizeSortOrder = ImGuiFileDialogSortOrder_None;
 	static ImGuiFileDialogSortOrder dateSortOrder = ImGuiFileDialogSortOrder_None;
 	static ImGuiFileDialogSortOrder typeSortOrder = ImGuiFileDialogSortOrder_None;
+  static bool showHidden = ((dialogInfo->flags & ImGuiFileDialogFlags_ShowHidden)!=0);
 
 	assert(dialogInfo != nullptr);
 
@@ -90,7 +113,7 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 		// Draw path
 		ImGui::Text("Path: %s", dialogInfo->directoryPath.string().c_str());
 
-		ImGui::BeginChild("##browser", ImVec2(ImGui::GetWindowContentRegionMax().x, 300), true, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::BeginChild("##browser", ImVec2(ImGui::GetWindowContentRegionMax().x, ImGui::GetContentRegionAvail().y - 60), true, ImGuiWindowFlags_HorizontalScrollbar);
 		ImGui::Columns(4);
 
 		// Columns size
@@ -156,10 +179,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 								{
 				if (fileNameSortOrder == ImGuiFileDialogSortOrder_Down)
 				{
-					return a.path().filename() > b.path().filename();
+					return to_lower(a.path().filename()) > to_lower(b.path().filename());
 				}
 
-				return a.path().filename() < b.path().filename(); });
+				return to_lower(a.path().filename()) < to_lower(b.path().filename()); });
 		}
 		else if (dateSortOrder != ImGuiFileDialogSortOrder_None)
 		{
@@ -181,10 +204,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 								{
 				if (fileNameSortOrder == ImGuiFileDialogSortOrder_Down)
 				{
-					return a.path().filename() > b.path().filename();
+					return to_lower(a.path().filename()) > to_lower(b.path().filename());
 				}
 
-				return a.path().filename() < b.path().filename(); });
+				return to_lower(a.path().filename()) < to_lower(b.path().filename()); });
 		}
 		else if (sizeSortOrder != ImGuiFileDialogSortOrder_None)
 		{
@@ -324,6 +347,23 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 
 			index++;
 		}
+
+    if (ImGui::BeginPopupContextWindow("##spriteImagePopup"))
+    {
+        if(ImGui::MenuItem("Show Hidden", nullptr, &showHidden)) {
+          if(showHidden) {
+            dialogInfo->flags |= ImGuiFileDialogFlags_ShowHidden;
+          } else {
+            dialogInfo->flags &= ~ImGuiFileDialogFlags_ShowHidden;
+          }
+          dialogInfo->refreshInfo = false;
+          dialogInfo->currentIndex = 0;
+          dialogInfo->currentFiles.clear();
+          dialogInfo->currentDirectories.clear();
+        }
+        ImGui::EndPopup();
+    }
+
 		ImGui::EndChild();
 
 		// Draw filename
@@ -370,10 +410,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 
 				if (std::filesystem::exists(dialogInfo->resultPath))
 				{
-					fileNameSortOrder = ImGuiFileDialogSortOrder_None;
-					sizeSortOrder = ImGuiFileDialogSortOrder_None;
-					typeSortOrder = ImGuiFileDialogSortOrder_None;
-					dateSortOrder = ImGuiFileDialogSortOrder_None;
+					//fileNameSortOrder = ImGuiFileDialogSortOrder_None;
+					//sizeSortOrder = ImGuiFileDialogSortOrder_None;
+					//typeSortOrder = ImGuiFileDialogSortOrder_None;
+					//dateSortOrder = ImGuiFileDialogSortOrder_None;
 
 					dialogInfo->refreshInfo = false;
 					dialogInfo->currentIndex = 0;
@@ -393,10 +433,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 
 				if (!(dialogInfo->flags & ImGuiFileDialogFlags_FileMustExist) || std::filesystem::exists(dialogInfo->resultPath))
 				{
-					fileNameSortOrder = ImGuiFileDialogSortOrder_None;
-					sizeSortOrder = ImGuiFileDialogSortOrder_None;
-					typeSortOrder = ImGuiFileDialogSortOrder_None;
-					dateSortOrder = ImGuiFileDialogSortOrder_None;
+					//fileNameSortOrder = ImGuiFileDialogSortOrder_None;
+					//sizeSortOrder = ImGuiFileDialogSortOrder_None;
+					//typeSortOrder = ImGuiFileDialogSortOrder_None;
+					//dateSortOrder = ImGuiFileDialogSortOrder_None;
 
 					dialogInfo->refreshInfo = false;
 					dialogInfo->currentIndex = 0;

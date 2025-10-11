@@ -32,6 +32,7 @@ enum ImGuiFileDialogFlags_
 {
 	ImGuiFileDialogFlags_None = (0),
 	ImGuiFileDialogFlags_FileMustExist = (1<<0),
+  ImGuiFileDialogFlags_ShowHidden = (1<<1),
 };
 
 struct ImFileDialogInfo
