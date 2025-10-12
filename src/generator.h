@@ -154,13 +154,13 @@ struct Generator {
         if(sp->prerenderSoftwareSprite) {
             if(sp->animationAttached) {
                 for(size_t i=0;i<sp->animationFrames.size();++i) {
-                    ShiftSpriteFrame(out, i, "image", sp, sp->animationFrames[i].data);
+                    ShiftSpriteFrame(out, i, "frame", sp, sp->animationFrames[i].data);
                     if(sp->masked) {
                       ShiftSpriteFrame(out, i, "mask", sp, sp->animationFrames[i].mask);
                     }
                 }
             } else {
-                ShiftSpriteFrame(out, 0, "image", sp, sp->data);
+                ShiftSpriteFrame(out, 0, "frame", sp, sp->data);
                 if(sp->masked) {
                   ShiftSpriteFrame(out, 0, "mask", sp, sp->mask);
                 }
@@ -168,13 +168,13 @@ struct Generator {
         } else {
             if(sp->animationAttached) {
                 for(size_t i=0;i<sp->animationFrames.size();++i) {
-                    SingleFrame(out, sp, i, "image", 0, sp->animationFrames[i].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+                    SingleFrame(out, sp, i, "frame", 0, sp->animationFrames[i].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                     if(sp->masked) {
                       SingleFrame(out, sp, i, "mask", 0, sp->animationFrames[i].mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);    
                     }
                 }
             } else {
-                SingleFrame(out, sp, 0, "image", 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+                SingleFrame(out, sp, 0, "frame", 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
             }
             if(sp->masked) {
                 SingleFrame(out, sp, 0, "mask", 0, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
