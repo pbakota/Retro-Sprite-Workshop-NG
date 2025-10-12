@@ -42,6 +42,12 @@ struct SpriteImage
     ColorSelector colorSelector;
     ImGuiID selectedColor = 0;
 
+    enum class Editing {
+      Image = 0,
+      Mask = 1
+    };
+    Editing editing = Editing::Image;
+
     SpriteImage(SpriteManager *spriteManager, ProjectSprites *projectSprites, StatusBar *statusbar): spriteManager(spriteManager), projectSprites(projectSprites), statusbar(statusbar) {}
 
     void render()
@@ -97,7 +103,8 @@ struct SpriteImage
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Height");
                         heightPixelStep = spriteManager->currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based ? 8 : 1;
-                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); if(ImGui::InputScalar("", ImGuiDataType_U8, &spriteManager->currentSprite->heightInPixels, &heightPixelStep, nullptr, "%d", 0)) {
+                        ImGui::SameLine(); ImGui::PushID(2); ImGui::SetNextItemWidth(100); 
+                          if(ImGui::InputScalar("", ImGuiDataType_U8, &spriteManager->currentSprite->heightInPixels, &heightPixelStep, nullptr, "%d", 0)) {
                             if(spriteManager->currentSprite->byteAligment == Sprite::ByteAligment::Mixed_Character_Based) {
                                 if(spriteManager->currentSprite->heightInPixels < 8) spriteManager->currentSprite->heightInPixels = 8;
                             } else {
@@ -113,12 +120,22 @@ struct SpriteImage
                             spriteManager->currentSprite->Invalidate();
                             animation.UpdateAllFramesIfAnimated(spriteManager->currentSprite);
                         } ImGui::PopID();
-                        ImGui::PushID(4); if(ImGui::Checkbox("Animation attached", &spriteManager->currentSprite->animationAttached)) {
+                        ImGui::PushID(4); if(ImGui::Checkbox("Animated", &spriteManager->currentSprite->animationAttached)) {
                             if(spriteManager->currentSprite->animationAttached) {
                                 // Init animation
                                 animation.Init(spriteManager->currentSprite);
                             }
                         } ImGui::PopID();
+                        ImGui::SameLine();
+                        ImGui::PushID(5); if(ImGui::Checkbox("Masked", &spriteManager->currentSprite->masked)) {
+                            // Enabled mask
+                        } ImGui::PopID();
+                        if(spriteManager->currentSprite->masked) {
+                            ImGui::SameLine(210.0f); ImGui::TextUnformatted("Editing"); ImGui::SetNextItemWidth(-FLT_MIN);
+                            ImGui::SameLine(); if(ImGui::RadioButton("Image", (int*)&editing, (int)Editing::Image)) {}
+                            ImGui::SameLine(); if(ImGui::RadioButton("Mask", (int*)&editing, (int)Editing::Mask)) {}
+                            ImGui::SameLine(); if(ImGui::Button("Generate Mask")) {}
+                        }
                     }
                     ImGui::EndTable();
                 }
@@ -231,30 +248,54 @@ struct SpriteImage
                     if(spriteManager->currentSprite->multicolorMode) {
                         switch(selectedColor) {
                             case 0: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  spriteManager->currentSprite->SetMask(position_x, position_y, 0);
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                }
                                 animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                             } break;
                             case 1: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  // NOP
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
+                                  animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                                }
                             } break;
                             case 2: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate();
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  // NOP
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate();
+                                  animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+                                }
                             } break;
                             case 3: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate();
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  spriteManager->currentSprite->SetMask(position_x, position_y, 3); 
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate();
+                                }
                                 animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                             } break;
                         }
                     } else {
                         switch(selectedColor) {
                             case 0: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  spriteManager->currentSprite->SetMask(position_x, position_y, 0);
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                                }
                                 animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                             } break;
                             case 3: {
-                                spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
+                                if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                                  spriteManager->currentSprite->SetMask(position_x, position_y, 1);
+                                } else {
+                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
+                                }
                                 animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                             } break;
                         }
@@ -263,7 +304,11 @@ struct SpriteImage
 
                 // Right mouse button always erase pixel
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsKeyDown(ImGuiKey_ModShift)) {
-                    spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                    if(spriteManager->currentSprite->masked && editing == Editing::Mask) {
+                      spriteManager->currentSprite->SetMask(position_x, position_y, 0);
+                    } else {
+                      spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
+                    }
                     animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                 }
             }
@@ -274,7 +319,9 @@ struct SpriteImage
                 if(sp->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
                         ImU32 pixelColor;
-                        size_t c = (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
+                        size_t c = (sp->masked && editing == Editing::Mask)
+                          ? (((char*)sp->mask)[y*sp->pitch + x + 0] << 1) | ((char*)sp->mask)[y*sp->pitch + x + 1]
+                          : (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
                         switch(c) {
                             case 0: pixelColor = sp->backgroundColor; break;
                             case 1: pixelColor = sp->multi1Color; break;
@@ -285,7 +332,24 @@ struct SpriteImage
                         bool drawPixel = true;
                         if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
-                            c = frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
+                            c = (sp->masked && editing == Editing::Mask)
+                              ? frame.mask[y*sp->pitch + x + 0] << 1 | frame.mask[y*sp->pitch + x + 1]
+                              : frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
+                            if(c != 0) {
+                                switch(c) {
+                                    // case 0: pixelColor = sp->backgroundColor; break;
+                                    case 1: pixelColor = sp->multi1Color; break;
+                                    case 2: pixelColor = sp->multi2Color; break;
+                                    case 3: pixelColor = sp->characterColor; break;
+                                }
+                                // Dim the pixel color if it's not the background color
+                                auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), dimmedColor);
+                                drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
+                            }
+                        }
+                        if(c == 0 && sp->masked && editing == Editing::Mask) {
+                            c = sp->data[y*sp->pitch + x + 0] << 1 | sp->data[y*sp->pitch + x + 1];
                             if(c != 0) {
                                 switch(c) {
                                     // case 0: pixelColor = sp->backgroundColor; break;
@@ -306,7 +370,9 @@ struct SpriteImage
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
                         ImU32 pixelColor;
-                        size_t c = ((char*)sp->data)[y*sp->pitch + x];
+                        size_t c = (sp->masked && editing == Editing::Mask)
+                          ? ((char*)sp->mask)[y*sp->pitch + x]
+                          : ((char*)sp->data)[y*sp->pitch + x];
                         switch(c) {
                             case 0: pixelColor = sp->backgroundColor; break;
                             case 1: pixelColor = sp->characterColor; break;
@@ -315,7 +381,22 @@ struct SpriteImage
                         bool drawPixel = true;
                         if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
-                            c = frame.data[y*sp->pitch + x + 0];
+                            c = (sp->masked && editing == Editing::Mask)
+                              ? frame.mask[y*sp->pitch + x + 0]
+                              : frame.data[y*sp->pitch + x + 0];
+                            if(c!=0) {
+                                switch(c) {
+                                    case 0: pixelColor = sp->backgroundColor; break;
+                                    case 1: pixelColor = sp->characterColor; break;
+                                }
+                                // Dim the pixel color if it's not the background color
+                                auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), dimmedColor);
+                                drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
+                            }
+                        }
+                        if(c == 0 && sp->masked && editing == Editing::Mask) {
+                            c = sp->data[y*sp->pitch + x + 0];
                             if(c!=0) {
                                 switch(c) {
                                     case 0: pixelColor = sp->backgroundColor; break;
@@ -332,8 +413,8 @@ struct SpriteImage
                         }
                     }
                 }
-            }
             if(1 /* TODO: make grid visibility configurable */) {
+            }
                 if(sp->multicolorMode) {
                     for(size_t x = 0; x <= widthInPixels; x+=2) {
                         ImVec2 p0 = ImVec2(s.x + x * cs, s.y), p1 = ImVec2(s.x + x * cs, s.y + sp->heightInPixels*cs);

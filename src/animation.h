@@ -33,6 +33,7 @@ struct Animation {
         previewFrameIndex = 0;
         previewTimer = 0;
         std::memcpy((void*)sp->data, (void*)sp->animationFrames[0].data, sizeof(sp->data));
+        std::memcpy((void*)sp->mask, (void*)sp->animationFrames[0].mask, sizeof(sp->mask));
         sp->Invalidate();
     }
 
@@ -57,6 +58,7 @@ struct Animation {
             return; // Invalid index
         }
         std::memcpy((void*)sp->animationFrames[selectedFrameIndex].data, (void*)sp->data, sizeof(sp->data));
+        std::memcpy((void*)sp->animationFrames[selectedFrameIndex].mask, (void*)sp->mask, sizeof(sp->mask));
         sp->UpdateTextureFromSpriteData(renderer, sp->animationFrames[selectedFrameIndex].image, sp->animationFrames[selectedFrameIndex].data);
     }
 
@@ -88,6 +90,7 @@ struct Animation {
     #endif
         if(newSprite.widthInBytes != sp->widthInBytes || newSprite.heightInPixels != sp->heightInPixels) return; // Size mismatch, cannot paste
         std::memcpy((void*)sp->data, (void*)newSprite.data, sizeof(sp->data));
+        std::memcpy((void*)sp->mask, (void*)newSprite.mask, sizeof(sp->mask));
         sp->Invalidate();
    }
 

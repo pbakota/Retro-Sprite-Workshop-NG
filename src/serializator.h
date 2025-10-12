@@ -29,7 +29,11 @@ struct Serializator {
         ss << "multi1Color=" << sp->multi1Color << CEOL;
         ss << "multi2Color=" << sp->multi2Color << CEOL;
         ss << "characterColor=" << sp->characterColor << CEOL;
+        ss << "masked=" << sp->masked << CEOL;
         ss << "data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+        if(sp->masked) {
+          ss << "mask=" << HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+        }
         return ss.str();
     }
 
@@ -67,8 +71,12 @@ struct Serializator {
                 sp->multi2Color = std::atoi(val.c_str());
             } else if(key == "characterColor") {
                 sp->characterColor = std::atoi(val.c_str());
+            } else if(key == "masked") {
+                sp->masked = std::atoi(val.c_str())!=0;
             } else if(key == "data") {
                 HexDeserializeData(val, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+            } else if(key == "mask") {
+                HexDeserializeData(val, sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
             }
         }
     }

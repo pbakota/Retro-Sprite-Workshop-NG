@@ -154,6 +154,12 @@ struct Project
                         Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
                     }
+                } else if(key == "Masked") {
+                    sp->masked = kv.second == "True";
+                } else if(key == "Mask") {
+                    if(sp->masked) {
+                      Serializator::HexDeserializeData(kv.second, sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                    }
                 }
             }
         }
@@ -202,6 +208,10 @@ struct Project
                     auto &an = *ai;
                     fs << "Sprite" << n << ".Frame." << a << "=" << Serializator::HexSerializeData(an.data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                 }
+            }
+            fs << "Sprite" << n << ".Masked=" << (sp->masked ? "True" : "False") << CEOL;
+            if(sp->masked) {
+              fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
             }
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CEOL;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CEOL;

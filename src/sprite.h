@@ -15,7 +15,7 @@ struct Sprite
 {
     int ID;
     SDL_Texture *original = nullptr, *scaled = nullptr;
-    size_t dataHash;
+    size_t dataHash, maskHash;
 
     enum class PaletteType {
         C64_Pal = 0,
@@ -62,14 +62,18 @@ struct Sprite
     struct Frame {
         SDL_Texture *image;
         char data[4096]; // 64x64 the maximum size
+        char mask[4096];
     };
 
     bool animationAttached = false;
     int animationFPS = 4;
     std::vector<Frame> animationFrames;
 
+    bool masked = false;
+
     const size_t pitch = 64;
     char data[4096]; // 64x64 the maximum size
+    char mask[4096];
 
 #ifdef USE_TEST_SPRITE
     char USE_test_sprite[32][16] = {
@@ -155,7 +159,9 @@ struct Sprite
 
     void ClearData() {
         memset((void*)data, 0, sizeof(data));
+        memset((void*)mask, 0, sizeof(mask));
         dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
+        maskHash = std::hash<std::string_view>()(std::string_view(mask, sizeof(mask)));
     }
 
     void SetPixel(size_t position_x, size_t position_y, size_t val) {
@@ -164,6 +170,15 @@ struct Sprite
             data[position_y * pitch + 2*position_x+1] = val&1;
         } else {
             data[position_y * pitch + position_x] = val;
+        }
+    }
+    
+    void SetMask(size_t position_x, size_t position_y, size_t val) {
+        if(multicolorMode) {
+            mask[position_y * pitch + 2*position_x+0] = val>>1;
+            mask[position_y * pitch + 2*position_x+1] = val&1;
+        } else {
+            mask[position_y * pitch + position_x] = val;
         }
     }
 
@@ -175,6 +190,7 @@ struct Sprite
     void Invalidate() {
         dirty = true;
         dataHash = std::hash<std::string_view>()(std::string_view(data, sizeof(data)));
+        maskHash = std::hash<std::string_view>()(std::string_view(mask, sizeof(mask)));
     }
 
     size_t GetHash() {
