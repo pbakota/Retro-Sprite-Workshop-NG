@@ -315,24 +315,25 @@ struct SpriteImage
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
             Sprite *sp = spriteManager->currentSprite;
+            bool masked = (sp->masked && editing == Editing::Mask);
             for(size_t y = 0; y < sp->heightInPixels; ++y) {
                 if(sp->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
                         ImU32 pixelColor;
-                        size_t c = (sp->masked && editing == Editing::Mask)
+                        size_t c = masked
                           ? (((char*)sp->mask)[y*sp->pitch + x + 0] << 1) | ((char*)sp->mask)[y*sp->pitch + x + 1]
                           : (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
                         switch(c) {
-                            case 0: pixelColor = sp->backgroundColor; break;
+                            case 0: pixelColor = (masked ? 0xff000000 : sp->backgroundColor); break;
                             case 1: pixelColor = sp->multi1Color; break;
                             case 2: pixelColor = sp->multi2Color; break;
-                            case 3: pixelColor = sp->characterColor; break;
+                            case 3: pixelColor = (masked ? 0xffffffff : sp->characterColor); break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
                         if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
-                            c = (sp->masked && editing == Editing::Mask)
+                            c = masked 
                               ? frame.mask[y*sp->pitch + x + 0] << 1 | frame.mask[y*sp->pitch + x + 1]
                               : frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
                             if(c != 0) {
@@ -348,7 +349,7 @@ struct SpriteImage
                                 drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                             }
                         }
-                        if(c == 0 && sp->masked && editing == Editing::Mask) {
+                        if(c == 0 && masked) {
                             c = sp->data[y*sp->pitch + x + 0] << 1 | sp->data[y*sp->pitch + x + 1];
                             if(c != 0) {
                                 switch(c) {
@@ -370,24 +371,24 @@ struct SpriteImage
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
                         ImU32 pixelColor;
-                        size_t c = (sp->masked && editing == Editing::Mask)
+                        size_t c = masked 
                           ? ((char*)sp->mask)[y*sp->pitch + x]
                           : ((char*)sp->data)[y*sp->pitch + x];
                         switch(c) {
-                            case 0: pixelColor = sp->backgroundColor; break;
-                            case 1: pixelColor = sp->characterColor; break;
+                            case 0: pixelColor = (masked ? 0xff000000 : sp->backgroundColor); break;
+                            case 1: pixelColor = (masked ? 0xffffffff : sp->characterColor); break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
                         if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
-                            c = (sp->masked && editing == Editing::Mask)
+                            c = masked 
                               ? frame.mask[y*sp->pitch + x + 0]
                               : frame.data[y*sp->pitch + x + 0];
                             if(c!=0) {
                                 switch(c) {
-                                    case 0: pixelColor = sp->backgroundColor; break;
-                                    case 1: pixelColor = sp->characterColor; break;
+                                    case 0: pixelColor = (masked ? 0xffffffff : sp->backgroundColor); break;
+                                    case 1: pixelColor = (masked ? 0xff000000 : sp->characterColor); break;
                                 }
                                 // Dim the pixel color if it's not the background color
                                 auto dimmedColor = dim_color(pixelColor, 0.25f);
@@ -395,12 +396,12 @@ struct SpriteImage
                                 drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                             }
                         }
-                        if(c == 0 && sp->masked && editing == Editing::Mask) {
+                        if(c == 0 && masked) {
                             c = sp->data[y*sp->pitch + x + 0];
                             if(c!=0) {
                                 switch(c) {
-                                    case 0: pixelColor = sp->backgroundColor; break;
-                                    case 1: pixelColor = sp->characterColor; break;
+                                   case 0: pixelColor = sp->backgroundColor; break;
+                                   case 1: pixelColor = sp->characterColor; break;
                                 }
                                 // Dim the pixel color if it's not the background color
                                 auto dimmedColor = dim_color(pixelColor, 0.25f);
