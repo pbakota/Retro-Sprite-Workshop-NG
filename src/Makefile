@@ -1,6 +1,6 @@
 EXE=rswng
 IMGUI=imgui_modified
-SDL2_WIN32?=$(HOME)/SDK/SDL2-2.30.9/x86_64-w64-mingw32
+SDL2_WIN32?=$(HOME)/SDK/SDL2/x86_64-w64-mingw32
 
 all: build
 

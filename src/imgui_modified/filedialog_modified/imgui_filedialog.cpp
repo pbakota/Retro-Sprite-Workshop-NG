@@ -179,10 +179,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 								{
 				if (fileNameSortOrder == ImGuiFileDialogSortOrder_Down)
 				{
-					return to_lower(a.path().filename()) > to_lower(b.path().filename());
+					return to_lower(a.path().filename().string()) > to_lower(b.path().filename().string());
 				}
 
-				return to_lower(a.path().filename()) < to_lower(b.path().filename()); });
+				return to_lower(a.path().filename().string()) < to_lower(b.path().filename().string()); });
 		}
 		else if (dateSortOrder != ImGuiFileDialogSortOrder_None)
 		{
@@ -204,10 +204,10 @@ bool ImGui::FileDialog(bool *open, ImFileDialogInfo *dialogInfo)
 								{
 				if (fileNameSortOrder == ImGuiFileDialogSortOrder_Down)
 				{
-					return to_lower(a.path().filename()) > to_lower(b.path().filename());
+					return to_lower(a.path().filename().string()) > to_lower(b.path().filename().string());
 				}
 
-				return to_lower(a.path().filename()) < to_lower(b.path().filename()); });
+				return to_lower(a.path().filename().string()) < to_lower(b.path().filename().string()); });
 		}
 		else if (sizeSortOrder != ImGuiFileDialogSortOrder_None)
 		{

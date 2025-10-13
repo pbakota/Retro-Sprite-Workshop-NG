@@ -533,7 +533,9 @@ struct SpriteImage
     ImU32 *color = nullptr;
     void DrawingColorSelector() {
         bool hovered, is_hovered = false;
-        if(DrawColorButton(0, spriteManager->currentSprite->backgroundColor, "Background", &hovered)) {
+        bool masked = spriteManager->currentSprite->masked && editing == Editing::Mask;
+
+        if(DrawColorButton(0, (masked ? 0xff000000 : spriteManager->currentSprite->backgroundColor), (masked ? "Sprite" : "Background"), &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
                 color = &spriteManager->currentSprite->backgroundColor;
@@ -544,7 +546,7 @@ struct SpriteImage
         if(hovered) {
             is_hovered = true;
         }
-        if(spriteManager->currentSprite->multicolorMode) {
+        if(!masked && spriteManager->currentSprite->multicolorMode) {
             ImGui::SameLine(); if(DrawColorButton(1, spriteManager->currentSprite->multi1Color, "Multi 1", &hovered)) {
                 if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     colorSelectorOpen = true;
@@ -568,7 +570,7 @@ struct SpriteImage
                 is_hovered = true;
             }
         }
-        ImGui::SameLine(); if(DrawColorButton(3, spriteManager->currentSprite->characterColor, "Character", &hovered)) {
+        ImGui::SameLine(); if(DrawColorButton(3, (masked ? 0xffffffff : spriteManager->currentSprite->characterColor), (masked ? "Transparent" : "Character"), &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
                 color = &spriteManager->currentSprite->characterColor;
