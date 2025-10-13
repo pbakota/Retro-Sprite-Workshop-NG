@@ -24,7 +24,6 @@ struct ProjectSprites
         .fileName = "",
         .directoryPath = std::filesystem::current_path()
     };
-    char startCharIndex = 0;
     int one = 1;
     bool showAdvancedSettings = false, showRearrangeColors = false;
     size_t selectedColors[4];
@@ -250,7 +249,7 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn(); ImGui::TextUnformatted("Char Index");
-                        ImGui::TableNextColumn(); ImGui::PushID(7); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(7); ImGui::SetNextItemWidth(100); ImGui::InputScalar("", ImGuiDataType_U8, &project->header.startCharIndex, &one, nullptr, "%d", 0); ImGui::PopID();
                         ImGui::SameLine(); ImGui::PushID(8); if(ImGui::Button("Advanced ...") && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId)) {
                             showAdvancedSettings = true;
                         } ImGui::PopID();
@@ -303,11 +302,11 @@ struct ProjectSprites
             clipper.Begin(spriteManager->sprites.size());
             while (clipper.Step())
             {
-                size_t charOffset = startCharIndex;
+                size_t charOffset = project->header.startCharIndex;
                 // calculate char offset before clipping
                 for (int row = 0; row < clipper.DisplayStart; row++) {
                     auto sprite = spriteManager->sprites[row];
-                    charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
+                    charOffset += sprite->GetCharOffset(); //sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
                 }
 
                 for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
@@ -355,7 +354,7 @@ struct ProjectSprites
                     sprite->charOffset = charOffset;
                     sprite->charIndex = row;
 
-                    charOffset += sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
+                    charOffset += sprite->GetCharOffset(); // sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s\nAnimated: %s, Masked: %s", 

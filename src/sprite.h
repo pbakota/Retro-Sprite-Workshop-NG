@@ -323,6 +323,9 @@ struct Sprite
     size_t GetByteSize() {
         size_t sz = (byteAligment == ByteAligment::Mixed_Character_Based ? (size_t)(((size_t)(heightInPixels+7)/8))*8 : heightInPixels);
         size_t size = widthInBytes*sz;
+        if(masked) {
+            size *= 2;
+        }
         if(prerenderSoftwareSprite) {
             size = (widthInBytes+1)*sz;
             switch(renderingPrecision) {
@@ -330,6 +333,9 @@ struct Sprite
                 case PrerendingPrecision::Medium4Frames: size *= 4; break;
                 case PrerendingPrecision::High8Frames:   size *= 8; break;
             }
+        }
+        if(animationAttached) {
+            size *= animationFrames.size();
         }
         return size;
     }
@@ -342,6 +348,27 @@ struct Sprite
         }
         assert(true); // unreachable
         return nullptr;
+    }
+
+    size_t GetCharOffset() {
+        size_t h = ((heightInPixels+7)>>3);
+        size_t w = widthInBytes;
+        if(prerenderSoftwareSprite) {
+            w += 1;
+            switch(renderingPrecision) {
+                case PrerendingPrecision::Low2Frames:    w *= 2; break;
+                case PrerendingPrecision::Medium4Frames: w *= 4; break;
+                case PrerendingPrecision::High8Frames:   w *= 8; break;
+            }
+        }
+        size_t offset = w * h;
+        if(masked) {
+            offset *= 2;
+        }
+        if(animationAttached) {
+            offset *= animationFrames.size();
+        }
+        return offset;
     }
 
     ByteAligment GetByteAlignment(const std::string &str) {

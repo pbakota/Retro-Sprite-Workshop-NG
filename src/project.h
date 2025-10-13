@@ -13,17 +13,18 @@ extern SDL_Renderer *renderer;
 
 struct Project
 {
-	struct ProjectHeader {
-	    char projectFile[512] = {0};
-	    char projectName[128] = {0};
-	    char projectPlatform[128] = {0};
-	    char projectComments[256] = {0};
-	    char createdOn[128] = {0};
-	    char exportTo[128] = {0};
-	    bool autoExportSourceCode = true;
-	    bool includeMetadata = true;
-	    bool onlyData = false;
-	} header;
+    struct ProjectHeader {
+        char projectFile[512] = {0};
+        char projectName[128] = {0};
+        char projectPlatform[128] = {0};
+        char projectComments[256] = {0};
+        char createdOn[128] = {0};
+        char exportTo[128] = {0};
+        bool autoExportSourceCode = true;
+        bool includeMetadata = true;
+        bool onlyData = false;
+        int startCharIndex = 0;
+    } header;
 
     std::vector<float> zoomValues = {
         0.25f,
@@ -52,6 +53,7 @@ struct Project
         header.autoExportSourceCode = false;
         header.includeMetadata = true;
         header.onlyData = false;
+        header.startCharIndex = 0;
     }
 
     // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
@@ -100,6 +102,8 @@ struct Project
                 hdr.includeMetadata = kv.second == "True";
             } else if(kv.first == "OnlyData") {
                 hdr.onlyData = kv.second == "True";
+            } else if(kv.first == "StartCharIndex") {
+                hdr.startCharIndex = std::atoi(kv.second.c_str());
             } else if(kv.first.substr(0,6) == "Sprite") {
                 std::size_t firstDot = kv.first.find('.');
                 if(firstDot==std::string::npos) continue; // skip invalid line
@@ -183,6 +187,7 @@ struct Project
         fs << "SourceCodeExportPath=" << header.exportTo << CEOL;
         fs << "AutomaticExportWithComments=" << (header.includeMetadata ? "True" : "False") << CEOL;
         fs << "OnlyData=" << (header.onlyData ? "True" : "False") << CEOL;
+        fs << "StartCharIndex=" << header.startCharIndex << CEOL;
 
         int n = 1;
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {
