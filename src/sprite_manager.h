@@ -2,14 +2,13 @@
 
 #include <vector>
 #include <algorithm>
-#include <memory>
 #include <cstdlib>
+#include <filesystem>
 #include <SDL.h>
 #define SDL_STBIMAGE_IMPLEMENTATION
 #include "SDL_stbimage.h"
 #include "sprite.h"
 #include "project.h"
-#include "sprite_manager.h"
 #include "statusbar.h"
 #include "animation.h"
 
@@ -17,7 +16,7 @@ extern SDL_Window *window;
 extern SDL_Renderer *renderer;
 extern Animation animation;
 
-const char *appTitle = "RetroSpriteWorkshop";
+extern const char *appTitle;
 
 struct SpriteManager {
     Project *project;

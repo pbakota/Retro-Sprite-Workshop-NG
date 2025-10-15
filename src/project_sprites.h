@@ -1,7 +1,6 @@
 #pragma once
 #include <algorithm>
 #include "imgui.h"
-#include "menubar.h"
 #include "sprite_manager.h"
 #include "util.h"
 #include "imgui_filedialog.h"

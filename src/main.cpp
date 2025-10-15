@@ -10,7 +10,6 @@
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
 
-#include "util.h"
 #include "menubar.h"
 #include "statusbar.h"
 #include "animation.h"
@@ -26,6 +25,8 @@
 bool exitApp = false;
 bool wantExit = false;
 bool show_demo_window = false;
+
+const char *appTitle = "RetroSpriteWorkshop";
 
 Project project;
 StatusBar statusbar;
