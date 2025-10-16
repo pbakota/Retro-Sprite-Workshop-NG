@@ -158,6 +158,9 @@ struct Project
                         Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
                     }
+                } else if(key.substr(0,5) == "Mask.") {
+                    auto &frame = sp->animationFrames.back();
+                    Serializator::HexDeserializeData(kv.second.c_str(), frame.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                 } else if(key == "Masked") {
                     sp->masked = kv.second == "True";
                 } else if(key == "Mask") {
@@ -204,19 +207,21 @@ struct Project
             fs << "Sprite" << n << ".Multi2Color=" << WriteRGBColor(sp->multi2Color) << CEOL;
             fs << "Sprite" << n << ".Palette=" << sp->GetPaletteName() << CEOL;
             fs << "Sprite" << n << ".Data=" << Serializator::HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+            fs << "Sprite" << n << ".Masked=" << (sp->masked ? "True" : "False") << CEOL;
             fs << "Sprite" << n << ".AnimationAttached=" << (sp->animationAttached ? "True" : "False") << CEOL;
-            fs << "Sprite" << n << ".AnimationFPS=" << sp->animationFPS << CEOL;
             if(sp->animationAttached) {
+                fs << "Sprite" << n << ".AnimationFPS=" << sp->animationFPS << CEOL;
                 fs << "Sprite" << n << ".AnimationCount=" << sp->animationFrames.size() << CEOL;
                 int a = 0;
                 for(auto ai = sp->animationFrames.begin(); ai != sp->animationFrames.end(); ++ai, a++) {
                     auto &an = *ai;
                     fs << "Sprite" << n << ".Frame." << a << "=" << Serializator::HexSerializeData(an.data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+                    if(sp->masked) {
+                        fs << "Sprite" << n << ".Mask." << a << "=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+                    }
                 }
-            }
-            fs << "Sprite" << n << ".Masked=" << (sp->masked ? "True" : "False") << CEOL;
-            if(sp->masked) {
-              fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+            } else if(sp->masked) {
+                fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
             }
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CEOL;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CEOL;

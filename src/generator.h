@@ -175,9 +175,9 @@ struct Generator {
                 }
             } else {
                 SingleFrame(out, sp, 0, "frame", 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
-            }
-            if(sp->masked) {
-                SingleFrame(out, sp, 0, "mask", 0, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
+                if(sp->masked) {
+                    SingleFrame(out, sp, 0, "mask", 0, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
+                }
             }
         }
     }

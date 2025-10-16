@@ -5,7 +5,7 @@ SDL2_WIN32?=$(HOME)/SDK/SDL2/x86_64-w64-mingw32
 all: build
 
 build:
-	$(CXX) -DIMGUI_DEFINE_MATH_OPERATORS -DUSE_CLIPBOARD_FOR_COPY_AND_PASTE -std=c++17 -Wall -I. -I$(IMGUI) -I$(IMGUI)/filedialog_modified -I$(IMGUI)/stb_image $(shell pkg-config sdl2 --cflags) \
+	$(CXX) -ggdb -DIMGUI_DEFINE_MATH_OPERATORS -DUSE_CLIPBOARD_FOR_COPY_AND_PASTE -std=c++17 -Wall -I. -I$(IMGUI) -I$(IMGUI)/filedialog_modified -I$(IMGUI)/stb_image $(shell pkg-config sdl2 --cflags) \
 		$(IMGUI)/imgui*.cpp $(IMGUI)/filedialog_modified/imgui*.cpp main.cpp $(shell pkg-config sdl2 --libs) -o $(EXE)
 
 build-win32:

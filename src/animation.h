@@ -1,8 +1,10 @@
 #pragma once
 
+#include <SDL.h>
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "sprite.h"
-#include "sprite_manager.h"
+#include "serializator.h"
 
 extern SDL_Renderer *renderer;
 
@@ -126,8 +128,10 @@ struct Animation {
         frame.image = sp->CreateSpriteImageTexture(renderer);
         if(copyFromSprite) {
             std::memcpy((void*)frame.data, (void*)sp->data, sizeof(sp->data));
+            std::memcpy((void*)frame.mask, (void*)sp->mask, sizeof(sp->mask));
         } else {
             std::memset((void*)frame.data, 0, sizeof(frame.data));
+            std::memset((void*)frame.mask, 0, sizeof(frame.mask));
         }
         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
     }
@@ -137,6 +141,7 @@ struct Animation {
         auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
         std::memcpy((void*)frame.data, (void*)curr.data, sizeof(frame.data));
+        std::memcpy((void*)frame.mask, (void*)curr.mask, sizeof(frame.mask));
         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
     }
 
@@ -183,6 +188,7 @@ struct Animation {
                     selectedFrameIndex = i;
                     auto &frame = sp->animationFrames[i];
                     std::memcpy((void*)sp->data, (void*)frame.data, sizeof(sp->data));
+                    std::memcpy((void*)sp->mask, (void*)frame.mask, sizeof(sp->mask));
                     sp->Invalidate();
                 } ImGui::PopID();
                 o.x += display_size.x*scale+4.0f; // Add some spacing between frames
