@@ -8,6 +8,8 @@
 #include "project.h"
 #include "util.h"
 
+extern SDL_Renderer *renderer;
+
 extern const char* PROJECT_FILE_SIGNATURE;
 
 const char *CLIPBOARD_DATA_SIGNATURE = PROJECT_FILE_SIGNATURE;
@@ -15,7 +17,7 @@ const char *CEOL = "\n"; // End of line
 
 struct Serializator {
 
-    static std::string Serialize(Sprite *sp) {
+    static std::string Serialize(Sprite *sp, bool only_frame) {
         std::stringstream ss;
         ss << CLIPBOARD_DATA_SIGNATURE << CEOL;
         ss << "widthInBytes=" << sp->widthInBytes << CEOL;
@@ -30,9 +32,21 @@ struct Serializator {
         ss << "multi2Color=" << sp->multi2Color << CEOL;
         ss << "characterColor=" << sp->characterColor << CEOL;
         ss << "masked=" << sp->masked << CEOL;
-        ss << "data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+        ss << "data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch) << CEOL;
         if(sp->masked) {
-          ss << "mask=" << HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels,sp->pitch);
+          ss << "mask=" << HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels,sp->pitch) << CEOL;
+        }
+        if(!only_frame && sp->animationAttached) {
+            int a = 0;
+            ss << "animated=" << sp->animationAttached << CEOL;
+            ss << "fps=" << sp->animationFPS << CEOL;
+            for(auto fr=sp->animationFrames.begin();fr!=sp->animationFrames.end();++fr,++a) {
+                auto &frame = *fr;
+                ss << "frame." << a << "=" << HexSerializeData(frame.data, sp->widthInBytes, sp->heightInPixels,sp->pitch) << CEOL;
+                if(sp->masked) {
+                    ss << "mask." << a << "=" << HexSerializeData(frame.mask, sp->widthInBytes, sp->heightInPixels,sp->pitch) << CEOL;
+                }
+            }
         }
         return ss.str();
     }
@@ -77,6 +91,21 @@ struct Serializator {
                 HexDeserializeData(val, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
             } else if(key == "mask") {
                 HexDeserializeData(val, sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+            } else if(key == "animated") {
+                sp->animationAttached = std::atoi(val.c_str())!=0;
+            } else if(key == "fps") {
+                sp->animationFPS = std::atoi(val.c_str());
+            } else if(key.substr(0,6) == "frame.") {
+                if(sp->animationAttached) {
+                    auto &frame = sp->animationFrames.emplace_back();
+                    frame.image = sp->CreateSpriteImageTexture(renderer);
+                    Serializator::HexDeserializeData(val.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                }
+            } else if(key.substr(0,5) == "mask.") {
+                if(sp->animationAttached) {
+                    auto &frame = sp->animationFrames.back();
+                    Serializator::HexDeserializeData(val.c_str(), frame.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                }
             }
         }
     }

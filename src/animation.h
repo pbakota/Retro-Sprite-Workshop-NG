@@ -73,9 +73,9 @@ struct Animation {
 
     void CopyFrame(Sprite *sp) {
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
-        copyBuffer = Serializator::Serialize(sp).c_str();
+        copyBuffer = Serializator::Serialize(sp, true).c_str();
     #else
-        SDL_SetClipboardText(Serializator::Serialize(sp).c_str());
+        SDL_SetClipboardText(Serializator::Serialize(sp, true).c_str());
     #endif
     }
 

@@ -531,9 +531,9 @@ struct SpriteManager {
     void CopySprite(int id) {
         Sprite *sp = GetSprite(id);
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
-        copyBuffer = Serializator::Serialize(sp).c_str();
+        copyBuffer = Serializator::Serialize(sp, false).c_str();
     #else
-        SDL_SetClipboardText(Serializator::Serialize(sp).c_str());
+        SDL_SetClipboardText(Serializator::Serialize(sp, false).c_str());
     #endif
     }
 
@@ -543,11 +543,13 @@ struct SpriteManager {
         if(copyBuffer.empty()) return;
         Serializator::Deserialize(copyBuffer.c_str(), sp);
         sp->Invalidate();
+        animation.UpdateAllFramesIfAnimated(sp);
     #else
         if (!SDL_HasClipboardText()) return;
         const char *clipboard = SDL_GetClipboardText();
         Serializator::Deserialize(clipboard, sp);
         sp->Invalidate();
+        animation.UpdateAllFramesIfAnimated(sp);
         SDL_free((void*)clipboard);
     #endif
     }
