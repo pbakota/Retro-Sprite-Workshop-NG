@@ -25,9 +25,11 @@ struct Generator {
         std::stringstream ss;
 
         Header(ss);
-        int n = 1;
+        int n = 1, charIndex = spriteManager->project->header.startCharIndex;
         for(auto sp=spriteManager->sprites.begin();sp!=spriteManager->sprites.end();++sp) {
-            SingleSprite(ss, n++, *sp);
+            auto& sprite = *sp;
+            SingleSprite(ss, n++, sprite, charIndex);
+            charIndex += sprite->GetCharOffset();
         }
         Footer(ss);
 
@@ -53,7 +55,7 @@ struct Generator {
         }
     }
 
-    void SingleSprite(std::ostream &out, int nr, Sprite *sprite) {
+    void SingleSprite(std::ostream &out, int nr, Sprite *sprite, int charIndex) {
         if(spriteManager->exportWithComments || (spriteManager->project->header.autoExportSourceCode && spriteManager->project->header.includeMetadata)) {
             out << vformat("%s ==================== Sprite %d ========================", spriteManager->lineCommentSymbol, nr) << std::endl;
             out << vformat("%s Sprite ID:       %s", spriteManager->lineCommentSymbol, sprite->spriteID) << std::endl;
@@ -90,8 +92,8 @@ struct Generator {
             out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
             out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;
             out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
-            out << Constant(vformat("%s_INDEX",sprite->spriteID), vformat("%d",sprite->charIndex)) << std::endl;
-            out << Constant(vformat("%s_CHAR_INDEX",sprite->spriteID), vformat("%d",sprite->charOffset<<3)) << std::endl;
+            out << Constant(vformat("%s_INDEX",sprite->spriteID), vformat("%d",nr)) << std::endl;
+            out << Constant(vformat("%s_CHAR_INDEX",sprite->spriteID), vformat("%d",charIndex)) << std::endl;
         }
         size_t nframes = 1;
         if(sprite->prerenderSoftwareSprite) {
@@ -103,17 +105,18 @@ struct Generator {
         }
         if(!spriteManager->project->header.onlyData) {
             if(sprite->animationAttached) {
-                out << Constant(vformat("%s_ANIM_FRAMES",sprite->spriteID), vformat("%d",sprite->animationFrames.size()*nframes)) << std::endl;
+                out << Constant(vformat("%s_ANIM_SIZE",sprite->spriteID), vformat("%d",sprite->animationFrames.size()*nframes)) << std::endl;
+                out << Constant(vformat("%s_ANIM_NUM_FRAMES",sprite->spriteID), vformat("%d",sprite->animationFrames.size())) << std::endl;
                 out << Constant(vformat("%s_ANIM_FPS",sprite->spriteID), vformat("%d",sprite->animationFPS)) << std::endl;
             }
-            out << Constant(vformat("%s_NUM_FRAMES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
+            out << Constant(vformat("%s_NUM_IMAGES",sprite->spriteID), vformat("%d",nframes)) << std::endl;
             out << std::endl;
         }
 
         MakeFrames(out, sprite);
     }
 
-    void ShiftSpriteFrame(std::ostream &out,  size_t frame, const char *data_type, Sprite *sp, char *data) {
+    void ShiftSpriteFrame(std::ostream &out, const char *data_type, int frame, Sprite *sp, char *data) {
         // copy sprite data into temporary shift buffer
         bool masked = (strcmp(data_type, "mask") == 0);
         char buffer[4096+64*8]; size_t bpitch = 64+8;
@@ -126,21 +129,21 @@ struct Generator {
         }
         switch(sp->renderingPrecision) {
             case Sprite::PrerendingPrecision::High8Frames:
-            for(size_t n=0;n<8;++n) {
-                SingleFrame(out, sp, frame, data_type, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+            for(size_t sh=0;sh<8;++sh) {
+                SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
             }
             break;
             case Sprite::PrerendingPrecision::Medium4Frames:
-            for(size_t n=0;n<4;++n) {
-                SingleFrame(out, sp, frame, data_type, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+            for(size_t sh=0;sh<4;++sh) {
+                SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
             }
             break;
             case Sprite::PrerendingPrecision::Low2Frames:
-            for(size_t n=0;n<2;++n) {
-                SingleFrame(out, sp, frame, data_type, n, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+            for(size_t sh=0;sh<2;++sh) {
+                SingleFrame(out, sp,data_type,  frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
                 ShiftBuffer(sp, buffer, bpitch);
@@ -153,41 +156,56 @@ struct Generator {
     void MakeFrames(std::ostream &out, Sprite *sp) {
         if(sp->prerenderSoftwareSprite) {
             if(sp->animationAttached) {
-                for(size_t i=0;i<sp->animationFrames.size();++i) {
-                    ShiftSpriteFrame(out, i, "frame", sp, sp->animationFrames[i].data);
+                for(size_t fr=0;fr<sp->animationFrames.size();++fr) {
+                    ShiftSpriteFrame(out, "frame", fr, sp, sp->animationFrames[fr].data);
                     if(sp->masked) {
-                      ShiftSpriteFrame(out, i, "mask", sp, sp->animationFrames[i].mask);
+                      ShiftSpriteFrame(out, "mask", fr, sp, sp->animationFrames[fr].mask);
                     }
                 }
             } else {
-                ShiftSpriteFrame(out, 0, "frame", sp, sp->data);
+                ShiftSpriteFrame(out, "image", -1, sp, sp->data);
                 if(sp->masked) {
-                  ShiftSpriteFrame(out, 0, "mask", sp, sp->mask);
+                  ShiftSpriteFrame(out, "mask", -1, sp, sp->mask);
                 }
             }
         } else {
             if(sp->animationAttached) {
-                for(size_t i=0;i<sp->animationFrames.size();++i) {
-                    SingleFrame(out, sp, i, "frame", 0, sp->animationFrames[i].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+                for(size_t fr=0;fr<sp->animationFrames.size();++fr) {
+                    SingleFrame(out, sp, "frame", fr, -1, sp->animationFrames[fr].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                     if(sp->masked) {
-                      SingleFrame(out, sp, i, "mask", 0, sp->animationFrames[i].mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);    
+                      SingleFrame(out, sp, "mask", fr, -1, sp->animationFrames[fr].mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);    
                     }
                 }
             } else {
-                SingleFrame(out, sp, 0, "frame", 0, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
+                SingleFrame(out, sp, "image", -1, -1, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                 if(sp->masked) {
-                    SingleFrame(out, sp, 0, "mask", 0, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
+                    SingleFrame(out, sp, "mask", -1, -1, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
                 }
             }
         }
     }
 
-    void SingleFrame(std::ostream &out, Sprite *sprite, int anim, const char *data_type, int shift, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
+    // Naming convention
+    // shift = 0..n (-1 no shift)
+    // data_type = image | mask
+    // <spriteID>_<data_type>
+    // <spriteID>_<data_type>_shift<n>
+    // <spriteID>_<data_type>_frame<n>
+    // <spriteID>_<data_type>_frame<n>_shift<n>
+    void SingleFrame(std::ostream &out, Sprite *sprite, const char *data_type, int frame, int shift, const char *data, size_t widthInPixels, size_t heightInPixels, size_t pitch) {
         if(!spriteManager->project->header.onlyData) {
             if(sprite->animationAttached) {
-                out << Label(vformat("%s_anim%d_%s%d", sprite->spriteID, anim+1, data_type, shift)) << std::endl;
+                if(shift!=-1) {
+                    out << Label(vformat("%s_%s%d_shift%d", sprite->spriteID, data_type, frame, shift)) << std::endl;
+                } else {
+                    out << Label(vformat("%s_%s%d", sprite->spriteID, data_type, frame)) << std::endl;
+                }
             } else {
-                out << Label(vformat("%s_%s%d", sprite->spriteID, data_type, shift)) << std::endl;
+                if(shift!=-1) {
+                    out << Label(vformat("%s_%s_shift%d", sprite->spriteID, data_type, shift)) << std::endl;
+                } else {
+                    out << Label(vformat("%s_%s", sprite->spriteID, data_type)) << std::endl;
+                }
             }
         }
         std::vector<std::string> nibbles;

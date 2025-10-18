@@ -42,6 +42,9 @@ struct SpriteImage
     ColorSelector colorSelector;
     ImGuiID selectedColor = 0;
 
+    const ImU32 MASK_TRANSPARENT = 0xffeaeaea;
+    const ImU32 MASK_FILL = 0xff000000;
+
     enum class Editing {
       Image = 0,
       Mask = 1
@@ -324,10 +327,10 @@ struct SpriteImage
                           ? (((char*)sp->mask)[y*sp->pitch + x + 0] << 1) | ((char*)sp->mask)[y*sp->pitch + x + 1]
                           : (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
                         switch(c) {
-                            case 0: pixelColor = (masking ? 0xff000000 : sp->backgroundColor); break;
+                            case 0: pixelColor = (masking ? MASK_FILL : sp->backgroundColor); break;
                             case 1: pixelColor = sp->multi1Color; break;
                             case 2: pixelColor = sp->multi2Color; break;
-                            case 3: pixelColor = (masking ? 0xffffffff : sp->characterColor); break;
+                            case 3: pixelColor = (masking ? MASK_TRANSPARENT : sp->characterColor); break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
@@ -359,7 +362,7 @@ struct SpriteImage
                                     case 3: pixelColor = sp->characterColor; break;
                                 }
                                 // Dim the pixel color if it's not the background color
-                                auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                auto dimmedColor = dim_color(pixelColor, 0.5f);
                                 drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), dimmedColor);
                                 drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                             }
@@ -375,8 +378,8 @@ struct SpriteImage
                           ? ((char*)sp->mask)[y*sp->pitch + x]
                           : ((char*)sp->data)[y*sp->pitch + x];
                         switch(c) {
-                            case 0: pixelColor = (masking ? 0xff000000 : sp->backgroundColor); break;
-                            case 1: pixelColor = (masking ? 0xffffffff : sp->characterColor); break;
+                            case 0: pixelColor = (masking ? MASK_FILL : sp->backgroundColor); break;
+                            case 1: pixelColor = (masking ? MASK_TRANSPARENT : sp->characterColor); break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
@@ -402,7 +405,7 @@ struct SpriteImage
                                        case 1: pixelColor = sp->characterColor; break;
                                     }
                                     // Dim the pixel color if it's not the background color
-                                    auto dimmedColor = dim_color(pixelColor, 0.25f);
+                                    auto dimmedColor = dim_color(pixelColor, 0.5f);
                                     drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), dimmedColor);
                                     drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                                 }
@@ -535,7 +538,7 @@ struct SpriteImage
         bool hovered, is_hovered = false;
         const bool masking = (spriteManager->currentSprite->masked && editing == Editing::Mask);
 
-        if(DrawColorButton(0, (masking ? 0xff000000 : spriteManager->currentSprite->backgroundColor), (masking ? "Sprite" : "Background"), &hovered)) {
+        if(DrawColorButton(0, (masking ? MASK_FILL : spriteManager->currentSprite->backgroundColor), (masking ? "Sprite" : "Background"), &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
                 color = &spriteManager->currentSprite->backgroundColor;
@@ -570,7 +573,7 @@ struct SpriteImage
                 is_hovered = true;
             }
         }
-        ImGui::SameLine(); if(DrawColorButton(3, (masking ? 0xffffffff : spriteManager->currentSprite->characterColor), (masking ? "Transparent" : "Character"), &hovered)) {
+        ImGui::SameLine(); if(DrawColorButton(3, (masking ? MASK_TRANSPARENT : spriteManager->currentSprite->characterColor), (masking ? "Transparent" : "Character"), &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
                 color = &spriteManager->currentSprite->characterColor;
