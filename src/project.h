@@ -208,6 +208,9 @@ struct Project
             fs << "Sprite" << n << ".Palette=" << sp->GetPaletteName() << CEOL;
             fs << "Sprite" << n << ".Data=" << Serializator::HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
             fs << "Sprite" << n << ".Masked=" << (sp->masked ? "True" : "False") << CEOL;
+            if(sp->masked) {
+                fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+            }
             fs << "Sprite" << n << ".AnimationAttached=" << (sp->animationAttached ? "True" : "False") << CEOL;
             if(sp->animationAttached) {
                 fs << "Sprite" << n << ".AnimationFPS=" << sp->animationFPS << CEOL;
@@ -220,8 +223,6 @@ struct Project
                         fs << "Sprite" << n << ".Mask." << a << "=" << Serializator::HexSerializeData(an.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                     }
                 }
-            } else if(sp->masked) {
-                fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
             }
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CEOL;
             fs << "Sprite" << n << ".RenderingPrecision=" << sp->GetRenderingPrecision() << CEOL;
