@@ -165,7 +165,7 @@ struct Project
                     sp->masked = kv.second == "True";
                 } else if(key == "Mask") {
                     if(sp->masked) {
-                      Serializator::HexDeserializeData(kv.second, sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                      Serializator::HexDeserializeData(kv.second.c_str(), sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                     }
                 }
             }
@@ -217,7 +217,7 @@ struct Project
                     auto &an = *ai;
                     fs << "Sprite" << n << ".Frame." << a << "=" << Serializator::HexSerializeData(an.data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                     if(sp->masked) {
-                        fs << "Sprite" << n << ".Mask." << a << "=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+                        fs << "Sprite" << n << ".Mask." << a << "=" << Serializator::HexSerializeData(an.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                     }
                 }
             } else if(sp->masked) {
