@@ -88,7 +88,7 @@ struct Generator {
             out << std::endl;
         }
 
-        if(!spriteManager->project->header.onlyData) {
+        if(!spriteManager->project->header.onlyData && spriteManager->project->header.includeMetadata) {
             out << Constant(vformat("%s_WIDTH_PX",sprite->spriteID), vformat("%d",sprite->widthInBytes<<3)) << std::endl;
             out << Constant(vformat("%s_HEIGHT_PX",sprite->spriteID), vformat("%d",sprite->heightInPixels)) << std::endl;
             out << Constant(vformat("%s_BIT_PER_PX",sprite->spriteID), vformat("%d",sprite->multicolorMode ? 2 : 1)) << std::endl;
@@ -103,7 +103,7 @@ struct Generator {
                 case Sprite::PrerendingPrecision::Low2Frames: nframes = 2; break;
             }
         }
-        if(!spriteManager->project->header.onlyData) {
+        if(!spriteManager->project->header.onlyData && spriteManager->project->header.includeMetadata) {
             if(sprite->animationAttached) {
                 out << Constant(vformat("%s_ANIM_SIZE",sprite->spriteID), vformat("%d",sprite->animationFrames.size()*nframes)) << std::endl;
                 out << Constant(vformat("%s_ANIM_NUM_FRAMES",sprite->spriteID), vformat("%d",sprite->animationFrames.size())) << std::endl;
