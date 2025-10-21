@@ -127,29 +127,50 @@ struct Generator {
                 buffer[y*bpitch+x] = data[y*sp->pitch+x];
             }
         }
-        switch(sp->renderingPrecision) {
-            case Sprite::PrerendingPrecision::High8Frames:
-            for(size_t sh=0;sh<8;++sh) {
-                SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
+        if(sp->multicolorMode) {
+            switch(sp->renderingPrecision) {
+                default: 
+                    // NOP
+                    break;
+                case Sprite::PrerendingPrecision::Medium4Frames:
+                    for(size_t sh=0;sh<4;++sh) {
+                        SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                    }
+                break;
+                case Sprite::PrerendingPrecision::Low2Frames:
+                    for(size_t sh=0;sh<2;++sh) {
+                        SingleFrame(out, sp,data_type,  frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                    }
+                break;
+            } 
+        } else {
+            switch(sp->renderingPrecision) {
+                case Sprite::PrerendingPrecision::High8Frames:
+                    for(size_t sh=0;sh<8;++sh) {
+                        SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                    }
+                break;
+                case Sprite::PrerendingPrecision::Medium4Frames:
+                    for(size_t sh=0;sh<4;++sh) {
+                        SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                    }
+                break;
+                case Sprite::PrerendingPrecision::Low2Frames:
+                    for(size_t sh=0;sh<2;++sh) {
+                        SingleFrame(out, sp,data_type,  frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                        ShiftBuffer(sp, buffer, bpitch);
+                    }
+                break;
             }
-            break;
-            case Sprite::PrerendingPrecision::Medium4Frames:
-            for(size_t sh=0;sh<4;++sh) {
-                SingleFrame(out, sp, data_type, frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-            }
-            break;
-            case Sprite::PrerendingPrecision::Low2Frames:
-            for(size_t sh=0;sh<2;++sh) {
-                SingleFrame(out, sp,data_type,  frame, sh, buffer, widthInPixels+8, sp->heightInPixels, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-                ShiftBuffer(sp, buffer, bpitch);
-            }
-            break;
         }
     }
 
