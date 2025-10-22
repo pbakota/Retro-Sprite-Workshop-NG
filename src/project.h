@@ -133,6 +133,12 @@ struct Project
                     sp->palette = sp->GetPaletteName(kv.second);
                 } else if(key == "Data") {
                     Serializator::HexDeserializeData(kv.second, sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                } else if(key == "Masked") {
+                    sp->masked = kv.second == "True";
+                } else if(key == "Mask") {
+                    if(sp->masked) {
+                        Serializator::HexDeserializeData(kv.second.c_str(), sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                    }
                 } else if(key == "PrerenderSoftwareSprite") {
                     sp->prerenderSoftwareSprite = kv.second == "True";
                 } else if(key == "RenderingPrecision") {
@@ -157,15 +163,17 @@ struct Project
                         frame.image = Sprite::CreateSpriteImageTexture(renderer);
                         Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+                        if(sp->animationFrames.size() == 1) {
+                            // Copy the first frame to sprite image data
+                            std::memcpy((void*)sp->data, (void*)frame.data, sizeof(sp->data));
+                        }
                     }
                 } else if(key.substr(0,5) == "Mask.") {
                     auto &frame = sp->animationFrames.back();
                     Serializator::HexDeserializeData(kv.second.c_str(), frame.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
-                } else if(key == "Masked") {
-                    sp->masked = kv.second == "True";
-                } else if(key == "Mask") {
-                    if(sp->masked) {
-                      Serializator::HexDeserializeData(kv.second.c_str(), sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch);
+                    if(sp->animationFrames.size() == 1) {
+                        // Copy the first frame to sprite mask
+                        std::memcpy((void*)sp->mask, (void*)frame.mask, sizeof(sp->mask));
                     }
                 }
             }
@@ -206,11 +214,7 @@ struct Project
             fs << "Sprite" << n << ".Multi1Color=" << WriteRGBColor(sp->multi1Color) << CEOL;
             fs << "Sprite" << n << ".Multi2Color=" << WriteRGBColor(sp->multi2Color) << CEOL;
             fs << "Sprite" << n << ".Palette=" << sp->GetPaletteName() << CEOL;
-            fs << "Sprite" << n << ".Data=" << Serializator::HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
             fs << "Sprite" << n << ".Masked=" << (sp->masked ? "True" : "False") << CEOL;
-            if(sp->masked) {
-                fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
-            }
             fs << "Sprite" << n << ".AnimationAttached=" << (sp->animationAttached ? "True" : "False") << CEOL;
             if(sp->animationAttached) {
                 fs << "Sprite" << n << ".AnimationFPS=" << sp->animationFPS << CEOL;
@@ -222,6 +226,11 @@ struct Project
                     if(sp->masked) {
                         fs << "Sprite" << n << ".Mask." << a << "=" << Serializator::HexSerializeData(an.mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                     }
+                }
+            } else {
+                fs << "Sprite" << n << ".Data=" << Serializator::HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
+                if(sp->masked) {
+                    fs << "Sprite" << n << ".Mask=" << Serializator::HexSerializeData(sp->mask, sp->widthInBytes, sp->heightInPixels, sp->pitch) << CEOL;
                 }
             }
             fs << "Sprite" << n << ".PrerenderSoftwareSprite=" << (sp->prerenderSoftwareSprite ? "True" : "False") << CEOL;
