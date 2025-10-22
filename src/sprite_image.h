@@ -334,7 +334,7 @@ struct SpriteImage
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
-                        if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex) {
+                        if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex && !masking) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
                             c = masking
                               ? frame.mask[y*sp->pitch + x + 0] << 1 | frame.mask[y*sp->pitch + x + 1]
