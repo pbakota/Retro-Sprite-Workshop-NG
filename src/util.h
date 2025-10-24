@@ -22,7 +22,9 @@ const std::string vformat(const char *const zcFormat, ...);
 std::string trucate_text(const std::string &p_text, float p_truncated_width);
 std::string return_current_time_and_date();
 bool is_light_color(ImU32 color);
-ImVec4 rgb_to_lab(ImVec4 color);
+ImVec4 rgb_to_lab(const ImVec4 color);
+ImVec4 rgb_to_hsv(const ImVec4 rgb);
+ImU32 brighten_color(ImU32 color, float delta_v);
 
 // requires at least C++11
 const std::string vformat(const char * const zcFormat, ...) {
@@ -52,6 +54,12 @@ bool is_light_color(ImU32 color)
 	float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
 	float luma = 0.2126*r+0.7152*g+0.0722*b;
 	return (luma > 128);
+}
+
+ImU32 grayscale_color(ImU32 color){
+	  float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
+    int gray = static_cast<int>(0.2126*r+0.7152*g+0.0722*b)&0xff;
+    return 0xff << 24 | (gray << 16) | (gray << 8) | gray;
 }
 
 // Calculate color distance between two colors, return value between 0%..100% where 0% means they are totally same, 100% means they are complementary colors to each others.
@@ -96,6 +104,96 @@ ImVec4 rgb_to_lab(const ImVec4 color) {
     return ImVec4(L,a,b,0);
 }
 
+ImVec4 rgb_to_hsv(const ImVec4 rgb) {
+    ImVec4 hsv = {0.0f, 0.0f, 0.0f, 0.0f};
+    
+    float r = rgb.x;
+    float g = rgb.y;
+    float b = rgb.z;
+    float max_val, min_val, delta;
+
+    // Preserve Alpha (w)
+    hsv.w = rgb.w; 
+
+    max_val = fmaxf(r, fmaxf(g, b));
+    min_val = fminf(r, fminf(g, b));
+    delta = max_val - min_val;
+
+    // V (Value) -> hsv.z
+    hsv.z = max_val;
+
+    // S (Saturation) -> hsv.y
+    if (max_val == 0.0f) {
+        hsv.y = 0.0f;
+        hsv.x = 0.0f; // H is 0 for black/gray
+        return hsv;
+    }
+    hsv.y = delta / max_val;
+
+    // H (Hue) -> hsv.x
+    if (delta == 0.0f) {
+        hsv.x = 0.0f;
+    } else {
+        if (max_val == r) {
+            hsv.x = 60.0f * fmodf((g - b) / delta, 6.0f);
+        } else if (max_val == g) {
+            hsv.x = 60.0f * ((b - r) / delta + 2.0f);
+        } else { // max_val == b
+            hsv.x = 60.0f * ((r - g) / delta + 4.0f);
+        }
+        if (hsv.x < 0.0f) {
+            hsv.x += 360.0f;
+        }
+    }
+    
+    return hsv;
+}
+
+ImVec4 hsv_to_rgb(const ImVec4 hsv) {
+    ImVec4 rgb = {0.0f, 0.0f, 0.0f, 0.0f};
+    
+    float h = hsv.x;
+    float s = hsv.y;
+    float v = hsv.z;
+    float r, g, b;
+    int i;
+    float f, p, q, t;
+
+    // Preserve Alpha (w)
+    rgb.w = hsv.w; 
+
+    if (s == 0.0f) {
+        // Grayscale: R, G, B are all equal to V
+        rgb.x = rgb.y = rgb.z = v;
+        return rgb;
+    }
+
+    h /= 60.0f; 
+    i = (int)floorf(h);
+    f = h - i;
+
+    p = v * (1.0f - s);
+    q = v * (1.0f - s * f);
+    t = v * (1.0f - s * (1.0f - f));
+
+    // Assign R (x), G (y), B (z) based on the color sector
+    switch (i % 6) {
+        case 0: r = v; g = t; b = p; break; 
+        case 1: r = q; g = v; b = p; break; 
+        case 2: r = p; g = v; b = t; break; 
+        case 3: r = p; g = q; b = v; break; 
+        case 4: r = t; g = p; b = v; break; 
+        case 5: r = v; g = p; b = q; break; 
+        default: r = g = b = v; break;
+    }
+    
+    rgb.x = r;
+    rgb.y = g;
+    rgb.z = b;
+    
+    return rgb;
+}
+
 // Dim a color by a factor, e.g. 0.5f will dim the color to half of its original brightness
 ImU32 dim_color(ImU32 color, float factor) {
     float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
@@ -103,6 +201,28 @@ ImU32 dim_color(ImU32 color, float factor) {
     int dimG = static_cast<int>(g * factor)&0xff;
     int dimB = static_cast<int>(b * factor)&0xff;
     return 0xff << 24 | (dimB << 16) | (dimG << 8) | dimR;
+}
+
+ImU32 brighten_color(ImU32 color, float delta_v) {
+    float r = ABGR_RED(color),g=ABGR_GREEN(color),b=ABGR_BLUE(color);
+
+    // 1. Convert RGB to HSV
+    ImVec4 hsv = rgb_to_hsv(ImVec4(r/255.0f,g/255.0f,b/255.0f, 1.0f));
+
+    // 2. Brighten: Increase V (stored in hsv.z) and clamp at 1.0
+    hsv.z = fminf(hsv.z + delta_v, 1.0f);
+    if (hsv.z == 1.0f) {
+        // Decrease Saturation (hsv.y) by the same factor (delta_v)
+        // Clamp Saturation at 0.0 (fully white/gray)
+        hsv.y = fmaxf(hsv.y - delta_v, 0.0f);
+    }
+    // 3. Convert modified HSV back to RGB
+    ImVec4 rgb = hsv_to_rgb(hsv);
+
+    int briR = static_cast<int>(255.0f*rgb.x)&0xff;
+    int briG = static_cast<int>(255.0f*rgb.y)&0xff;
+    int briB = static_cast<int>(255.0f*rgb.z)&0xff;
+    return 0xff << 24 | (briB << 16) | (briG << 8) | briR;
 }
 
 std::string trucate_text(const std::string& p_text, float p_truncated_width) {
@@ -118,8 +238,7 @@ std::string trucate_text(const std::string& p_text, float p_truncated_width) {
 		int visible_chars = 0;
 		for (size_t i = 0; i < p_text.size(); i++) {
 			const float current_width = ImGui::CalcTextSize(
-					p_text.substr(0, i).c_str(), nullptr, true)
-												.x;
+      p_text.substr(0, i).c_str(), nullptr, true).x;
 			if (current_width + ellipsis_size > p_truncated_width) {
 				break;
 			}

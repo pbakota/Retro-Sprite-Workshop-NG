@@ -5,6 +5,7 @@
 #include "statusbar.h"
 #include "color_selector.h"
 #include "animation.h"
+#include "util.h"
 
 extern StatusBar statusbar;
 extern Animation animation;
@@ -42,7 +43,7 @@ struct SpriteImage
     ColorSelector colorSelector;
     ImGuiID selectedColor = 0;
 
-    const ImU32 MASK_TRANSPARENT = 0xffeaeaea;
+    const ImU32 MASK_TRANSPARENT = 0xff800080;
     const ImU32 MASK_FILL = 0xff000000;
 
     enum class Editing {
@@ -224,6 +225,15 @@ struct SpriteImage
         }
     }
 
+    void SetPixel(bool masking, int x, int y, int color) {
+        if(masking) {
+          spriteManager->currentSprite->SetMask(x, y, color);
+        } else {
+          spriteManager->currentSprite->SetPixel(x, y, color); spriteManager->currentSprite->Invalidate();
+        }
+        animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+    }
+
     void ImageEditor() {
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,3.0f));
@@ -249,71 +259,44 @@ struct SpriteImage
 
                 // Left mouse button set the pixel to selected color
                 if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    if(spriteManager->currentSprite->multicolorMode) {
-                        switch(selectedColor) {
-                            case 0: {
-                                if(masking) {
-                                  spriteManager->currentSprite->SetMask(position_x, position_y, 0);
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
-                                }
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                            } break;
-                            case 1: {
-                                if(masking) {
-                                  // NOP
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
-                                  animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                                }
-                            } break;
-                            case 2: {
-                                if(masking) {
-                                  // NOP
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 2); spriteManager->currentSprite->Invalidate();
-                                  animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                                }
-                            } break;
-                            case 3: {
-                                if(masking) {
-                                  spriteManager->currentSprite->SetMask(position_x, position_y, 3); 
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 3); spriteManager->currentSprite->Invalidate();
-                                }
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                            } break;
-                        }
+                    if(ImGui::IsKeyDown(ImGuiKey_ModShift)) {
+                        // With shift always set pixel to background
+                        SetPixel(masking, position_x, position_y, 0);
                     } else {
-                        switch(selectedColor) {
-                            case 0: {
-                                if(masking) {
-                                  spriteManager->currentSprite->SetMask(position_x, position_y, 0);
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
-                                }
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                            } break;
-                            case 3: {
-                                if(masking) {
-                                  spriteManager->currentSprite->SetMask(position_x, position_y, 1);
-                                } else {
-                                  spriteManager->currentSprite->SetPixel(position_x, position_y, 1); spriteManager->currentSprite->Invalidate();
-                                }
-                                animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
-                            } break;
+                        if(spriteManager->currentSprite->multicolorMode) {
+                            switch(selectedColor) {
+                                case 0: {
+                                    SetPixel(masking, position_x, position_y, 0);
+                                } break;
+                                case 1: {
+                                    if(masking) {
+                                      // NOP
+                                    } else {
+                                      SetPixel(false, position_x, position_y, 1);
+                                    }
+                                } break;
+                                case 2: {
+                                    if(masking) {
+                                      // NOP
+                                    } else {
+                                      SetPixel(false, position_x, position_y, 2);
+                                    }
+                                } break;
+                                case 3: {
+                                    SetPixel(masking, position_x, position_y, 3);
+                                } break;
+                            }
+                        } else {
+                            switch(selectedColor) {
+                                case 0: {
+                                    SetPixel(masking, position_x, position_y, 0);
+                                } break;
+                                case 3: {
+                                    SetPixel(masking, position_x, position_y, 1);
+                                } break;
+                            }
                         }
                     }
-                }
-
-                // Right mouse button always erase pixel
-                if(ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsKeyDown(ImGuiKey_ModShift)) {
-                    if(masking) {
-                      spriteManager->currentSprite->SetMask(position_x, position_y, 0);
-                    } else {
-                      spriteManager->currentSprite->SetPixel(position_x, position_y, 0); spriteManager->currentSprite->Invalidate();
-                    }
-                    animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
                 }
             }
 
@@ -323,22 +306,18 @@ struct SpriteImage
                 if(sp->multicolorMode) {
                     for(size_t x = 0; x < widthInPixels; x+=2) {
                         ImU32 pixelColor;
-                        size_t c = masking
-                          ? (((char*)sp->mask)[y*sp->pitch + x + 0] << 1) | ((char*)sp->mask)[y*sp->pitch + x + 1]
-                          : (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
+                        size_t c = (((char*)sp->data)[y*sp->pitch + x + 0] << 1) | ((char*)sp->data)[y*sp->pitch + x + 1];
                         switch(c) {
-                            case 0: pixelColor = (masking ? MASK_FILL : sp->backgroundColor); break;
+                            case 0: pixelColor = sp->backgroundColor; break;
                             case 1: pixelColor = sp->multi1Color; break;
                             case 2: pixelColor = sp->multi2Color; break;
-                            case 3: pixelColor = (masking ? MASK_TRANSPARENT : sp->characterColor); break;
+                            case 3: pixelColor = sp->characterColor; break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
                         if(c == 0 && animation.IsAnimationAttached(sp) && animation.selectedFrameIndex && !masking) {
                             auto &frame = sp->animationFrames[animation.selectedFrameIndex - 1];
-                            c = masking
-                              ? frame.mask[y*sp->pitch + x + 0] << 1 | frame.mask[y*sp->pitch + x + 1]
-                              : frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
+                            c = frame.data[y*sp->pitch + x + 0] << 1 | frame.data[y*sp->pitch + x + 1];
                             if(c != 0) {
                                 switch(c) {
                                     // case 0: pixelColor = sp->backgroundColor; break;
@@ -352,19 +331,10 @@ struct SpriteImage
                                 drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                             }
                         }
-                        if(c == 0 && masking) {
-                            c = sp->data[y*sp->pitch + x + 0] << 1 | sp->data[y*sp->pitch + x + 1];
-                            if(c != 0) {
-                                switch(c) {
-                                    // case 0: pixelColor = sp->backgroundColor; break;
-                                    case 1: pixelColor = sp->multi1Color; break;
-                                    case 2: pixelColor = sp->multi2Color; break;
-                                    case 3: pixelColor = sp->characterColor; break;
-                                }
-                                // Dim the pixel color if it's not the background color
-                                auto dimmedColor = dim_color(pixelColor, 0.5f);
-                                drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs*2, yy+cs), dimmedColor);
-                                drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
+                        if(masking) {
+                            size_t m = sp->mask[y*sp->pitch + x + 0] << 1 | sp->mask[y*sp->pitch + x + 1];
+                            if(m != 0) {
+                                pixelColor = MASK_TRANSPARENT;
                             }
                         }
                         if(drawPixel) {
@@ -374,12 +344,10 @@ struct SpriteImage
                 } else {
                     for(size_t x = 0; x < widthInPixels; ++x) {
                         ImU32 pixelColor;
-                        size_t c = masking
-                          ? ((char*)sp->mask)[y*sp->pitch + x]
-                          : ((char*)sp->data)[y*sp->pitch + x];
+                        size_t c = ((char*)sp->data)[y*sp->pitch + x];
                         switch(c) {
-                            case 0: pixelColor = (masking ? MASK_FILL : sp->backgroundColor); break;
-                            case 1: pixelColor = (masking ? MASK_TRANSPARENT : sp->characterColor); break;
+                            case 0: pixelColor = sp->backgroundColor; break;
+                            case 1: pixelColor = sp->characterColor; break;
                         }
                         float xx = s.x + x * cs, yy = s.y + y * cs;
                         bool drawPixel = true;
@@ -397,18 +365,12 @@ struct SpriteImage
                                     drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), dimmedColor);
                                     drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
                                 }
-                            } else if(masking) {
-                                c = sp->data[y*sp->pitch + x + 0];
-                                if(c!=0) {
-                                    switch(c) {
-                                       case 0: pixelColor = sp->backgroundColor; break;
-                                       case 1: pixelColor = sp->characterColor; break;
-                                    }
-                                    // Dim the pixel color if it's not the background color
-                                    auto dimmedColor = dim_color(pixelColor, 0.5f);
-                                    drawList->AddRectFilled(ImVec2(xx, yy), ImVec2(xx+cs, yy+cs), dimmedColor);
-                                    drawPixel = false; // Don't draw the pixel, just the dimmed rectangle
-                                }
+                            }
+                        }
+                        if(masking) {
+                            size_t m = sp->mask[y*sp->pitch + x + 0];
+                            if(m != 0) {
+                                pixelColor = MASK_TRANSPARENT;
                             }
                         }
                         if(drawPixel) {
@@ -538,7 +500,7 @@ struct SpriteImage
         bool hovered, is_hovered = false;
         const bool masking = (spriteManager->currentSprite->masked && editing == Editing::Mask);
 
-        if(DrawColorButton(0, (masking ? MASK_FILL : spriteManager->currentSprite->backgroundColor), (masking ? "Sprite" : "Background"), &hovered)) {
+        if(DrawColorButton(0, (masking ? MASK_FILL : spriteManager->currentSprite->backgroundColor), (masking ? "Image" : "Background"), &hovered)) {
             if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 colorSelectorOpen = true;
                 color = &spriteManager->currentSprite->backgroundColor;
