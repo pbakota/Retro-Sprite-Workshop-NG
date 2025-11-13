@@ -45,6 +45,8 @@ SDL_Renderer *renderer;
 // Main code
 int main(int ac, char **av)
 {
+    char inifilename[512] = {0};
+
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
@@ -91,7 +93,9 @@ int main(int ac, char **av)
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     // io.WantCaptureKeyboard = true;
-    io.IniFilename = strdup(std::filesystem::path(std::string(spriteManager.configPath) + "rswng.ini").make_preferred().string().c_str());
+
+    strncpy_t(inifilename, std::filesystem::path(std::string(spriteManager.configPath) + "imgui.ini").make_preferred().c_str(), sizeof(inifilename)-1);
+    io.IniFilename = inifilename;
     // std::cerr << "window ini: " << io.IniFilename << std::endl;
 
     // Custom font

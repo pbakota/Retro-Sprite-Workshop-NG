@@ -138,7 +138,7 @@ struct SpriteImage
                             ImGui::SameLine(210.0f); ImGui::TextUnformatted("Editing"); ImGui::SetNextItemWidth(-FLT_MIN);
                             ImGui::SameLine(); if(ImGui::RadioButton("Image", (int*)&editing, (int)Editing::Image)) {}
                             ImGui::SameLine(); if(ImGui::RadioButton("Mask", (int*)&editing, (int)Editing::Mask)) {}
-                            ImGui::SameLine(); if(ImGui::Button("Generate Mask")) {}
+                            //ImGui::SameLine(); if(ImGui::Button("Generate Mask")) {}
                         }
                     }
                     ImGui::EndTable();

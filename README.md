@@ -14,6 +14,11 @@ The application generates source code for any assembler (the assembler pseudocod
 
 ![](figures/2024-11-17_20-35.png)
 
+
+It contains a simple animation editor, masked sprites and also a tiled view.
+
+![](figures/2025-11-13_20-00.png)
+
 ## How to build & run
 
 ### Linux

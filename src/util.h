@@ -316,3 +316,9 @@ std::vector<std::string> split_string(const std::string &str, const std::string 
     }
     return v;
 }
+
+// Safe version of strncpy
+void strncpy_t(char *dest, const char *src, size_t d_len) {
+    memset(dest, 0, d_len);
+    memcpy(dest, src,  std::min(strlen(src), d_len-1));
+}
