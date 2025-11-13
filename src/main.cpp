@@ -94,7 +94,8 @@ int main(int ac, char **av)
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     // io.WantCaptureKeyboard = true;
 
-    strncpy_t(inifilename, std::filesystem::path(std::string(spriteManager.configPath) + "imgui.ini").make_preferred().c_str(), sizeof(inifilename)-1);
+    std::string s = std::filesystem::path(std::string(spriteManager.configPath) + "imgui.ini").u8string();
+    strncpy_t(inifilename, reinterpret_cast<const char*>(s.c_str()), sizeof(inifilename)-1);
     io.IniFilename = inifilename;
     // std::cerr << "window ini: " << io.IniFilename << std::endl;
 
