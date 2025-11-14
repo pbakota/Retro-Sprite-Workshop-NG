@@ -47,6 +47,11 @@ int main(int ac, char **av)
 {
     char inifilename[512] = {0};
 
+    #ifdef _WIN32 // Force OpenGL on Windows to avoid Direct3D issues
+    // Force OpenGL (not Direct3D)
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    #endif
+
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
