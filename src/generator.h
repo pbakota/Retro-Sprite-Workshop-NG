@@ -1,6 +1,9 @@
 #pragma once
 #include "sprite_manager.h"
 #include "util.h"
+#include <vector>
+
+using Bytes = std::vector<std::byte>;
 
 // Width of the byte array line in the source code
 #define MAX_BYTE_ARRAY_WIDTH 16
@@ -14,8 +17,13 @@ struct Generator {
         std::ofstream file(filename, std::ios::binary|std::ios::trunc);
         if(!file.is_open()) return false;
 
-        std::string content = GenerateToString();
-        file << content;
+        if(spriteManager->project->header.binaryExport) {
+            std::vector<unsigned char> content = GenerateToBinary();
+            file.write(reinterpret_cast<const char*>(content.data()), content.size());
+        } else {
+            std::string content = GenerateToString();
+            file << content;
+        }
 
         file.close();
         return true;
@@ -34,6 +42,20 @@ struct Generator {
         Footer(ss);
 
         return ss.str();
+    }
+
+    std::vector<unsigned char> GenerateToBinary() {
+        std::cerr << "Export to binary file" << std::endl;
+        std::vector<unsigned char> result;
+
+        int n = 1, charIndex = spriteManager->project->header.startCharIndex;
+        for(auto sp=spriteManager->sprites.begin();sp!=spriteManager->sprites.end();++sp) {
+            auto& sprite = *sp;
+            SingleSprite(ss, n++, sprite, charIndex);
+            charIndex += sprite->GetCharOffset();
+        }
+
+        return result;
     }
 
     void Header(std::ostream &out) {
@@ -129,7 +151,7 @@ struct Generator {
         }
         if(sp->multicolorMode) {
             switch(sp->renderingPrecision) {
-                default: 
+                default:
                     // NOP
                     break;
                 case Sprite::PrerendingPrecision::Medium4Frames:
@@ -145,7 +167,7 @@ struct Generator {
                         ShiftBuffer(sp, buffer, bpitch);
                     }
                 break;
-            } 
+            }
         } else {
             switch(sp->renderingPrecision) {
                 case Sprite::PrerendingPrecision::High8Frames:
@@ -194,13 +216,13 @@ struct Generator {
                 for(size_t fr=0;fr<sp->animationFrames.size();++fr) {
                     SingleFrame(out, sp, "frame", fr, -1, sp->animationFrames[fr].data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                     if(sp->masked) {
-                      SingleFrame(out, sp, "mask", fr, -1, sp->animationFrames[fr].mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);    
+                      SingleFrame(out, sp, "mask", fr, -1, sp->animationFrames[fr].mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                     }
                 }
             } else {
                 SingleFrame(out, sp, "image", -1, -1, sp->data, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                 if(sp->masked) {
-                    SingleFrame(out, sp, "mask", -1, -1, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch); 
+                    SingleFrame(out, sp, "mask", -1, -1, sp->mask, sp->widthInBytes<<3, sp->heightInPixels, sp->pitch);
                 }
             }
         }

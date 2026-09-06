@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include "imgui.h"
+#include "imgui_modified/imgui.h"
 #include "sprite_manager.h"
 #include "util.h"
 #include "imgui_filedialog.h"
@@ -228,15 +229,24 @@ struct ProjectSprites
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Automatically export source code on save", &project->header.autoExportSourceCode)) {} ImGui::PopID();
+                        ImGui::TableNextColumn(); ImGui::PushID(3); if(ImGui::Checkbox("Automatically export source code (or binary) on save", &project->header.autoExportSourceCode)) {} ImGui::PopID();
 
                         ImGui::BeginDisabled(!project->header.autoExportSourceCode);
+
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
-                            ImGui::TableNextColumn(); ImGui::PushID(4); if(ImGui::Checkbox("Include comments and metadata in", &project->header.includeMetadata)) {} ImGui::PopID();
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::TableNextColumn(); ImGui::PushID(5); if(ImGui::Checkbox("Only data (with no labels and constants)", &project->header.onlyData)) {} ImGui::PopID();
+                            ImGui::TableNextColumn(); ImGui::PushID(9); if(ImGui::Checkbox("Binary Export", &project->header.binaryExport)) {} ImGui::PopID();
+                            ImGui::BeginDisabled(project->header.binaryExport);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::TableNextColumn(); ImGui::PushID(4); if(ImGui::Checkbox("Include comments and metadata in", &project->header.includeMetadata)) {} ImGui::PopID();
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::TableNextColumn(); ImGui::PushID(5); if(ImGui::Checkbox("Only data (with no labels and constants)", &project->header.onlyData)) {} ImGui::PopID();
+
+                            ImGui::EndDisabled();
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn(); ImGui::TextUnformatted("Export to");
@@ -356,11 +366,11 @@ struct ProjectSprites
                     charOffset += sprite->GetCharOffset(); // sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
 
                     ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s\nAnimated: %s, Masked: %s", 
-                        (unsigned long)sprite->widthInBytes<<3, 
+                    ImGui::Text("%lux%lu pixels,\nByte Order: %s\n%s\nAnimated: %s, Masked: %s",
+                        (unsigned long)sprite->widthInBytes<<3,
                         (unsigned long)sprite->heightInPixels,
-                        sprite->GetByteAlignment().c_str(), 
-                        (sprite->multicolorMode ? "Multicolor" : "2 colors"), 
+                        sprite->GetByteAlignment().c_str(),
+                        (sprite->multicolorMode ? "Multicolor" : "2 colors"),
                         (sprite->animationAttached ? "Yes" : "No"),
                         (sprite->masked ? "Yes" : "No"));
 

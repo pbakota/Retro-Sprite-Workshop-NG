@@ -24,6 +24,7 @@ struct Project
         bool includeMetadata = true;
         bool onlyData = false;
         int startCharIndex = 0;
+        bool binaryExport = false;
     } header;
 
     std::vector<float> zoomValues = {
@@ -54,6 +55,7 @@ struct Project
         header.includeMetadata = true;
         header.onlyData = false;
         header.startCharIndex = 0;
+        header.binaryExport = false;
     }
 
     // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
@@ -102,6 +104,8 @@ struct Project
                 hdr.includeMetadata = kv.second == "True";
             } else if(kv.first == "OnlyData") {
                 hdr.onlyData = kv.second == "True";
+            } else if(kv.first == "BinaryExport") {
+                hdr.binaryExport = kv.second == "True";
             } else if(kv.first == "StartCharIndex") {
                 hdr.startCharIndex = std::atoi(kv.second.c_str());
             } else if(kv.first.substr(0,6) == "Sprite") {
@@ -198,6 +202,7 @@ struct Project
         fs << "SourceCodeExportPath=" << header.exportTo << CEOL;
         fs << "AutomaticExportWithComments=" << (header.includeMetadata ? "True" : "False") << CEOL;
         fs << "OnlyData=" << (header.onlyData ? "True" : "False") << CEOL;
+        fs << "BinaryExport" << (header.binaryExport ? "True" : "False") << CEOL;
         fs << "StartCharIndex=" << header.startCharIndex << CEOL;
 
         int n = 1;
