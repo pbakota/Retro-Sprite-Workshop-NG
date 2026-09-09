@@ -207,6 +207,22 @@ struct MenuBar
             }
 
             if(ImGui::BeginMenu("Edit")) {
+                bool canUndo = spriteManager->undoRedo.CanUndo(spriteManager->currentSprite);
+                bool canRedo = spriteManager->undoRedo.CanRedo(spriteManager->currentSprite);
+
+                ImGui::BeginDisabled(!canUndo);
+                if(ImGui::MenuItem("Undo", "Ctrl+Z")) {
+                    spriteManager->Undo();
+                }
+                ImGui::EndDisabled();
+
+                ImGui::BeginDisabled(!canRedo);
+                if(ImGui::MenuItem("Redo", "Ctrl+Y")) {
+                    spriteManager->Redo();
+                }
+                ImGui::EndDisabled();
+                ImGui::Separator();
+
                 if(ImGui::MenuItem("Copy", "Ctrl+c")) {
                     projectSprites->Action_Copy();
                 }

@@ -165,6 +165,8 @@ struct Project
                     if(sp->animationAttached) {
                         auto &frame = sp->animationFrames.emplace_back();
                         frame.image = Sprite::CreateSpriteImageTexture(renderer);
+                        memset(frame.data, 0, sizeof(frame.data));
+                        memset(frame.mask, 0, sizeof(frame.mask));
                         Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                         sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
                         if(sp->animationFrames.size() == 1) {
@@ -202,7 +204,7 @@ struct Project
         fs << "SourceCodeExportPath=" << header.exportTo << CEOL;
         fs << "AutomaticExportWithComments=" << (header.includeMetadata ? "True" : "False") << CEOL;
         fs << "OnlyData=" << (header.onlyData ? "True" : "False") << CEOL;
-        fs << "BinaryExport" << (header.binaryExport ? "True" : "False") << CEOL;
+        fs << "BinaryExport=" << (header.binaryExport ? "True" : "False") << CEOL;
         fs << "StartCharIndex=" << header.startCharIndex << CEOL;
 
         int n = 1;

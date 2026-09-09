@@ -40,6 +40,8 @@ struct SpriteImage
     int heightPixelStep = 1;
     const float cellSize = 24.0f;
     bool colorSelectorOpen = false;
+    bool mouseDownRecorded = false;
+    bool strokeRecorded = false;
     ColorSelector colorSelector;
     ImGuiID selectedColor = 0;
 
@@ -54,6 +56,32 @@ struct SpriteImage
 
     SpriteImage(SpriteManager *spriteManager, ProjectSprites *projectSprites, StatusBar *statusbar): spriteManager(spriteManager), projectSprites(projectSprites), statusbar(statusbar) {}
 
+    void DrawStrokeBegin() {
+        if(!spriteManager->currentSprite) return;
+        if(ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            if(!mouseDownRecorded) {
+                mouseDownRecorded = true;
+                strokeRecorded = false;
+            }
+        }
+    }
+
+    // Returns true if writing (x, y) with the given color would actually change
+    // the current data/mask pixel value. Used to avoid recording an undo point
+    // for clicks that do not modify anything (e.g. clicking to focus the editor).
+    bool PixelWouldChange(Sprite *sp, bool masking, int x, int y, int color) {
+        const char *buf = masking ? sp->mask : sp->data;
+        size_t cur;
+        size_t val = (size_t)color;
+        if(sp->multicolorMode) {
+            cur = (buf[y*sp->pitch + 2*x + 0] << 1) | buf[y*sp->pitch + 2*x + 1];
+        } else {
+            cur = buf[y*sp->pitch + x];
+            val &= 1;
+        }
+        return cur != val;
+    }
+
     void render()
     {
         ImGui::SetNextWindowSize(ImVec2(800, 400));
@@ -63,8 +91,14 @@ struct SpriteImage
             ImGui::TextUnformatted("no sprite is opened for editing");
             ImGui::Dummy(ImVec2(0, 10.0f));
             ImGui::TextUnformatted("Double-click on an image on the left-side image list.");
+            mouseDownRecorded = false;
+            strokeRecorded = false;
             ImGui::End();
             return;
+        }
+        if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            mouseDownRecorded = false;
+            strokeRecorded = false;
         }
         if (ImGui::BeginTabBar("#spriteImage", ImGuiTabBarFlags_None))
         {
@@ -226,12 +260,20 @@ struct SpriteImage
     }
 
     void SetPixel(bool masking, int x, int y, int color) {
-        if(masking) {
-          spriteManager->currentSprite->SetMask(x, y, color);
-        } else {
-          spriteManager->currentSprite->SetPixel(x, y, color); spriteManager->currentSprite->Invalidate();
+        Sprite *sp = spriteManager->currentSprite;
+        // Record a single undo point per stroke, only once the first actual
+        // pixel change happens (not on plain clicks that change nothing).
+        if(mouseDownRecorded && !strokeRecorded && PixelWouldChange(sp, masking, x, y, color)) {
+            spriteManager->undoRedo.Record(sp);
+            strokeRecorded = true;
         }
-        animation.UpdateFrameIfAnimated(spriteManager->currentSprite);
+        if(masking) {
+          sp->SetMask(x, y, color);
+        } else {
+          sp->SetPixel(x, y, color);
+        }
+        sp->Invalidate();
+        animation.UpdateFrameIfAnimated(sp);
     }
 
     void ImageEditor() {
@@ -248,6 +290,7 @@ struct SpriteImage
             ImVec2 editor_pos = ImVec2(bx, by), editor_size = ImVec2(widthInPixels*cs+bx, spriteManager->currentSprite->heightInPixels*cs+by);
             statusbar->is_rowcol_visible = is_mouse_hovering = (ImGui::IsMouseHoveringRect(editor_pos, editor_size)) && !ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
             if(is_mouse_hovering && ImGui::IsWindowFocused()) {
+                DrawStrokeBegin();
                 const ImVec2 m = ImGui::GetMousePos();
                 size_t position_x = (size_t)std::floor((m.x - s.x) / (cs * (spriteManager->currentSprite->multicolorMode ? 2 : 1)));
                 size_t position_y = std::floor((m.y - s.y) / cs);

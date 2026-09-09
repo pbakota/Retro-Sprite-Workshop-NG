@@ -31,6 +31,9 @@ struct Serializator {
         ss << "multi1Color=" << sp->multi1Color << CEOL;
         ss << "multi2Color=" << sp->multi2Color << CEOL;
         ss << "characterColor=" << sp->characterColor << CEOL;
+        ss << "prerenderSoftwareSprite=" << sp->prerenderSoftwareSprite << CEOL;
+        ss << "palette=" << (int)sp->palette << CEOL;
+        ss << "zoomIndex=" << sp->zoomIndex << CEOL;
         ss << "masked=" << sp->masked << CEOL;
         ss << "data=" << HexSerializeData(sp->data, sp->widthInBytes, sp->heightInPixels,sp->pitch) << CEOL;
         if(sp->masked) {
@@ -57,6 +60,12 @@ struct Serializator {
         // Ignore data if did not match the signature
         if(tags.front() != CLIPBOARD_DATA_SIGNATURE) return;
         tags.erase(tags.begin()); // remove signature
+        // Zero-pad up front: the pixel-data lines below only overwrite the used
+        // bitmap region, but sprites are compared, copied and memcpy'd in full
+        // (dataHash, frame syncing). Deterministic padding prevents garbage
+        // from flowing into hash comparisons and undo snapshots.
+        memset(sp->data, 0, sizeof(sp->data));
+        memset(sp->mask, 0, sizeof(sp->mask));
         for(std::string & st : tags) {
             std::string v = trim(st);
             std::size_t firstEqual = v.find('=');
@@ -85,6 +94,12 @@ struct Serializator {
                 sp->multi2Color = std::atoi(val.c_str());
             } else if(key == "characterColor") {
                 sp->characterColor = std::atoi(val.c_str());
+            } else if(key == "prerenderSoftwareSprite") {
+                sp->prerenderSoftwareSprite = std::atoi(val.c_str())!=0;
+            } else if(key == "palette") {
+                sp->palette = (Sprite::PaletteType)std::atoi(val.c_str());
+            } else if(key == "zoomIndex") {
+                sp->zoomIndex = std::atoi(val.c_str());
             } else if(key == "masked") {
                 sp->masked = std::atoi(val.c_str())!=0;
             } else if(key == "data") {
@@ -99,6 +114,8 @@ struct Serializator {
                 if(sp->animationAttached) {
                     auto &frame = sp->animationFrames.emplace_back();
                     frame.image = sp->CreateSpriteImageTexture(renderer);
+                    memset(frame.data, 0, sizeof(frame.data));
+                    memset(frame.mask, 0, sizeof(frame.mask));
                     Serializator::HexDeserializeData(val.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
                 }
             } else if(key.substr(0,5) == "mask.") {

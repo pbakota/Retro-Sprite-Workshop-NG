@@ -351,8 +351,8 @@ struct Sprite
             case ByteAligment::Vertical_Software_Sprite: return "Vertical";
             case ByteAligment::Mixed_Character_Based: return "Mixed";
         }
-        assert(true); // unreachable
-        return nullptr;
+        assert(false); // unreachable path
+        return {};
     }
 
     size_t GetCharOffset() {
@@ -389,8 +389,8 @@ struct Sprite
             case PrerendingPrecision::Medium4Frames: return "Medium4Frames";
             case PrerendingPrecision::High8Frames: return "High8Frames";
         }
-        assert(true); // unreachable
-        return nullptr;
+        assert(false); // unreachable path
+        return {};
     }
 
     PrerendingPrecision GetRenderingPrecision(const std::string &str) {
@@ -405,8 +405,8 @@ struct Sprite
             case PaletteType::C64_Pal: return "Commodore64";
             case PaletteType::C264_Pal: return "Commodore264Series";
         }
-        assert(true); // unreachable
-        return nullptr;
+        assert(false); // unreachable path
+        return {};
     }
 
     PaletteType GetPaletteName(const std::string &str) {

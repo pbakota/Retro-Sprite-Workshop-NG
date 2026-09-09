@@ -177,8 +177,13 @@ struct ProjectSprites
             if (ImGui::BeginTabItem("Sprites"))
              {
                 if(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
-                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_C, ImGuiInputFlags_None)) { Action_Copy(); }
-                    if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_V, ImGuiInputFlags_None)) { Action_Paste(); }
+                    // Do not hijack Ctrl+C/V while a text field has input focus
+                    // (e.g. project name/comments), otherwise they would fire
+                    // sprite copy/paste instead of text copy/paste.
+                    if(!ImGui::GetIO().WantTextInput) {
+                        if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_C, ImGuiInputFlags_None)) { Action_Copy(); }
+                        if(ImGui::Shortcut(ImGuiKey_ModCtrl | ImGuiKey_V, ImGuiInputFlags_None)) { Action_Paste(); }
+                    }
                 }
                 switch (spriteManager->spriteListType)
                 {
@@ -443,13 +448,11 @@ struct ProjectSprites
 
                     // Attach sprite to the editor if we double clicked on sprite
                     if(isSelected && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        spriteManager->currentSprite = sprite;
-                        statusbar->is_zoom_visible = true;
-                        statusbar->zoomIndex = sprite->zoomIndex;
+                        spriteManager->AttachSprite(sprite);
                     } else {
                         // Detach sprite from the editor if we selected different sprite
                         if(spriteManager->selectedSpriteId != lastSelectedSpriteId) {
-                            spriteManager->currentSprite = nullptr;
+                            spriteManager->DetachSprite();
                             lastSelectedSpriteId = spriteManager->selectedSpriteId;
                         }
                     }

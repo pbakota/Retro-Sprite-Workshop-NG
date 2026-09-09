@@ -5,6 +5,7 @@
 #include "imgui_internal.h"
 #include "sprite.h"
 #include "serializator.h"
+#include "undo_redo.h"
 
 extern SDL_Renderer *renderer;
 
@@ -19,6 +20,10 @@ struct Animation {
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
     std::string copyBuffer;
     #endif
+
+    // Recorder used to snapshot the sprite before a frame click replaces its
+    // pixel data. Wired to the app's SpriteManager undo history in main().
+    UndoRedoHistory *undoRedo = nullptr;
 
     Animation() {}
 
@@ -149,7 +154,14 @@ struct Animation {
         if(sp->animationFrames.size() <= 1) {
             return; // Cannot delete the last frame
         }
-        sp->animationFrames.erase(sp->animationFrames.begin() + selectedFrameIndex);
+        auto it = sp->animationFrames.begin() + selectedFrameIndex;
+        SDL_DestroyTexture(it->image); // avoid leaking the frame texture
+        sp->animationFrames.erase(it);
+        // Keep the preview index in bounds, otherwise the next DrawPreview
+        // would index past-the-end of animationFrames (UB).
+        if(previewFrameIndex >= (int)sp->animationFrames.size()) {
+            previewFrameIndex = (int)sp->animationFrames.size() - 1;
+        }
     }
 
     void MoveFrame(Sprite *sp, int direction) {
@@ -185,6 +197,14 @@ struct Animation {
                 ImVec2 min = o;
                 ImVec2 max = ImVec2(min.x + display_size.x*scale, min.y + display_size.y*scale);
                 ImGui::PushID(i+1); if(ImGui::ButtonBehavior(ImRect(min,max), ImGui::GetID("##frame"), &hovered, &held, button_flags)) {
+                    // Switching frames replaces sp->data with the clicked
+                    // frame's pixels: context management, not an edit. Clear
+                    // the history so an undo can never restore pixels from a
+                    // different frame under the current one. Re-clicking the
+                    // active frame is a no-op and does not clear.
+                    if(i != selectedFrameIndex && undoRedo) {
+                        undoRedo->Clear();
+                    }
                     selectedFrameIndex = i;
                     auto &frame = sp->animationFrames[i];
                     std::memcpy((void*)sp->data, (void*)frame.data, sizeof(sp->data));

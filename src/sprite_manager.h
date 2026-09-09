@@ -11,6 +11,7 @@
 #include "project.h"
 #include "statusbar.h"
 #include "animation.h"
+#include "undo_redo.h"
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
@@ -45,6 +46,8 @@ struct SpriteManager {
     bool exportWithComments = false;
     bool shiftRollingAround = true;
     bool tiledWindowVisible = false;
+
+    UndoRedoHistory undoRedo;
 
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
     std::string copyBuffer;
@@ -83,6 +86,24 @@ struct SpriteManager {
         SDL_SetWindowTitle(window, vformat("%s - %s", appTitle, std::filesystem::path(projectFile).filename().c_str()).c_str());
     }
 
+    bool Undo() {
+        if(!currentSprite) return false;
+        bool ok = undoRedo.Undo(currentSprite);
+        if(ok) {
+            animation.UpdateAllFramesIfAnimated(currentSprite);
+        }
+        return ok;
+    }
+
+    bool Redo() {
+        if(!currentSprite) return false;
+        bool ok = undoRedo.Redo(currentSprite);
+        if(ok) {
+            animation.UpdateAllFramesIfAnimated(currentSprite);
+        }
+        return ok;
+    }
+
     void ClearSpriteList() {
         for (auto it = sprites.begin(); it != sprites.end(); ++it) {
             delete *it;
@@ -117,6 +138,7 @@ struct SpriteManager {
     void ClearSprite(int id, size_t color) {
         Sprite *sp = GetSprite(id);
         if(!sp->multicolorMode&&(color==1||color==2)) return;
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
             if(sp->multicolorMode) {
@@ -134,8 +156,9 @@ struct SpriteManager {
         animation.UpdateFrameIfAnimated(sp);
     }
 
-    void FlipImage_Horizontal(int id) {
+    void FlipImage_Horizontal(int id, bool record = true) {
         Sprite *sp = GetSprite(id);
+        if(record) undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t y = 0; y < sp->heightInPixels; ++y) {
             if(sp->multicolorMode) {
@@ -158,8 +181,9 @@ struct SpriteManager {
         animation.UpdateFrameIfAnimated(sp);
     }
 
-    void FlipImage_Vertical(int id) {
+    void FlipImage_Vertical(int id, bool record = true) {
         Sprite *sp = GetSprite(id);
+        if(record) undoRedo.Record(sp);
         char tmp[64];
         for (size_t y = 0; y < sp->heightInPixels / 2; ++y) {
             memcpy((void *)tmp, (void *)&sp->data[y * sp->pitch], sp->pitch);
@@ -173,6 +197,7 @@ struct SpriteManager {
     void ShiftImage_Up(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
+        undoRedo.Record(sp);
         char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
 		memcpy((void *)tmp, (void *)sp->data, widthInPixels);
@@ -191,6 +216,7 @@ struct SpriteManager {
     void ShiftImage_Down(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
         if(sp->heightInPixels == 1) return;
+        undoRedo.Record(sp);
         char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
 		memcpy((void *)tmp, (void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], widthInPixels);
@@ -208,6 +234,7 @@ struct SpriteManager {
 
     void ShiftImage_Left(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j) {
             if(sp->multicolorMode) {
@@ -232,6 +259,7 @@ struct SpriteManager {
 
     void ShiftImage_Right(int id, bool rotate) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j)
 		{
@@ -258,10 +286,16 @@ struct SpriteManager {
     void RotateImage_Clockwise(int id) {
         Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
+        undoRedo.Record(sp);
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
         if(sp->multicolorMode) {
-            FlipImage_Horizontal(id);
-            FlipImage_Vertical(id);
+            // NOTE: Intentionally NOT a 90-degree rotation. In multicolor
+            // mode a true 90-degree turn would split the horizontal 2-bit
+            // color pair across rows and produce invalid color coding
+            // (pairs would end up mis-aligned within each byte). So rotate
+            // is limited to 180 degrees here (horizontal + vertical flip).
+            FlipImage_Horizontal(id, false);
+            FlipImage_Vertical(id, false);
         } else {
             for(size_t y=0;y<sp->heightInPixels;++y) {
                 for(size_t x=0;x<sp->heightInPixels;++x) {
@@ -276,10 +310,12 @@ struct SpriteManager {
     void RotateImage_CounterClockwise(int id) {
         Sprite *sp = GetSprite(id);
         if(sp->widthInBytes<<3!=sp->heightInPixels) return;
+        undoRedo.Record(sp);
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(sp->data));
         if(sp->multicolorMode) {
-            FlipImage_Vertical(id);
-            FlipImage_Horizontal(id);
+            // NOTE: 180 degrees only, by design — see RotateImage_Clockwise.
+            FlipImage_Vertical(id, false);
+            FlipImage_Horizontal(id, false);
         } else {
             for(size_t y=0;y<sp->heightInPixels;++y) {
                 for(size_t x=0;x<sp->heightInPixels;++x) {
@@ -293,6 +329,7 @@ struct SpriteManager {
 
     void InsertRow(int id, size_t row) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(int y=sp->heightInPixels-2;y>=(int)row;--y) {
             for(size_t x=0;x<widthInPixels;++x) {
@@ -306,6 +343,7 @@ struct SpriteManager {
 
     void RemoveRow(int id, size_t row) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=row;y<sp->heightInPixels-1;++y) {
             for(size_t x=0;x<widthInPixels;++x) {
@@ -319,6 +357,7 @@ struct SpriteManager {
 
     void InsertColumn(int id, size_t col) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
             if(sp->multicolorMode) {
@@ -341,6 +380,7 @@ struct SpriteManager {
 
     void RemoveColumn(int id, size_t col) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for(size_t y=0;y<sp->heightInPixels;++y) {
             if(sp->multicolorMode) {
@@ -363,6 +403,7 @@ struct SpriteManager {
 
     void RearrangeColors(int id, size_t selected[]) {
         Sprite *sp = GetSprite(id);
+        undoRedo.Record(sp);
         char tmp[4096]; memcpy(tmp, sp->data, sizeof(tmp));
         for(size_t n=0;n<4;++n) {
             if(selected[n] != n) {
@@ -397,6 +438,7 @@ struct SpriteManager {
     void NewProject() {
         DetachSprite();
         ClearSpriteList();
+        undoRedo.Clear();
         // Always append one (default) sprite
         AddNewSprite();
         project->NewProject();
@@ -462,11 +504,24 @@ struct SpriteManager {
         toSp->zoomIndex = fromSp->zoomIndex;
         memcpy(toSp->description, fromSp->description, sizeof(toSp->description));
         memcpy(toSp->data, fromSp->data, sizeof(toSp->data));
+        toSp->masked = fromSp->masked;
+        memcpy(toSp->mask, fromSp->mask, sizeof(toSp->mask));
 
         toSp->animationAttached = fromSp->animationAttached;
         if(fromSp->animationAttached) {
             toSp->animationFPS = fromSp->animationFPS;
-            toSp->animationFrames = fromSp->animationFrames;
+            // Deep-copy the frames: the frame textures must be created fresh,
+            // otherwise both sprites would share the same SDL_Texture pointers
+            // and double-free them when destroyed.
+            toSp->animationFrames.clear();
+            for(auto &fr : fromSp->animationFrames) {
+                Sprite::Frame nf;
+                nf.image = toSp->CreateSpriteImageTexture(renderer);
+                memcpy(nf.data, fr.data, sizeof(nf.data));
+                memcpy(nf.mask, fr.mask, sizeof(nf.mask));
+                toSp->UpdateTextureFromSpriteData(renderer, nf.image, nf.data);
+                toSp->animationFrames.push_back(nf);
+            }
         }
         toSp->Invalidate();
         return toSp->ID;
@@ -521,7 +576,13 @@ struct SpriteManager {
     }
 
     void DetachSprite() {
-        if(currentSprite) animation.ResetAnimation(currentSprite);
+        if(currentSprite) {
+            animation.ResetAnimation(currentSprite);
+            // Resetting to frame 0 changes the editing context, so drop the
+            // history: undo/redo only covers sprite-image pixel edits within
+            // the current context.
+            undoRedo.Clear();
+        }
         currentSprite = nullptr;
         statusbar->is_zoom_visible = false;
     }
@@ -537,16 +598,28 @@ struct SpriteManager {
     #endif
     }
 
+    // A pasted copy may or may not carry animation frames. The target's
+    // existing frames must never be appended to: drop them (and the attached
+    // state) up front so Deserialize rebuilds a clean, self-consistent
+    // animation from the stream alone.
+    void DropAnimation(Sprite *sp) {
+        for(auto &f : sp->animationFrames) SDL_DestroyTexture(f.image);
+        sp->animationFrames.clear();
+        sp->animationAttached = false;
+    }
+
     void PasteSprite(int id) {
         Sprite *sp = GetSprite(id);
     #ifndef USE_CLIPBOARD_FOR_COPY_AND_PASTE
         if(copyBuffer.empty()) return;
+        DropAnimation(sp);
         Serializator::Deserialize(copyBuffer.c_str(), sp);
         sp->Invalidate();
         animation.UpdateAllFramesIfAnimated(sp);
     #else
         if (!SDL_HasClipboardText()) return;
         const char *clipboard = SDL_GetClipboardText();
+        DropAnimation(sp);
         Serializator::Deserialize(clipboard, sp);
         sp->Invalidate();
         animation.UpdateAllFramesIfAnimated(sp);
@@ -572,6 +645,7 @@ struct SpriteManager {
         if(result) {
             DetachSprite();
             ClearSpriteList();
+            undoRedo.Clear();
             sprites = temp;
             std::memcpy((void*)&project->header, (void*)&hdr, sizeof(Project::ProjectHeader));
             InvalidateSprites();
@@ -608,6 +682,7 @@ struct SpriteManager {
 
         if(project->Load(filename, hdr, temp)) {
             DetachSprite();
+            undoRedo.Clear();
             auto current = std::find_if(sprites.begin(), sprites.end(), [&](auto&&sp) { return (sp->ID == selectedSpriteId); });
             if(current != sprites.end()) {
                 // Append sprites after selected sprite
@@ -719,9 +794,13 @@ struct SpriteManager {
     size_t CalculateProjectHash() {
         std::stringstream ss;
         for(auto &sp : sprites) {
-            ss << sp->spriteID << sp->backgroundColor << sp->GetByteAlignment() << sp->characterColor << sp->description << sp->ID << sp->dataHash;
+            ss << sp->spriteID << sp->backgroundColor << sp->GetByteAlignment() << sp->characterColor << sp->description << sp->ID << sp->dataHash << sp->maskHash;
             ss << sp->multi1Color << sp->multi2Color << sp->multicolorMode << sp->GetPaletteName() << sp->prerenderSoftwareSprite << sp->GetRenderingPrecision();
             ss << sp->widthInBytes << sp->heightInPixels << sp->animationAttached;
+            ss << sp->masked << sp->animationFPS << sp->animationFrames.size() << sp->zoomIndex;
+            for(auto &frame : sp->animationFrames) {
+                ss << std::string_view(frame.data, sizeof(frame.data)) << std::string_view(frame.mask, sizeof(frame.mask));
+            }
         }
 
         ss << project->header.autoExportSourceCode << project->header.createdOn << project->header.exportTo << project->header.includeMetadata << project->header.projectComments;

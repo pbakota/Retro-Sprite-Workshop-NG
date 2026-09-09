@@ -45,6 +45,10 @@ SDL_Renderer *renderer;
 // Main code
 int main(int ac, char **av)
 {
+    // Give the animation view the undo recorder so loading a frame into the
+    // editor can snapshot the sprite first.
+    animation.undoRedo = &spriteManager.undoRedo;
+
     char inifilename[512] = {0};
 
     #ifdef _WIN32 // Force OpenGL on Windows to avoid Direct3D issues
