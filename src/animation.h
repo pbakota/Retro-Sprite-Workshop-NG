@@ -56,7 +56,7 @@ struct Animation {
         if(!sp->animationAttached) return;
         for(size_t i=0; i<sp->animationFrames.size(); ++i) {
             auto &frame = sp->animationFrames[i];
-            sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+            sp->UpdateTextureFromSpriteData(renderer, frame.image.get(), frame.data);
         }
     }
 
@@ -66,7 +66,7 @@ struct Animation {
         }
         std::memcpy((void*)sp->animationFrames[selectedFrameIndex].data, (void*)sp->data, sizeof(sp->data));
         std::memcpy((void*)sp->animationFrames[selectedFrameIndex].mask, (void*)sp->mask, sizeof(sp->mask));
-        sp->UpdateTextureFromSpriteData(renderer, sp->animationFrames[selectedFrameIndex].image, sp->animationFrames[selectedFrameIndex].data);
+        sp->UpdateTextureFromSpriteData(renderer, sp->animationFrames[selectedFrameIndex].image.get(), sp->animationFrames[selectedFrameIndex].data);
     }
 
     char *GetData(Sprite *sp) {
@@ -138,25 +138,23 @@ struct Animation {
             std::memset((void*)frame.data, 0, sizeof(frame.data));
             std::memset((void*)frame.mask, 0, sizeof(frame.mask));
         }
-        sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+        sp->UpdateTextureFromSpriteData(renderer, frame.image.get(), frame.data);
     }
 
     void DuplicateFrame(Sprite *sp) {
-        auto curr = sp->animationFrames[selectedFrameIndex];
+        auto &curr = sp->animationFrames[selectedFrameIndex];
         auto& frame = *sp->animationFrames.emplace(sp->animationFrames.begin() + selectedFrameIndex + 1);
         frame.image = sp->CreateSpriteImageTexture(renderer);
         std::memcpy((void*)frame.data, (void*)curr.data, sizeof(frame.data));
         std::memcpy((void*)frame.mask, (void*)curr.mask, sizeof(frame.mask));
-        sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+        sp->UpdateTextureFromSpriteData(renderer, frame.image.get(), frame.data);
     }
 
     void DeleteFrame(Sprite *sp) {
         if(sp->animationFrames.size() <= 1) {
             return; // Cannot delete the last frame
         }
-        auto it = sp->animationFrames.begin() + selectedFrameIndex;
-        SDL_DestroyTexture(it->image); // avoid leaking the frame texture
-        sp->animationFrames.erase(it);
+        sp->animationFrames.erase(sp->animationFrames.begin() + selectedFrameIndex);
         // Keep the preview index in bounds, otherwise the next DrawPreview
         // would index past-the-end of animationFrames (UB).
         if(previewFrameIndex >= (int)sp->animationFrames.size()) {
@@ -269,7 +267,7 @@ struct Animation {
         ImVec2 region = ImGui::GetContentRegionAvail();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (region.x - size.x)*0.5);
         // ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (region.y - size.y)*0.5);
-        ImGui::Image((ImTextureID)frame.image, size, ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
+        ImGui::Image((ImTextureID)frame.image.get(), size, ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
 
         auto dt = ImGui::GetIO().DeltaTime;
         if(dt>1.0f) {
@@ -290,7 +288,7 @@ struct Animation {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         Sprite::Frame &frame = sp->animationFrames[index];
         ImVec2 size = ImVec2(display_size.x*scale, display_size.y*scale);
-        dl->AddImage((ImTextureID)frame.image, pos, ImVec2(pos.x+size.x, pos.y+size.y), ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
+        dl->AddImage((ImTextureID)frame.image.get(), pos, ImVec2(pos.x+size.x, pos.y+size.y), ImVec2(0, 0), ImVec2((sp->widthInBytes<<3)/64.0f, (float)sp->heightInPixels/64.0f));
         ImVec2 w = ImGui::CalcTextSize(std::to_string(index).c_str());
         dl->AddRectFilled(pos, ImVec2(pos.x + w.x + 2.0f, pos.y + 14.0f + 2.0f), ImGui::GetColorU32(ImGuiCol_WindowBg));
         dl->AddText(ImVec2(pos.x+2.0f, pos.y+2.0f), ImGui::GetColorU32(ImGuiCol_Text), std::to_string(index).c_str());

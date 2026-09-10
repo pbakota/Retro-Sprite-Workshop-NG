@@ -113,7 +113,7 @@ private:
                 nf.image = sp->CreateSpriteImageTexture(renderer);
                 memcpy(nf.data, fr.data, sizeof(nf.data));
                 memcpy(nf.mask, fr.mask, sizeof(nf.mask));
-                sp->animationFrames.push_back(nf);
+                sp->animationFrames.push_back(std::move(nf));
             }
         }
 
@@ -121,12 +121,6 @@ private:
     }
 
     void FreeAnimationFrames(Sprite *sp) {
-        for(auto &fr : sp->animationFrames) {
-            if(fr.image) {
-                SDL_DestroyTexture(fr.image);
-                fr.image = nullptr;
-            }
-        }
         sp->animationFrames.clear();
     }
 };

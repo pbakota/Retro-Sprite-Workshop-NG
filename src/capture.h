@@ -293,7 +293,7 @@ struct Capture {
                  uv0 = ImVec2(scaleFactor/size.x, 0);
                  size.x -= scaleFactor;
             }
-            ImGui::Image((ImTextureID)spriteManager->captureScreenshot, size, uv0);
+            ImGui::Image((ImTextureID)spriteManager->captureScreenshot.get(), size, uv0);
 
             DrawGrid(s);
 

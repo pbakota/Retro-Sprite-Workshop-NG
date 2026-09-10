@@ -162,7 +162,7 @@ struct Project
                         memset(frame.data, 0, sizeof(frame.data));
                         memset(frame.mask, 0, sizeof(frame.mask));
                         Serializator::HexDeserializeData(kv.second.c_str(), frame.data, sp->widthInBytes, sp->heightInPixels, sp->pitch);
-                        sp->UpdateTextureFromSpriteData(renderer, frame.image, frame.data);
+                        sp->UpdateTextureFromSpriteData(renderer, frame.image.get(), frame.data);
                         if(sp->animationFrames.size() == 1) {
                             // Copy the first frame to sprite image data
                             std::memcpy((void*)sp->data, (void*)frame.data, sizeof(sp->data));

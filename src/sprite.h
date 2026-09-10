@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <map>
 #include <vector>
+#include <memory>
 #include <malloc.h>
 #include <cassert>
 #include <algorithm>
@@ -14,12 +15,19 @@
 
 //#define USE_TEST_SPRITE
 
+struct SDLTextureDeleter {
+    void operator()(SDL_Texture *t) const {
+        if(t) SDL_DestroyTexture(t);
+    }
+};
+using TexturePtr = std::unique_ptr<SDL_Texture, SDLTextureDeleter>;
+
 static int nextID = 0;
 
 struct Sprite
 {
     int ID;
-    SDL_Texture *original = nullptr, *scaled = nullptr;
+    TexturePtr original, scaled;
     size_t dataHash, maskHash;
 
     enum class PaletteType {
@@ -42,7 +50,9 @@ struct Sprite
 
     struct CacheData {
         size_t hash;
-        SDL_Texture *tx;
+        TexturePtr tx;
+        CacheData() : hash(0) {}
+        CacheData(size_t h, SDL_Texture *t) : hash(h), tx(t) {}
     };
 
     std::map<size_t, CacheData> resizedCache;
@@ -65,7 +75,7 @@ struct Sprite
     size_t charOffset, charIndex;
 
     struct Frame {
-        SDL_Texture *image;
+        TexturePtr image;
         char data[4096]; // 64x64 the maximum size
         char mask[4096];
     };
@@ -146,20 +156,10 @@ struct Sprite
         std::cerr << "[free] Sprite id " << spriteID << " (" << ID << ")" << std::endl;
         #endif
 
-        if(original) {
-            SDL_DestroyTexture(original);
-            original = nullptr;
-        }
-        if(scaled) {
-            SDL_DestroyTexture(scaled);
-            scaled = nullptr;
-        }
-        if(!resizedCache.empty()) {
-            std::for_each(resizedCache.begin(), resizedCache.end(), [](const std::pair<size_t, CacheData>& p) { SDL_DestroyTexture(p.second.tx); });
-        }
-        std::for_each(animationFrames.begin(), animationFrames.end(), [](Frame& f) {
-            SDL_DestroyTexture(f.image);
-        });
+        original.reset();
+        scaled.reset();
+        resizedCache.clear();
+        animationFrames.clear();
     }
 
     void ClearData() {
@@ -229,7 +229,7 @@ struct Sprite
         }
 
         if(size.x == (widthInBytes<<3) && size.y == heightInPixels) {
-            return original;
+            return original.get();
         }
 
         size_t sizeHash = GetSizeHash(size);
@@ -238,7 +238,7 @@ struct Sprite
         auto cache = resizedCache.find(sizeHash);
         CacheData* resized = cache == resizedCache.end() ? nullptr : &(*cache).second;
         if(!resized) {
-            auto it = resizedCache.insert({sizeHash, {dataHash, nullptr}});
+            auto it = resizedCache.emplace(std::piecewise_construct, std::forward_as_tuple(sizeHash), std::forward_as_tuple(dataHash, nullptr));
             resized = &it.first->second;
         }
 
@@ -247,27 +247,27 @@ struct Sprite
             SDL_Rect s = {0,0,((int)(widthInBytes<<3)),(int)heightInPixels}, d = {0,0,(int)(size.x),(int)(size.y)};
 
             if(resized->tx == nullptr) {
-                resized->tx = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h);
+                resized->tx = TexturePtr(SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, d.w, d.h));
                 assert(resized->tx != nullptr);
             }
 
-            assert(SDL_SetRenderTarget(renderer, resized->tx)==0);
-            SDL_RenderCopy(renderer, original, &s, &d);
+            assert(SDL_SetRenderTarget(renderer, resized->tx.get())==0);
+            SDL_RenderCopy(renderer, original.get(), &s, &d);
             assert(SDL_SetRenderTarget(renderer, nullptr)==0);
 
             resized->hash = spriteHash;
         }
-        return resized->tx;
+        return resized->tx.get();
     }
 
-    static inline SDL_Texture *CreateSpriteImageTexture(SDL_Renderer *renderer) {
-        return SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64);
+    static inline TexturePtr CreateSpriteImageTexture(SDL_Renderer *renderer) {
+        return TexturePtr(SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBX8888, SDL_TEXTUREACCESS_STATIC|SDL_TEXTUREACCESS_TARGET, 64, 64));
     }
 
     // Create a texture from sprite data at the original size
     void CreateOriginalSizeTextureCache(SDL_Renderer *renderer) {
         if(original == nullptr) original = CreateSpriteImageTexture(renderer);
-        UpdateTextureFromSpriteData(renderer, original, data);
+        UpdateTextureFromSpriteData(renderer, original.get(), data);
     }
 
     // Update the texture with the sprite data

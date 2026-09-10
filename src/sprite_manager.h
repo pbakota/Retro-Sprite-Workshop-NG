@@ -29,7 +29,7 @@ struct SpriteManager {
 
     int selectedSpriteId = 0;
     Sprite* currentSprite = nullptr;
-    SDL_Texture *captureScreenshot = nullptr;
+    TexturePtr captureScreenshot;
     SDL_Surface *captureSurface = nullptr;
     ImVec2 captureScreenshotSize = ImVec2(-FLT_MIN, -FLT_MIN);
     std::vector<std::string> captureMRU;
@@ -64,9 +64,7 @@ struct SpriteManager {
     ~SpriteManager() {
         ClearSpriteList();
         SDL_free((void*)configPath);
-        if(captureScreenshot) {
-            SDL_DestroyTexture(captureScreenshot);
-        }
+        captureScreenshot.reset();
         if(captureSurface) {
             SDL_FreeSurface(captureSurface);
         }
@@ -517,8 +515,8 @@ struct SpriteManager {
                 nf.image = toSp->CreateSpriteImageTexture(renderer);
                 memcpy(nf.data, fr.data, sizeof(nf.data));
                 memcpy(nf.mask, fr.mask, sizeof(nf.mask));
-                toSp->UpdateTextureFromSpriteData(renderer, nf.image, nf.data);
-                toSp->animationFrames.push_back(nf);
+                toSp->UpdateTextureFromSpriteData(renderer, nf.image.get(), nf.data);
+                toSp->animationFrames.push_back(std::move(nf));
             }
         }
         toSp->Invalidate();
@@ -601,7 +599,6 @@ struct SpriteManager {
     // state) up front so Deserialize rebuilds a clean, self-consistent
     // animation from the stream alone.
     void DropAnimation(Sprite *sp) {
-        for(auto &f : sp->animationFrames) SDL_DestroyTexture(f.image);
         sp->animationFrames.clear();
         sp->animationAttached = false;
     }
@@ -711,15 +708,13 @@ struct SpriteManager {
             std::cerr << "ERROR: " << SDL_GetError() << std::endl;
             return false;
         }
-        if(captureScreenshot) {
-            SDL_DestroyTexture(captureScreenshot);
-        }
+        captureScreenshot.reset();
         if(captureSurface) {
             SDL_FreeSurface(captureSurface);
         }
         captureSurface = image;
         captureScreenshotSize = ImVec2(image->w, image->h);
-        captureScreenshot = SDL_CreateTextureFromSurface(renderer, image);
+        captureScreenshot = TexturePtr(SDL_CreateTextureFromSurface(renderer, image));
         AddToCaptureMRU(filename);
         return true;
     }
