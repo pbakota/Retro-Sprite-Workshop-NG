@@ -319,13 +319,13 @@ struct ProjectSprites
                 size_t charOffset = project->header.startCharIndex;
                 // calculate char offset before clipping
                 for (int row = 0; row < clipper.DisplayStart; row++) {
-                    auto sprite = spriteManager->sprites[row];
+                    auto sprite = spriteManager->sprites[row].get();
                     charOffset += sprite->GetCharOffset(); //sprite->widthInBytes*((sprite->heightInPixels+7)>>3);
                 }
 
                 for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
                 {
-                    auto sprite = spriteManager->sprites[row];
+                    auto sprite = spriteManager->sprites[row].get();
 
                     ImGui::PushID(sprite->ID);
                     ImGui::TableNextRow();
@@ -423,7 +423,7 @@ struct ProjectSprites
             {
                 ImGui::TableNextColumn();
 
-                auto sprite = spriteManager->sprites[i];
+                auto sprite = spriteManager->sprites[i].get();
 
                 bool isSelected = spriteManager->selectedSpriteId == sprite->ID;
                 const char *sprite_id_label = sprite->spriteID;

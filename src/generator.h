@@ -38,7 +38,7 @@ struct Generator {
         Header(ss);
         int n = 1, charIndex = spriteManager->project->header.startCharIndex;
         for(auto sp = spriteManager->sprites.begin(); sp != spriteManager->sprites.end(); ++sp) {
-            auto& sprite = *sp;
+            auto* sprite = sp->get();
             SingleSprite(ss, n++, sprite, charIndex);
             charIndex += sprite->GetCharOffset();
         }
@@ -51,7 +51,7 @@ struct Generator {
         std::vector<unsigned char> result;
 
         for(auto sp = spriteManager->sprites.begin(); sp != spriteManager->sprites.end(); ++sp) {
-            auto& sprite = *sp;
+            auto* sprite = sp->get();
             MakeFramesBinary(result, sprite);
         }
 

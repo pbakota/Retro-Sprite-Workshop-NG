@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
@@ -37,7 +38,7 @@ struct SpriteManager {
 
     const size_t MAX_MRU_ENTRIES = 5;
 
-    std::vector<Sprite*> sprites;
+    std::vector<std::unique_ptr<Sprite>> sprites;
     std::string projectFile = ""; //"project.spr";
     std::vector<std::string> MRU;
     int spriteListType = 0;
@@ -105,16 +106,13 @@ struct SpriteManager {
     }
 
     void ClearSpriteList() {
-        for (auto it = sprites.begin(); it != sprites.end(); ++it) {
-            delete *it;
-        }
         sprites.clear();
     }
 
     Sprite *GetSprite(int id) {
         auto current = find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         assert(current != sprites.end());
-        return *current;
+        return current->get();
     }
 
     int MoveUp(int id) {
@@ -200,12 +198,12 @@ struct SpriteManager {
         undoRedo.Record(sp);
         char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
-		memcpy((void *)tmp, (void *)sp->data, widthInPixels);
-		for (size_t j = 1; j < sp->heightInPixels; ++j) {
-			memcpy((void *)&sp->data[(j - 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
-		}
+        memcpy((void *)tmp, (void *)sp->data, widthInPixels);
+        for (size_t j = 1; j < sp->heightInPixels; ++j) {
+            memcpy((void *)&sp->data[(j - 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
+        }
         if(rotate) {
-		    memcpy((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], (void *)&tmp, widthInPixels);
+            memcpy((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], (void *)&tmp, widthInPixels);
         } else {
             memset((void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], 0, widthInPixels);
         }
@@ -219,12 +217,12 @@ struct SpriteManager {
         undoRedo.Record(sp);
         char tmp[64];
         size_t widthInPixels = sp->widthInBytes<<3;
-		memcpy((void *)tmp, (void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], widthInPixels);
-		for (int j = sp->heightInPixels - 2; j >= 0; --j) {
-			memcpy((void *)&sp->data[(j + 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
-		}
+        memcpy((void *)tmp, (void *)&sp->data[(sp->heightInPixels - 1) * sp->pitch], widthInPixels);
+        for (int j = sp->heightInPixels - 2; j >= 0; --j) {
+            memcpy((void *)&sp->data[(j + 1) * sp->pitch], (void *)&sp->data[j * sp->pitch], widthInPixels);
+        }
         if(rotate) {
-		    memcpy((void *)sp->data, (void *)&tmp, widthInPixels);
+            memcpy((void *)sp->data, (void *)&tmp, widthInPixels);
         } else {
             memset((void *)sp->data, 0, widthInPixels);
         }
@@ -252,7 +250,7 @@ struct SpriteManager {
                 }
                 *(p + widthInPixels - 1) = rotate ? c : 0;
             }
-		}
+        }
         sp->Invalidate();
         animation.UpdateFrameIfAnimated(sp);
     }
@@ -262,7 +260,7 @@ struct SpriteManager {
         undoRedo.Record(sp);
         size_t widthInPixels = sp->widthInBytes<<3;
         for (size_t j = 0; j < sp->heightInPixels; ++j)
-		{
+        {
             if(sp->multicolorMode) {
                 char *p = &sp->data[j * sp->pitch], c1 = p[widthInPixels - 1], c2= p[widthInPixels - 2];
                 for (int k = widthInPixels - 2; k >= 2; k-=2) {
@@ -278,7 +276,7 @@ struct SpriteManager {
                 }
                 *p = rotate ? c : 0;
             }
-		}
+        }
         sp->Invalidate();
         animation.UpdateFrameIfAnimated(sp);
     }
@@ -446,8 +444,8 @@ struct SpriteManager {
         ClearChanges();
     }
 
-    Sprite *NewSpriteTemplate() {
-        Sprite* sprite = new Sprite(1,8, "sprite");
+    std::unique_ptr<Sprite> NewSpriteTemplate() {
+        auto sprite = std::make_unique<Sprite>(1,8, "sprite");
         sprite->byteAligment = Sprite::ByteAligment::Mixed_Character_Based;
         sprite->multicolorMode = false;
         sprite->prerenderSoftwareSprite = false;
@@ -457,8 +455,8 @@ struct SpriteManager {
     }
 
     int AddNewSprite() {
-        Sprite* sprite = NewSpriteTemplate();
-        return AppendSprite(sprite);
+        auto sprite = NewSpriteTemplate();
+        return AppendSprite(std::move(sprite));
     }
 
     int InsertNewSprite(const int id) {
@@ -466,13 +464,13 @@ struct SpriteManager {
         // if not found, exit
         if(current == sprites.end()) return -1;
 
-        Sprite *sprite = NewSpriteTemplate();
-        return InsertSprite(current - sprites.begin() + 1, sprite);
+        auto sprite = NewSpriteTemplate();
+        return InsertSprite(current - sprites.begin() + 1, std::move(sprite));
     }
 
     // Append new sprite at the end of the list
-    int AppendSprite(Sprite *sprite) {
-        auto& it = sprites.emplace_back(sprite);
+    int AppendSprite(std::unique_ptr<Sprite> sprite) {
+        auto& it = sprites.emplace_back(std::move(sprite));
         return (*it).ID;
     }
 
@@ -480,14 +478,14 @@ struct SpriteManager {
         auto current = std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return (sp->ID == id); });
         // if not found, exit
         if(current == sprites.end()) return -1;
-        Sprite *fromSp = *current;
+        Sprite *fromSp = current->get();
         int newId = InsertNewSprite(id);
         return CloneSprite(fromSp, newId);
     }
 
     int CloneSprite(const Sprite* fromSp, int newId) {
         auto it = std::find_if(sprites.begin(), sprites.end(), [newId](auto&&sp) { return (sp->ID == newId); });
-        Sprite *toSp = *it;
+        Sprite *toSp = it->get();
 
         toSp->heightInPixels = fromSp->heightInPixels;
         toSp->widthInBytes = fromSp->widthInBytes;
@@ -529,7 +527,7 @@ struct SpriteManager {
 
     // Remove sprite at index
     int RemoveSprite(int id) {
-        auto current = sprites.erase(std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { bool c = (sp->ID == id); if(c) { delete sp; } return c; }));
+        auto current = sprites.erase(std::find_if(sprites.begin(), sprites.end(), [id](auto&&sp) { return sp->ID == id; }));
         if(sprites.size() == 0) {
             // Must have at least one sprite
             return AddNewSprite();
@@ -543,15 +541,15 @@ struct SpriteManager {
     }
 
     // Insert sprite after index
-    int InsertSprite(const std::size_t index, Sprite *sprite) {
-        auto it = sprites.emplace(sprites.begin() + index, sprite);
+    int InsertSprite(const std::size_t index, std::unique_ptr<Sprite> sprite) {
+        auto it = sprites.emplace(sprites.begin() + index, std::move(sprite));
         return (*it)->ID;
     }
 
     void InvalidateSprites() {
-        for(Sprite * sp : sprites) {
+        for(auto& sp : sprites) {
             sp->Invalidate();
-            animation.UpdateFrameIfAnimated(sp);
+            animation.UpdateFrameIfAnimated(sp.get());
         };
     }
 
@@ -638,7 +636,7 @@ struct SpriteManager {
     }
 
     bool LoadProject(const char *filename) {
-        std::vector<Sprite*> temp;
+        std::vector<std::unique_ptr<Sprite>> temp;
         Project::ProjectHeader hdr;
 
         bool result = project->Load(filename, hdr, temp);
@@ -646,7 +644,7 @@ struct SpriteManager {
             DetachSprite();
             ClearSpriteList();
             undoRedo.Clear();
-            sprites = temp;
+            sprites = std::move(temp);
             std::memcpy((void*)&project->header, (void*)&hdr, sizeof(Project::ProjectHeader));
             InvalidateSprites();
             projectFile = filename;
@@ -676,7 +674,7 @@ struct SpriteManager {
     }
 
     bool ReadProject(const char *filename) {
-    	std::vector<Sprite*> temp;
+        std::vector<std::unique_ptr<Sprite>> temp;
         // The header is ignored when "reading" the project file
         Project::ProjectHeader hdr;
 
@@ -686,15 +684,15 @@ struct SpriteManager {
             auto current = std::find_if(sprites.begin(), sprites.end(), [&](auto&&sp) { return (sp->ID == selectedSpriteId); });
             if(current != sprites.end()) {
                 // Append sprites after selected sprite
-                sprites.insert(current + 1, temp.begin(), temp.end());
+                sprites.insert(current + 1, std::make_move_iterator(temp.begin()), std::make_move_iterator(temp.end()));
             } else {
                 // If there is no current sprite, append to the end of list
-                sprites.insert(current, temp.begin(), temp.end());
+                sprites.insert(current, std::make_move_iterator(temp.begin()), std::make_move_iterator(temp.end()));
             }
             InvalidateSprites();
-    		return true;
-    	}
-    	return false;
+            return true;
+        }
+        return false;
     }
 
     void AddToCaptureMRU(const std::string& filename) {

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <memory>
 #include <string>
 #include "sprite.h"
 #include "serializator.h"
@@ -58,13 +59,7 @@ struct Project
         header.binaryExport = false;
     }
 
-    // void ClearTempSpriteList(std::vector<Sprite*> &sprites) {
-    //     for(auto it=sprites.rbegin(); it != sprites.rend(); ++it) {
-    //         delete *it;
-    //     }
-    // }
-
-    bool Load(const char *filename, ProjectHeader &hdr, std::vector<Sprite*> &sprites) {
+    bool Load(const char *filename, ProjectHeader &hdr, std::vector<std::unique_ptr<Sprite>> &sprites) {
         sprites.clear();
 
         keyvalue_list values;
@@ -72,7 +67,7 @@ struct Project
             return false;
         }
 
-        Sprite *sp;
+        Sprite *sp = nullptr;
         bool firstLine = true;
 
         for(auto it = values.begin(); it!=values.end(); ++it) {
@@ -113,8 +108,7 @@ struct Project
                 if(firstDot==std::string::npos) continue; // skip invalid line
                 std::string key = kv.first.substr(firstDot+1);
                 if(key == "ID") {
-                    sp = new Sprite(1,1, kv.second.c_str());
-                    sprites.push_back(sp);
+                    sp = sprites.emplace_back(std::make_unique<Sprite>(1,1, kv.second.c_str())).get();
                 } else if(key == "Description") {
                     strncpy(sp->description, replace_string(kv.second, NEWLINE_PLACEHOLDER, "\n").c_str(), sizeof(sp->description));
                 } else if(key == "HeightInPixels") {
@@ -189,7 +183,7 @@ struct Project
         return true;
     }
 
-    bool Save(const char *filename, std::vector<Sprite*> &sprites) {
+    bool Save(const char *filename, std::vector<std::unique_ptr<Sprite>> &sprites) {
         std::ofstream fs(filename, std::ios::trunc | std::ios::binary);
         if(!fs.is_open()) {
             return false;
@@ -209,7 +203,7 @@ struct Project
 
         int n = 1;
         for(auto it=sprites.begin(); it != sprites.end(); ++it, n++) {
-            Sprite* sp = *it;
+            Sprite* sp = it->get();
             fs << "Sprite" << n << ".ID=" << sp->spriteID << CEOL;
             fs << "Sprite" << n << ".Description=" << replace_string(sp->description, "\n", NEWLINE_PLACEHOLDER) << CEOL;
             fs << "Sprite" << n << ".HeightInPixels=" << sp->heightInPixels << CEOL;

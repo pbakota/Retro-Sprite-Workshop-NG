@@ -134,7 +134,7 @@ int main(int ac, char **av)
     spriteManager.NewProject();
     #ifdef USE_TEST_SPRITE
     for (auto i = 0; i < 63;++i) {
-        spriteManager.AppendSprite(new Sprite(2, 32, vformat("soft_works_aircraft_%d", i).c_str()));
+        spriteManager.AppendSprite(std::make_unique<Sprite>(2, 32, vformat("soft_works_aircraft_%d", i).c_str()));
     }
     #endif
 
